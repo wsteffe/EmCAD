@@ -1,0 +1,37 @@
+                 Emcad is copyright (C) 2015
+
+                       Walter Steffe`
+                     <steffe at tiscali.it>
+
+
+The AVL tree code (DataBase/avl.*) is copyright (C) 1988-1993, 1995 The Regents of
+the University of California. 
+Permission to use, copy, modify, and distribute this software and
+its documentation for any purpose and without fee is hereby granted, provided
+that the above copyright notice appear in all copies and that both that
+copyright notice and this permission notice appear in supporting documentation,
+and that the name of the University of California not be used in advertising or
+publicity pertaining to distribution of the software without specific, written
+prior permission. The University of California makes no representations about
+the suitability of this software for any purpose. It is provided "as is" without
+express or implied warranty.
+
+The ListUtils, TreeUtils, MallocUtils codes inside the DataBase subdirectory are
+copyright (C)  1997-2015 C. Geuzaine, J.-F. Remacle.
+Permission to use, copy, modify, and distribute this software is granted by the
+GNU General Public License (GPL), Version 2 or any later.
+
+All codes in the SalomeGeom subdirectory are Copyright (C) 2007-2014  
+CEA/DEN, EDF R&D, OPEN CASCADE. Permission to use, copy, modify, and distribute
+this software is granted by the GNU Lesser General Public License version 2.1 or 
+any later.
+
+Special thanks also to EDF for funding the Open Cascade library and of the Salome 
+Platform. These libraries are used in the EmCAD program for the processing/manipulation
+of CAD data.
+
+Special thanks also to C. Geuzaine, J.-F. Remacle for making available the Gmsh 
+code which is used in the EmCAD program for the generation and for the visualization
+of mesh files.
+
+

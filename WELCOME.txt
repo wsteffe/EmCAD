@@ -1,0 +1,7 @@
+This is EmCAD, the client side of side of an electromagnetic 
+modeler which is delivered as a cloud based service.
+
+EmCAD is copyright (C) 2015 Walter Steffe` and is distributed under 
+the terms of the GNU General Public License, Version 2 or
+later. See LICENSE.txt and CREDITS.txt for more information.
+
