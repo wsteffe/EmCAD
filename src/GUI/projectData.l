@@ -202,12 +202,14 @@ mesh	                        { return MESH; }
 wavelength	                { return WAVELENGTH; }
 ratio                           { return RATIO; }
 decomposition                   { return DECOMPOSITION; }
+first                           { return FIRST; }
 material                        { return MATERIAL; }
 remesh                          { return REMESH; }
 modelization                    { return MODELIZATION; }
 component                       { return COMPONENT; }
 save                            { return SAVE; }
 reduction                       { return REDUCTION; }
+reload                          { return RELOAD; }
 needed                          { return NEEDED; }
 changed                         { return CHANGED; }
 

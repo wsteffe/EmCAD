@@ -60,39 +60,48 @@ extern int modeldebug;
     TEMPORTSNUM = 270,
     TEPORTSNUM = 271,
     TMPORTSNUM = 272,
-    MWM_VOLUME = 273,
-    MWM_UNITS = 274,
-    MWM_LINEPORT = 275,
-    LENGTH = 276,
-    FREQUENCY = 277,
-    BAND = 278,
-    RESISTANCE = 279,
-    SURFACERESISTANCE = 280,
-    MESHREFINEMENT = 281,
-    COMPSOLID = 282,
-    VOLTYPE = 283,
-    EPSILONR = 284,
-    MUR = 285,
-    EPSLORENTZ = 286,
-    MULORENTZ = 287,
-    ECONDUCTIVITY = 288,
-    HCONDUCTIVITY = 289,
-    ETANDELTA = 290,
-    HTANDELTA = 291,
-    MATERIAL = 292,
-    COLOR = 293,
-    VOLUMES = 294,
-    DISABLED = 295,
-    tDIELECTRIC = 296,
-    tHOLE = 297,
-    tBOUNDARYCONDITION = 298,
-    tWAVEGUIDE = 299,
-    tLINEPORT = 300,
-    tSPLITTER = 301,
-    tGRID = 302,
-    tASSEMBLY = 303,
-    tUNDEFINED = 304,
-    SOLID = 305
+    GRIDNUM = 273,
+    PML = 274,
+    INVARIANT = 275,
+    TRANSLATION = 276,
+    ROTATION = 277,
+    ANGLE = 278,
+    ORIGIN = 279,
+    AXIS = 280,
+    MWM_VOLUME = 281,
+    MWM_INVARIANT = 282,
+    MWM_UNITS = 283,
+    MWM_LINEPORT = 284,
+    LENGTH = 285,
+    FREQUENCY = 286,
+    BAND = 287,
+    RESISTANCE = 288,
+    SURFACERESISTANCE = 289,
+    MESHREFINEMENT = 290,
+    COMPSOLID = 291,
+    VOLTYPE = 292,
+    EPSILONR = 293,
+    MUR = 294,
+    EPSLORENTZ = 295,
+    MULORENTZ = 296,
+    ECONDUCTIVITY = 297,
+    HCONDUCTIVITY = 298,
+    ETANDELTA = 299,
+    HTANDELTA = 300,
+    MATERIAL = 301,
+    COLOR = 302,
+    VOLUMES = 303,
+    DISABLED = 304,
+    tDIELECTRIC = 305,
+    tHOLE = 306,
+    tBOUNDARYCONDITION = 307,
+    tWAVEGUIDE = 308,
+    tLINEPORT = 309,
+    tSPLITTER = 310,
+    tGRID = 311,
+    tASSEMBLY = 312,
+    tUNDEFINED = 313,
+    SOLID = 314
   };
 #endif
 
@@ -101,13 +110,13 @@ extern int modeldebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 94 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model.y" /* yacc.c:1909  */
+#line 97 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model.y" /* yacc.c:1909  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 111 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
+#line 120 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

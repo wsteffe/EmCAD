@@ -246,15 +246,21 @@ class SetCompPropertiesDialog : public QDialog
      QDoubleValidator *positiveDoubleValidator;
      QLineEdit  *nameLineEdit;
      QLineEdit  *meshRefLineEdit;
+     QSpinBox   *gridNumSB;
      QComboBox  *typeChooser;
      QLineEdit  *LinePortZcLineEdit;
      std::map<int, int> typeChooserMap;
      QLineEdit *TEMnumLE;
      QSpinBox  *TEnumSB;
      QSpinBox  *TMnumSB;
+     QCheckBox *PML;
+#if defined(EXPLICIT_INVARIANT)
+     QCheckBox *invariant;
+#endif
      QGroupBox *nameGroupBox;
      QGroupBox *WgGroupBox;
      QGroupBox *LPGroupBox;
+     QGroupBox *GridGroupBox;
      QGroupBox *buttonGroupBox;
      QGroupBox *meshGroupBox;
      QVBoxLayout *mainLayout;

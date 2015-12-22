@@ -48,6 +48,7 @@
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
+#include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TCollection_AsciiString.hxx>
 
@@ -59,6 +60,9 @@
 
 #include <TDF_ChildIterator.hxx>
 #include <TDF_Reference.hxx>
+
+#include <gp_Ax1.hxx>
+#include <gp_Trsf.hxx>
 
 #include "DataBase.h"
 
@@ -89,18 +93,440 @@ bool useBoundaryLayer=false;
 
 struct Reloc
 {
+  gp_Trsf trsf; 
+  TopTools_IndexedMapOfShape  *indexedSolids;
   TopTools_IndexedMapOfShape  *indexedFaces;
   TopTools_IndexedMapOfShape  *indexedEdges;
   TopTools_IndexedMapOfShape  *indexedVertices;
 } ;
+
+void gp_trsf_2_gmsh(gp_Trsf& trsf,std::vector<double>& tfo)
+{
+ tfo.resize(16,0);
+ for (int i = 0; i < 3; i++) 
+   for (int j = 0; j < 4; j++) 
+     tfo[4*i+j] =trsf.Value(i+1,j+1);
+ tfo[15]=1;
+}
+
+void computeAffineTransf(DB::Transform *invt, gp_Trsf& trsf, int sgn=1)
+{
+  sgn=SIGN(sgn);
+  if(invt->rotAngle!=0){
+    gp_Pnt O =gp_Pnt(invt->rotOrigin[0],invt->rotOrigin[1],invt->rotOrigin[2]);
+    gp_Dir D =gp_Dir(invt->rotAxis[0],invt->rotAxis[1],invt->rotAxis[2]);
+    gp_Ax1 A=gp_Ax1(O, D);
+    trsf.SetRotation(A,sgn*invt->rotAngle);
+  } else{
+    gp_Vec T =gp_Vec(sgn*invt->trasl[0],sgn*invt->trasl[1],sgn*invt->trasl[2]);
+    trsf.SetTranslation(T);
+  }
+}
+
+void computeAffineTransf_(DB::Transform *invt, std::vector<double>& tfo, int sgn=1)
+{
+
+  sgn=SIGN(sgn);
+  double ca = cos(invt->rotAngle);
+  double sa = sin(invt->rotAngle)*sgn;
+
+  double ux = invt->rotAxis[0];
+  double uy = invt->rotAxis[1];
+  double uz = invt->rotAxis[2];
+
+  tfo.resize(16,0.0);
+
+  tfo[0*4+0] = ca + ux*ux*(1.-ca);
+  tfo[0*4+1] = ux*uy*(1.-ca) - uz * sa;
+  tfo[0*4+2] = ux*uz*(1.-ca) + uy * sa;
+
+  tfo[1*4+0] = ux*uy*(1.-ca) + uz * sa;
+  tfo[1*4+1] = ca + uy*uy*(1.-ca);
+  tfo[1*4+2] = uy*uz*(1.-ca) - ux * sa;
+
+  tfo[2*4+0] = ux*uz*(1.-ca) - uy * sa;
+  tfo[2*4+1] = uy*uz*(1.-ca) + ux * sa;
+  tfo[2*4+2] = ca + uz*uz*(1.-ca);
+
+  int idx = 0;
+  for (size_t i = 0; i < 3; i++,idx++) {
+    int tIdx = i*4+3;
+    tfo[tIdx] = invt->rotOrigin[i] + sgn*invt->trasl[i];
+    for (int j = 0; j < 3; j++,idx++) tfo[tIdx] -= tfo[idx] * invt->rotOrigin[j];
+  }
+
+  for (int i = 0; i < 4; i++) tfo[12+i] = 0;
+  tfo[15] = 1;
+}
+
+void multiplyAffineTransf(const std::vector<double> &a, const std::vector<double> &b, std::vector<double> &c)
+{
+    c.resize(16,0.0);
+    for(int i = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++)
+        for(int k = 0; k < 4; k++)
+          c[i+4 * j] += a[i+4*k] * b[k+4*j];
+}
+
+
+gp_Vec  supNormal(Handle(Geom_Surface) GS, gp_Pnt GP);
+
+void makeInvMasters(MwOCAF* ocaf, Reloc* reloc, EdgeData  *edgeData, 
+		std::vector<int> &Emaster, std::vector<std::vector<double> > &ETransf,
+	       	std::vector<int> &Fmaster, std::vector<std::vector<double> > &FTransf
+		)
+{
+  std::vector<int> Vmaster;
+  std::vector< std::map<int,int> > VFmap, VEmap;
+  std::map< std::set<int>, int > PIset2EI;
+  int NE=reloc->indexedEdges->Extent();
+  int NF=reloc->indexedFaces->Extent();
+  int NV=reloc->indexedSolids->Extent();
+  Emaster.resize(NE,0); ETransf.resize(NE);
+  Fmaster.resize(NF,0); FTransf.resize(NF);
+  Vmaster.resize(NV,0); VFmap.resize(NV); VEmap.resize(NV);
+  for (int EI=1; EI<=NE; EI++){
+     TopoDS_Edge E= TopoDS::Edge(reloc->indexedEdges->FindKey(EI));
+     std::set<int> Iset;
+     Iset.insert(-EI);
+     TopoDS_Vertex V1,V2;
+     TopExp::Vertices(E,V1,V2);
+     int IV1=reloc->indexedVertices->FindIndex(V1); Iset.insert(IV1);
+     int IV2=reloc->indexedVertices->FindIndex(V2); Iset.insert(IV2);
+     PIset2EI[Iset]=EI;
+  }
+  std::map< std::set<int>, int > EIset2FI;
+  for (int FI=1; FI<=reloc->indexedFaces->Extent(); FI++){
+     TopoDS_Shape F = reloc->indexedFaces->FindKey(FI);
+     std::set<int> Iset;
+     for (TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
+       TopoDS_Shape E = exp.Current();
+       E.Orientation(TopAbs_FORWARD);
+       int EI=ocaf->indexedEdges->FindIndex(E);
+       Iset.insert(EI);
+     }
+     EIset2FI[Iset]=FI;
+  }
+  std::map< std::set<int>, int > FIset2VI;
+  typedef std::set<int >::iterator IsetIt;
+  typedef std::map<int,int>::iterator ImapIt;
+  for (int VI=1; VI<=reloc->indexedSolids->Extent(); VI++){
+     TopoDS_Shape V = reloc->indexedSolids->FindKey(VI);
+     std::set<int> Iset;
+     for (TopExp_Explorer exp(V,TopAbs_FACE); exp.More(); exp.Next()){
+       TopoDS_Shape F = exp.Current();
+       F.Orientation(TopAbs_FORWARD);
+       int FI=ocaf->indexedFaces->FindIndex(F);
+       Iset.insert(FI);
+     }
+     FIset2VI[Iset]=VI;
+     for (IsetIt it=Iset.begin(); it!= Iset.end(); it++){
+	  int FI=*it;
+	  VFmap[VI-1][FI]=FI;
+     }
+     Iset.clear();
+     for (TopExp_Explorer exp(V,TopAbs_EDGE); exp.More(); exp.Next()){
+       TopoDS_Shape E = exp.Current();
+       E.Orientation(TopAbs_FORWARD);
+       int EI=ocaf->indexedEdges->FindIndex(E);
+       Iset.insert(EI);
+     }
+     for (IsetIt it=Iset.begin(); it!= Iset.end(); it++){
+	  int EI=*it;
+	  VEmap[VI-1][EI]=EI;
+     }
+  }
+  List_T *invariants=Tree2List(ocaf->EmP.invariants);
+  for(int it=0; it<List_Nbr(invariants); it++){
+    std::map<int,int> PEmap_i;
+    std::vector<int> Emaster_i; Emaster_i.resize(NE,0);
+    std::vector<int> Fmaster_i; Fmaster_i.resize(NF,0);
+    DB::Transform *invar;
+    List_Read(invariants, it, &invar);
+    std::string str_name=std::string(invar->name);
+    gp_Trsf trsf,itrsf;
+    computeAffineTransf(invar, trsf);
+    trsf=reloc->trsf*(trsf*reloc->trsf.Inverted());
+    computeAffineTransf(invar, itrsf,-1);
+    itrsf=reloc->trsf*(itrsf*reloc->trsf.Inverted());
+    std::vector<double> tfo,itfo;
+    gp_trsf_2_gmsh(trsf,tfo);
+    gp_trsf_2_gmsh(itrsf,itfo);
+    std::vector<double> tfo1,itfo1;
+    computeAffineTransf_(invar, tfo1);
+    computeAffineTransf_(invar, itfo1,-1);
+    double tol=1.e-10;
+    for (int PI=1; PI<=reloc->indexedVertices->Extent(); PI++){
+      TopoDS_Vertex P = TopoDS::Vertex(reloc->indexedVertices->FindKey(PI));
+      gp_Pnt gP = BRep_Tool::Pnt(P);
+      double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
+      double p_m[3]={0,0,0};
+      for (size_t i=0,ij=0;i<3;i++)
+          for (size_t j=0;j<4;j++,ij++) p_m[i] += itfo[ij] * p[j];
+      gp_Pnt gP_m =gp_Pnt(p_m[0],p_m[1],p_m[2]);
+      for (int QI=1; QI<=reloc->indexedVertices->Extent(); QI++){
+        TopoDS_Vertex Q = TopoDS::Vertex(reloc->indexedVertices->FindKey(QI));
+        gp_Pnt gQ=BRep_Tool::Pnt(Q);
+        gp_Vec PQ=gp_Vec(gP_m, gQ);
+        if (PQ.Magnitude() < tol) {
+		PEmap_i[PI]=QI;
+		break;
+        }
+      }
+    }
+    for (int IE=1; IE<=reloc->indexedEdges->Extent(); IE++){
+      TopoDS_Edge EI = TopoDS::Edge(reloc->indexedEdges->FindKey(IE));
+      double ui1,ui2;
+      Handle(Geom_Curve) gci=BRep_Tool::Curve (EI, ui1, ui2);
+      gp_Pnt gP = gci->Value((ui1+ui2)/2);
+      double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
+      double p_m[3]={0,0,0};
+      for (size_t i=0,ij=0;i<3;i++)
+          for (size_t j=0;j<4;j++,ij++) p_m[i] += itfo[ij] * p[j];
+      gp_Pnt gP_m =gp_Pnt(p_m[0],p_m[1],p_m[2]);
+      for (int JE=1; JE<=reloc->indexedEdges->Extent(); JE++){
+        TopoDS_Edge EJ = TopoDS::Edge(reloc->indexedEdges->FindKey(JE));
+        double uj1,uj2;
+        Handle(Geom_Curve) gcj=BRep_Tool::Curve (EJ, uj1, uj2);
+        gp_Pnt gQ = gcj->Value((uj1+uj2)/2);
+        gp_Vec PQ=gp_Vec(gP_m, gQ);
+        if (PQ.Magnitude() < tol) {
+	    PEmap_i[-IE]=-JE;
+	    break;
+        }
+      }
+    }
+    for (int IE=1; IE<=NE; IE++){
+       double refri=sqrt(edgeData[IE-1].epsr * edgeData[IE-1].mur)*edgeData[IE-1].meshref;
+       std::set<int> Iset;
+       TopoDS_Edge E= TopoDS::Edge(reloc->indexedEdges->FindKey(IE));
+       Iset.insert(PEmap_i[-IE]);
+       TopoDS_Vertex V1,V2;
+       TopExp::Vertices(E,V1,V2);
+       int IV1=reloc->indexedVertices->FindIndex(V1); Iset.insert(PEmap_i[IV1]);
+       int IV2=reloc->indexedVertices->FindIndex(V2); Iset.insert(PEmap_i[IV2]);
+       if(PIset2EI.find(Iset)!=PIset2EI.end()){
+	   int IE_m=PIset2EI[Iset];
+	   double refri_m=sqrt(edgeData[IE_m-1].epsr * edgeData[IE_m-1].mur)*edgeData[IE_m-1].meshref;
+	   if(fabs(refri_m-refri)<1.e-3*refri){
+            TopoDS_Edge E_m= TopoDS::Edge(reloc->indexedEdges->FindKey(IE_m));
+            TopoDS_Vertex V1_m,V2_m;
+            TopExp::Vertices(E_m,V1_m,V2_m);
+            int IV1_m=reloc->indexedVertices->FindIndex(V1_m);
+	    int sgn=PEmap_i[IV1]==IV1_m? 1:-1;
+	    Emaster[IE-1]=Emaster_i[IE-1]=IE_m*sgn;
+	    ETransf[IE-1]=tfo;
+	   }
+       }
+    }
+    for (int FI=1; FI<=reloc->indexedFaces->Extent(); FI++){
+       TopoDS_Face F = TopoDS::Face(reloc->indexedFaces->FindKey(FI));
+       std::set<int> Iset;
+       for (TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
+         TopoDS_Shape E = exp.Current();
+         E.Orientation(TopAbs_FORWARD);
+         int EI=reloc->indexedEdges->FindIndex(E);
+         Iset.insert(abs(Emaster_i[EI-1]));
+       }
+       if(EIset2FI.find(Iset)!=EIset2FI.end()){
+	   int FIm=EIset2FI[Iset];
+	   FTransf[FI-1]=tfo;
+           TopoDS_Face Fm = TopoDS::Face(reloc->indexedFaces->FindKey(FIm));
+	   Handle(Geom_Surface) GS  = BRep_Tool::Surface(F);
+	   Handle(Geom_Surface) GSm = BRep_Tool::Surface(Fm);
+	   TopExp_Explorer vexp(F,TopAbs_VERTEX);
+           TopoDS_Vertex P = TopoDS::Vertex(vexp.Current());
+           gp_Pnt gP = BRep_Tool::Pnt(P);
+	   gp_Vec N=supNormal(GS, gP);
+           double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
+           double pm[3]={0,0,0};
+           for (size_t i=0,ij=0;i<3;i++)
+             for (size_t j=0;j<4;j++,ij++) pm[i] += itfo[ij] * p[j];
+           gp_Pnt gPm =gp_Pnt(pm[0],pm[1],pm[2]);
+	   gp_Vec Nm=supNormal(GSm, gPm);
+           double n[4] = {N.X(), N.Y(), N.Z(),0};
+           double tfn[3]={0,0,0};
+           for (size_t i=0,ij=0;i<3;i++)
+             for (size_t j=0;j<4;j++,ij++) tfn[i] += itfo[ij] * n[j];
+	   gp_Vec tfN=gp_Vec(tfn[0],tfn[1],tfn[2]);
+	   Fmaster[FI-1]=Fmaster_i[FI-1]=FIm*SIGN(tfN*Nm);
+       }
+    }
+    for (int VI=1; VI<=reloc->indexedSolids->Extent(); VI++){
+       char vname[100]; sprintf(vname,"Vol%d",VI);
+       DB::Volume* vol=ocaf->EmP.FindVolume(vname);
+       TopoDS_Shape V = reloc->indexedSolids->FindKey(VI);
+       std::set<int> Iset;
+       for (TopExp_Explorer exp(V,TopAbs_FACE); exp.More(); exp.Next()){
+         TopoDS_Shape F = exp.Current();
+         F.Orientation(TopAbs_FORWARD);
+         int FI=reloc->indexedFaces->FindIndex(F);
+         Iset.insert(abs(Fmaster_i[FI-1]));
+       }
+       if(FIset2VI.find(Iset)!=FIset2VI.end()){
+	   int VIm=FIset2VI[Iset];
+           char vmname[100]; sprintf(vmname,"Vol%d",VIm);
+           DB::Volume* volm=ocaf->EmP.FindVolume(vmname);
+	   if(!strcmp(volm->material,vol->material)){
+	    Vmaster[VI-1]=VIm;
+            for (ImapIt it=VFmap[VI-1].begin(); it!= VFmap[VI-1].end(); it++)  (*it).second=Fmaster_i[(*it).first-1];
+            for (ImapIt it=VEmap[VI-1].begin(); it!= VEmap[VI-1].end(); it++)  (*it).second=Emaster_i[(*it).first-1];
+	   }
+       }
+    }
+  }
+  List_Delete(invariants);
+
+  bool CHECK=false;
+
+  bool changed=true;
+  while(changed){ 
+     changed=false;
+     for (int I1=1; I1<=NE; I1++) if(Emaster[I1-1]){
+     int I2=Emaster[I1-1];
+     int sgn2=SIGN(I2); I2=abs(I2);
+     if(CHECK){
+      TopoDS_Edge E1= TopoDS::Edge(reloc->indexedEdges->FindKey(I1));
+      TopoDS_Vertex V1_1,V1_2;
+      TopExp::Vertices(E1,V1_1,V1_2);
+      TopoDS_Edge E2= TopoDS::Edge(reloc->indexedEdges->FindKey(I2));
+      TopoDS_Vertex V2_1,V2_2;
+      TopExp::Vertices(E2,V2_1,V2_2);
+      double tol=1.e-10;
+      gp_Pnt gP = BRep_Tool::Pnt(V2_1);
+      double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
+      double p_t[3]={0,0,0};
+      std::vector<double> tf1=ETransf[I1-1];
+      for (size_t i=0,ij=0;i<3;i++)
+          for (size_t j=0;j<4;j++,ij++) p_t[i] += tf1[ij] * p[j];
+      gp_Pnt gP_t =gp_Pnt(p_t[0],p_t[1],p_t[2]);
+      gp_Pnt gQ = sgn2>0 ? BRep_Tool::Pnt(V1_1):BRep_Tool::Pnt(V1_2) ;
+      gp_Vec PQ=gp_Vec(gP_t, gQ);
+      assert (PQ.Magnitude() < tol);
+     }
+     if(Emaster[I2-1]){
+	 int I3=Emaster[I2-1];
+         int sgn3=SIGN(I3); I3=abs(I3);
+	 if(I3!=I2){
+	  changed=true; Emaster[I1-1]=I3*sgn2*sgn3;
+	  std::vector<double> tfo1=ETransf[I1-1];
+	  std::vector<double> tfo2=ETransf[I2-1];
+	  std::vector<double> tfo12;
+          multiplyAffineTransf(tfo1, tfo2, tfo12);
+	  ETransf[I1-1]=tfo12;
+	 }
+     }
+     }
+  }
+  changed=true;
+  while(changed){ 
+     changed=false;
+     for (int I1=1; I1<=NF; I1++) if(Fmaster[I1-1]){
+     int I2=Fmaster[I1-1];
+     int sgn2=SIGN(I2); I2=abs(I2);
+     if(Fmaster[I2-1]){
+	 int I3=Fmaster[I2-1];
+         int sgn3=SIGN(I3); I3=abs(I3);
+	 if(I3!=I2){
+	  changed=true; Fmaster[I1-1]=I3*sgn2*sgn3;
+	  std::vector<double> tfo1=FTransf[I1-1];
+	  std::vector<double> tfo2=FTransf[I2-1];
+	  std::vector<double> tfo12;
+          multiplyAffineTransf(tfo1, tfo2, tfo12);
+	  FTransf[I1-1]=tfo12;
+	 }
+     }
+     }
+  }
+  changed=true;
+  while(changed){ 
+     changed=false;
+     for (int I1=1; I1<=NV; I1++) if(Vmaster[I1-1]){
+     int I2=Vmaster[I1-1];
+     if(I2) if(Vmaster[I2-1]) if(Vmaster[I2-1]!=I2){
+       changed=true; 
+       for (ImapIt it=VFmap[I1-1].begin(); it!= VFmap[I1-1].end(); it++) (*it).second=VFmap[I2-1][abs((*it).second)]*SIGN((*it).second);
+       for (ImapIt it=VEmap[I1-1].begin(); it!= VEmap[I1-1].end(); it++) (*it).second=VEmap[I2-1][abs((*it).second)]*SIGN((*it).second);
+       Vmaster[I1-1]=Vmaster[I2-1];
+     }
+     }
+  }
+
+  for (int I=1; I<=NE; I++) if(Emaster[I-1]) {
+       int M=abs(Emaster[I-1]); Emaster[M-1]=M;
+  }
+  for (int I=1; I<=NF; I++) if(Fmaster[I-1]) {
+       int M=abs(Fmaster[I-1]); Fmaster[M-1]=M;
+  }
+  for (int I=1; I<=NV; I++) if(Vmaster[I-1]) {
+       int M=Vmaster[I-1];
+       if(M) Vmaster[M-1]=M;
+  }
+  for (int I=1; I<=NV; I++) if(Vmaster[I-1]) {
+       char vname[100]; sprintf(vname,"Vol%d",I);
+       DB::Volume* vol=ocaf->EmP.FindVolume(vname);
+       vol->master=Vmaster[I-1];
+       vol->Fmap=VFmap[I-1];
+       vol->Cmap=VEmap[I-1];
+  }
+
+
+}
+
+void setMasterEdges(
+		GModel *gm,
+		TopTools_IndexedMapOfShape *indexedEdges,
+		std::map< int, GEdge * > &indexedGmshEdges,
+	       	std::vector<int> &Emaster,
+		std::vector<std::vector<double> > &ETransf
+	   )
+{
+     
+    for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
+         GEdge *ge=*eit;
+         TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
+         int EI=indexedEdges->FindIndex(E);
+         assert(EI);
+         if(EI) if(Emaster[EI-1]) if(Emaster[EI-1] !=EI) {
+	  int ori=SIGN(Emaster[EI-1]);
+	  int EI_m=abs(Emaster[EI-1]);
+          GEdge *ge_m=indexedGmshEdges[EI_m];
+	  ge->setMeshMaster(ge_m,ETransf[EI-1]);
+	 }
+    }
+
+}
+
+
+void setMasterFaces(
+		GModel *gm,
+		TopTools_IndexedMapOfShape *indexedFaces,
+		std::map< int, GFace * > &indexedGmshFaces,
+	       	std::vector<int> &Fmaster,
+		std::vector<std::vector<double> > &FTransf
+	   )
+{
+    for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+         GFace *gf=*fit;
+         TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+         int FI=indexedFaces->FindIndex(F);
+         assert(FI);
+         if(FI) if(Fmaster.size()>FI-1) if(Fmaster[FI-1]) if(Fmaster[FI-1] !=FI) {
+	  int FI_m=abs(Fmaster[FI-1]);
+          GFace *gf_m=indexedGmshFaces[FI_m];
+	  gf->setMeshMaster(gf_m,FTransf[FI-1]);
+	 }
+    }
+
+}
 
 
 void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
 	      const char* dirName, const char* modelDir,
 	      TopTools_IndexedMapOfShape *indexedFaces,
 	      TopTools_IndexedMapOfShape *indexedEdges,
-	      TopTools_IndexedMapOfShape *indexedVertices
-	      );
+	      TopTools_IndexedMapOfShape *indexedVertices,
+	      std::vector<int> &Fmaster);
 
 
 
@@ -439,8 +865,22 @@ void mesher_setFaceMeshAttribute(GModel *gm,
 }
 
 
-
-
+bool isGridFace(GFace *gf)
+{
+   std::list<GEdge*>   Fedges=gf->edges();
+   std::set<GEdge*> edgeSet;
+   for (std::list<GEdge*>::const_iterator eit=Fedges.begin(); eit!=Fedges.end(); ++eit){
+     GEdge *ge=*eit;
+     edgeSet.insert(ge);
+   }
+   int coupledSize=0;
+   for (std::list<GEdge*>::const_iterator eit=Fedges.begin(); eit!=Fedges.end(); ++eit){
+     GEdge *ge=*eit;
+     GEdge *gem = dynamic_cast<GEdge*> (ge->meshMaster());
+     if (gem != ge) if(edgeSet.find(gem)!=edgeSet.end()) coupledSize+=2;
+   }
+   return coupledSize==edgeSet.size();
+}
 
 void laplaceSmoothing(GFace *gf);
 
@@ -460,6 +900,13 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
 // relocates faces with respect to upper assembly reference system
     Reloc reloc;
     TopLoc_Location loc=ocaf->location();
+    reloc.trsf=loc.Transformation();
+    reloc.indexedSolids=new TopTools_IndexedMapOfShape;
+    for (int VI=1; VI<=ocaf->indexedSolids->Extent(); VI++){
+      TopoDS_Shape V = ocaf->indexedSolids->FindKey(VI);
+      V.Move(loc);
+      reloc.indexedSolids->Add(V);
+    }
     reloc.indexedFaces=new TopTools_IndexedMapOfShape;
     for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++){
       TopoDS_Shape F = ocaf->indexedFaces->FindKey(FI);
@@ -490,6 +937,14 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
       TopoDS_Shape F = reloc.indexedFaces->FindKey(FI);
       if(!F.IsNull()) builder.Add(theFaces,F);
     }
+
+
+    std::vector<int> Emaster;
+    std::vector<std::vector<double> > ETransf;
+    std::vector<int> Fmaster;
+    std::vector<std::vector<double> > FTransf;
+    if(isPartition) makeInvMasters(ocaf,&reloc, ocaf->edgeData, Emaster,ETransf,Fmaster,FTransf);
+
 
 /*
     int SI=0;
@@ -531,6 +986,24 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
 //      setTags is deactivated because, by breaking the ordering of edges structure (a std::set),
 //      it may lead to a crash of gmsh.
 //      mesher_setTags(gm, reloc.indexedFaces, reloc.indexedEdges, reloc.indexedVertices);
+      std::map< int, GEdge * > indexedGmshEdges;
+      for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
+         GEdge *ge=*eit;
+         TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
+         int EI=reloc.indexedEdges->FindIndex(E);
+         assert(EI);
+         if(!EI) continue;
+	 indexedGmshEdges[EI]=ge;
+      }
+      std::map< int, GFace * > indexedGmshFaces;
+      for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+         GFace *gf=*fit;
+         TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+         int FI=reloc.indexedFaces->FindIndex(F);
+         assert(FI);
+         if(!FI) continue;
+	 indexedGmshFaces[FI]=gf;
+      }
 
       int fieldNum=0;
       std::list<int> mshFieldList;
@@ -544,15 +1017,20 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
       else
        mesher_setFaceMeshAttribute(gm, reloc.indexedFaces, meshsize, ocaf->faceData);
 
+      if(isPartition)
+        setMasterEdges(gm, reloc.indexedEdges, indexedGmshEdges, Emaster, ETransf);
+
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
          GFace *gf=*fit;
 	 TopoDS_Shape F=* (TopoDS_Face *) gf->getNativePtr();
          int FI=reloc.indexedFaces->FindIndex(F);
-         if(ocaf->EmP.assemblyType!=PARTITION && !ocaf->faceData[FI-1].shared )
-           gf->meshAttributes.method=MESH_NONE;
-	 else
-//           gf->meshAttributes.method=MESH_TRANSFINITE;
+         if(isPartition)
+//           gf->meshAttributes.method= isGridFace(gf) ? MESH_TRANSFINITE: MESH_UNSTRUCTURED;
            gf->meshAttributes.method=MESH_UNSTRUCTURED;
+	 else if(ocaf->faceData[FI-1].shared )
+           gf->meshAttributes.method=MESH_UNSTRUCTURED;
+	 else
+           gf->meshAttributes.method=MESH_NONE;
       }
       if(mesh_aniso)  CTX::instance()->mesh.algo2d=ALGO_2D_BAMG;
       else            CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
@@ -581,7 +1059,9 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
 
       gm->mesh(1);
 
+      setMasterFaces(gm, reloc.indexedFaces, indexedGmshFaces, Fmaster, FTransf);
       gm->mesh(2);
+
 /*
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
          GFace *gf=*fit;
@@ -599,7 +1079,8 @@ void MESHER::meshModel(MwOCAF* ocaf, double meshsize, const char* dirName, const
 		dirName, modelDir,
 		reloc.indexedFaces,
 		reloc.indexedEdges,
-		reloc.indexedVertices
+		reloc.indexedVertices,
+		Fmaster
 	       );
 
       delete gm;

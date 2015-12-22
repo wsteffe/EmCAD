@@ -53,10 +53,6 @@ int main(int argc, char **argv)
       ocaf->workopen(subprojDir.c_str());
 //      ocaf->checkPartNF(ocaf->mainDoc);
       ocaf->regenerateIndexedSubShapes();
-      if(ocaf->updateSplitPlanes()){
-        std::string model=subprojDir; model+="/model.dxc";
-        ocaf->save(model.c_str());
-      }
       ocaf->split();
       ocaf->saveSplitFaceMap();
       std::string splitModel=subprojDir;  splitModel+="/Partition/model.dxc";

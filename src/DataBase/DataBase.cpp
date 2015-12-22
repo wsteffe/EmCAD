@@ -20,6 +20,7 @@
 
 
 #include "DataBase.h"
+#include "math.h"
 
 DB::Units unit;
 
@@ -113,11 +114,37 @@ Material & Material::operator =(const Material &rhs)
 }
 
 
+Transform::Transform(){
+  trasl[0]=trasl[1]=trasl[2]=0;
+  rotAxis[0]=rotAxis[1]=rotAxis[2]=0;
+  rotOrigin[0]=rotOrigin[1]=rotOrigin[2]=0;
+  rotAngle=0;
+}
+
+
+Transform& Transform::operator =(const Transform &rhs)
+{
+  if (this != &rhs) {
+      rotAngle=rhs.rotAngle;
+      for(int i=0; i<3; i++){
+	   trasl[i]=rhs.trasl[i];
+	   rotAxis[i]=rhs.rotAxis[i];
+	   rotOrigin[i]=rhs.rotOrigin[i];
+      }
+  }
+  return *this;    // Return ref for multiple assignment
+}
+
+
 Volume::Volume(){
   type=UNDEFINED;
+  master=0;
   TEMportsNum=0;
   TEportsNum=0;
   TMportsNum=0;
+  gridNum=0;
+  PML=0;
+  invariant=1;
   defined=1;
   disabled=0;
   compSolid=0;
@@ -146,6 +173,10 @@ int fcmp_Material(const void *a, const void *b){
 int fcmp_Volume(const void *a, const void *b){
   return strcmp((*(Volume **) a)->name, (*(Volume **) b)->name);
 }
+int fcmp_Transform(const void *a, const void *b){
+  return strcmp((*(Transform **) a)->name, (*(Transform **) b)->name);
+}
+
 
 
 void applyDelMat(void *a, void *b)
@@ -165,6 +196,7 @@ void applyDelVol(void *a, void *b)
 EmProblem::EmProblem(){
   materials =Tree_Create(sizeof(Material *), fcmp_Material);
   volumes   =Tree_Create(sizeof(Volume *),   fcmp_Volume);
+  invariants  =Tree_Create(sizeof(Transform *), fcmp_Transform);
   hasGeo=false;
   level=0;
   strcpy(defaultBC,"PEC");
@@ -182,6 +214,12 @@ EmProblem::EmProblem(){
     strcpy(mat->name,"PMC");
     addMaterial(mat);
   }
+  mat=FindMaterial("PML");
+  if(!mat){
+    mat =new DB::Material();
+    strcpy(mat->name,"PML");
+    addMaterial(mat);
+  }
 }
 EmProblem::~EmProblem(){
   Tree_Action(materials,  applyDelMat); Tree_Delete(materials);
@@ -193,6 +231,9 @@ void EmProblem::insertMaterial(Material* m){Tree_Insert(materials, &m);}
 void EmProblem::delMaterial  (Material*  m){Tree_Suppress(materials, &m);}
 void EmProblem::insertVolume (Volume*    v){Tree_Insert(volumes,   &v);}
 void EmProblem::delVolume    (Volume*    v){Tree_Suppress(volumes, &v);}
+void EmProblem::addInvariant  (Transform* t){Tree_Add(invariants, &t);}
+void EmProblem::insertInvariant (Transform* t){Tree_Insert(invariants,   &t);}
+void EmProblem::delInvariant    (Transform* t){Tree_Suppress(invariants, &t);}
 
 
 Material *EmProblem::FindMaterial(const str_t name)
@@ -217,13 +258,46 @@ Volume *EmProblem::FindVolume(const str_t name)
   return NULL;
 }
 
+Transform *EmProblem::FindInvariant(const str_t name)
+{
+  Transform T, *pT;
+  pT = &T;
+  strcpy(pT->name, name);
+  if(Tree_Query(invariants, &pT)) {
+    return pT;
+  }
+  return NULL;
+}
+
+
 
 static FILE *EMMFILE;
 
 void _mwm_print_units(){
   fprintf(EMMFILE, "DEF UNITS MWM_Units {\n");
   fprintf(EMMFILE, "   length          %.3e\n", unit.xm);
-  fprintf(EMMFILE, "}\n");
+  fprintf(EMMFILE, "}\n\n");
+}
+
+void _mwm_print_invariants(void *a, void *b)
+{
+  DB::Transform *invt;
+  invt = *(DB::Transform **) a;
+  fprintf(EMMFILE, "DEF %s  MWM_Invariant {\n",   invt->name);
+  if(invt->rotAngle==0){
+    fprintf(EMMFILE, " translation  [");
+    for(int i=0; i<3; i++) fprintf(EMMFILE, "   %.20f ", invt->trasl[i]);
+    fprintf(EMMFILE, "]\n");
+  } else{
+    fprintf(EMMFILE, " rotation angle    %.20f\n", invt->rotAngle);
+    fprintf(EMMFILE, " rotation axis  [");
+    for(int i=0; i<3; i++) fprintf(EMMFILE, "   %.20f ", invt->rotAxis[i]);
+    fprintf(EMMFILE, "]\n");
+    fprintf(EMMFILE, " rotation origin  [");
+    for(int i=0; i<3; i++) fprintf(EMMFILE, "   %.20f ", invt->rotOrigin[i]);
+    fprintf(EMMFILE, "]\n");
+  }
+  fprintf(EMMFILE, "}\n\n");
 }
 
 void _mwm_print_material(void *a, void *b)
@@ -283,11 +357,14 @@ bool printOnlyWgData=false;
 
 std::string WGPREFIX;
 
+typedef std::map<int,int>::iterator ImapIt;
+
 void _mwm_print_volume(void *a, void *b)
 {
   DB::Volume *vol = *(DB::Volume **) a;
   if(vol->compSolid && printOnlyMeshData) return;
   if(vol->disabled && printOnlyMeshData) return;
+  if(vol->type==GRID && (printOnlyMeshData ||printOnlyWgData) ) return;
   if(vol->type==LINEPORT && (printOnlyMeshData ||printOnlyWgData) ) return;
   if((vol->type==DIELECTRIC || vol->type==HOLE) && printOnlyWgData) return;
   if(vol->type==WAVEGUIDE) fprintf(EMMFILE, "DEF %s%s  MWM_Volume {\n", WGPREFIX.c_str(),vol->name);
@@ -298,6 +375,18 @@ void _mwm_print_volume(void *a, void *b)
 	   if(!printOnlyMeshData){
 		fprintf(EMMFILE, "  meshRefinement  %f \n", vol->meshRefinement);
 		fprintf(EMMFILE, "  compSolid  %d \n", vol->compSolid);
+	   }
+	   if(printOnlyMeshData) if(vol->master){
+	      fprintf(EMMFILE, "  master  %d\n",vol->master);
+	      char mname[100]; sprintf(mname,"Vol%d",vol->master);
+	      if(strcmp(vol->name,mname)){
+		fprintf(EMMFILE, "  face map [\n");
+		for (ImapIt it=vol->Fmap.begin(); it!= vol->Fmap.end(); it++) fprintf(EMMFILE, "  %d  %d \n",(*it).first, abs((*it).second));
+		fprintf(EMMFILE, "  ]\n");
+		fprintf(EMMFILE, "  curve map [\n");
+		for (ImapIt it=vol->Cmap.begin(); it!= vol->Cmap.end(); it++) fprintf(EMMFILE, "  %d  %d \n",(*it).first, (*it).second);
+		fprintf(EMMFILE, "  ]\n");
+	      }
 	   }
 	   break;
      case HOLE:
@@ -325,6 +414,9 @@ void _mwm_print_volume(void *a, void *b)
 	   break;
      case GRID:
 	   fprintf(EMMFILE, "  type  Grid\n");
+           fprintf(EMMFILE, "  gridNum    %d\n",  vol->gridNum);
+           fprintf(EMMFILE, "  PML    %d\n",  vol->PML);
+           fprintf(EMMFILE, "  invariant  %d\n",  vol->invariant);
 	   break;
      case ASSEMBLY:
 	   fprintf(EMMFILE, "  type  Assembly\n");
@@ -354,6 +446,8 @@ void EmProblem::save(FILE *fid, bool onlyMesh, bool onlyWG, std::string WGprefix
    printOnlyWgData=onlyWG;
    EMMFILE=fid;
    _mwm_print_units();
+   if(!printOnlyMeshData) 
+      Tree_Action(invariants,  _mwm_print_invariants);
    fprintf(EMMFILE, "\n");
    Tree_Action(materials,   _mwm_print_material);
    fprintf(EMMFILE, "\n");

@@ -348,6 +348,7 @@ class MwOCAF
   int isFree(TDF_Label label);
   void getFreeShapes(TDF_LabelSequence frshapes);
   int isPart(TDF_Label label);
+  int volType(TDF_Label label);
   int isComponent(TDF_Label label);
   int isDisabled(TDF_Label label);
   int isSolid(TDF_Label label);
@@ -381,10 +382,11 @@ class MwOCAF
   void evalBBox();
   void evalSize(double size[3]);
   void makeSplitFaces();
-  bool updateSplitPlanes();
+//  bool updateSplitPlanes();
   void updatePartitionVolumes(DB::EmProblem *upperEmP);
   void makeSplitFaces(TDF_Label label);
   bool makeGridFaces(TDF_Label label);
+  gp_Vec getEdgeDir(TDF_Label label);
   void split();
   void generateSubshapes(const TDF_Label &label);
   void generateSubshapes(const TDF_Label &label, Handle(XCAFDoc_ShapeTool) shtool);

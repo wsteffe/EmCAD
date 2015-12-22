@@ -54,7 +54,9 @@ class WorkStatus
 {
 // true means that it is defined.
  public:
+ int reloadNeeded;
  int decompositionNeeded;
+ int firstDecomposition;
  int materialChanged;
  int remeshNeeded;
  int componentsaveNeeded;

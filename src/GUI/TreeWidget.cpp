@@ -172,7 +172,7 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
      DB::Material* mat;
      bool isSolid=false;
      bool isShape=false;
-     bool isPart=false;
+     bool isGeomPart=false;
      bool isLayer=false;
      bool isLayers=false;
      bool isFace=false;
@@ -189,18 +189,14 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
        isFace =mainOCAF->isFace(label);
        isEdge =mainOCAF->isEdge(label);
        isShape =mainOCAF->isShape(label);
-       isPart=mainOCAF->isPart(label);
-       if(isPart) vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
-       if(isPart && isShape && mainOCAF->EmP.assemblyType==PARTITION){
-          TopoDS_Shape S= mainOCAF->shapeTool->GetShape(label);
-	  isPart=(S.ShapeType()==TopAbs_COMPSOLID);
-       }
+       isGeomPart=mainOCAF->isPart(label);
+       if(isGeomPart) vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
      } else if(item->getMaterial(mat)){ // item is defined from DataBase material
          qtext=mat->name;
 	 isMaterial=true;
      }
 //---------------------
-     if(isPart){
+     if(isGeomPart){
          Handle(TColStd_HSequenceOfExtendedString) layers;
 //       bool shouldHaveLayers=  (mainOCAF->isTopLevel(label)&&mainOCAF->isSimpleShape(label))\
 //                             ||(mainOCAF->isComponent(label)&&!mainOCAF->isAssembly(label));
@@ -217,6 +213,11 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
          if(vol->type==GRID)         qtext.append("|||");
          if(vol->type==BOUNDARYCOND) qtext.append("BC ");
          if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->type==HOLE && strcmp(vol->material,"?")) qtext.append(vol->material);
+         if(vol->type==GRID && vol->gridNum) qtext.append(QString(" %1").arg(vol->gridNum));
+#if defined(EXPLICIT_INVARIANT)
+         if(vol->type==GRID && vol->invariant) qtext.append(" INVAR");
+#endif
+         if(vol->type==GRID && vol->PML) qtext.append(" PML");
          if(vol->type!=SPLITTER)     if(!vol->defined) item->setBackground ( 0, redbrush );
 	                             else              item->setBackground ( 0, Qt::NoBrush );
          qtext.append(" ]");
@@ -366,7 +367,8 @@ void TreeWidget::makeSubTree(TreeWidgetItem * troot, TDF_Label root)
          if (mainOCAF->isShape(label)){
 //     	     item->setFlags(item->flags()|Qt::ItemIsUserCheckable|Qt::ItemIsTristate);
      	     item->setFlags(item->flags()|Qt::ItemIsUserCheckable);
-             item->setCheckState (0, Qt::Checked );
+             if(mainOCAF->volType(label)==GRID) item->setCheckState (0, Qt::Unchecked );
+	     else                               item->setCheckState (0, Qt::Checked );
          }
          makeSubTree(item,label);  //recursion
        }
@@ -605,6 +607,39 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
 
 
 //****************************************
+//   Grid
+
+     QDoubleValidator *gridSpaceValidator = new QDoubleValidator(this);
+     gridSpaceValidator->setNotation(QDoubleValidator::StandardNotation);
+     gridSpaceValidator->setBottom(0);
+     gridSpaceValidator->setDecimals(5);
+
+     QLabel *gridSpaceLabel= new QLabel(); 
+     gridSpaceLabel->setText(tr("Plane Number:"));
+     gridNumSB = new QSpinBox();
+     gridNumSB->setValue(2);
+     gridNumSB->setMinimum(2);
+
+     PML=new QCheckBox("Perfectly Matched Layer", this);
+     PML->setCheckState(Qt::Unchecked);
+
+#if defined(EXPLICIT_INVARIANT)
+     invariant=new QCheckBox("Invariant Direction", this);
+     invariant->setCheckState(Qt::Checked);
+#endif
+
+     QGridLayout *GridLayout = new QGridLayout();
+     GridLayout->addWidget(gridSpaceLabel, 0, 0);
+     GridLayout->addWidget(gridNumSB, 0, 1);
+     GridLayout->addWidget(PML,1, 0);
+#if defined(EXPLICIT_INVARIANT)
+     GridLayout->addWidget(invariant,2, 0);
+#endif
+     GridGroupBox=new QGroupBox(tr(""));
+     GridGroupBox->setLayout(GridLayout);
+
+
+//****************************************
 //   meshRefinemente
      QLabel *meshRefLabel= new QLabel(); 
      meshRefLabel->setText(tr("Mesh refinement"));
@@ -648,12 +683,14 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
 //--------------------------------
      WgGroupBox->hide();
      LPGroupBox->hide();
+     GridGroupBox->hide();
 //--------------------------------
      mainLayout = new QVBoxLayout(this);
      mainLayout->addWidget(nameGroupBox);
      mainLayout->addWidget(WgGroupBox);
      mainLayout->addWidget(LPGroupBox);
      mainLayout->addWidget(meshGroupBox);
+     mainLayout->addWidget(GridGroupBox);
      mainLayout->addWidget(buttonGroupBox);
 
 }
@@ -679,6 +716,10 @@ void SetCompPropertiesDialog::updateType(int i)
     if(typeChooserMap[i]==LINEPORT){
   	 LPGroupBox->show();
 	 w=400; h=250;
+    }
+    if(typeChooserMap[i]==GRID){
+  	 GridGroupBox->show();
+	 w=400; h=290;
     }
     if(typeChooserMap[i]!=WAVEGUIDE && typeChooserMap[i]!=DIELECTRIC && typeChooserMap[i]!=HOLE && typeChooserMap[i]!=BOUNDARYCOND){
   	 meshGroupBox->hide();
@@ -706,6 +747,13 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
 	double LPimpedance=(prjData.portloads.map.find(LPname)==prjData.portloads.map.end())? 50.0 : prjData.portloads.map[LPname];
 	LinePortZcLineEdit->setText(QString("%1").arg(LPimpedance));
   }
+  if (vol->type==GRID){
+   gridNumSB->setValue(vol->gridNum);
+   if(vol->PML) PML->setCheckState(Qt::Checked); else PML->setCheckState(Qt::Unchecked);
+#if defined(EXPLICIT_INVARIANT)
+   if(vol->invariant) invariant->setCheckState(Qt::Checked); else invariant->setCheckState(Qt::Unchecked);
+#endif
+  }
   nameLineEdit->setText(volname);
 }
 
@@ -722,14 +770,41 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
      prjData.workStatus.remeshNeeded=true;
    }
   if(vol->type==WAVEGUIDE){
-	if(vol->TEportsNum!=TEnumSB->value())  {vol->TEportsNum=TEnumSB->value(); changed=true;}
-	if(vol->TMportsNum!=TMnumSB->value())  {vol->TMportsNum=TMnumSB->value(); changed=true;}
-	double ldfrq=0;
+        bool portChanged=false;	
+	if(vol->TEportsNum!=TEnumSB->value())  {vol->TEportsNum=TEnumSB->value(); portChanged=changed=true;}
+	if(vol->TMportsNum!=TMnumSB->value())  {vol->TMportsNum=TMnumSB->value(); portChanged=changed=true;}
+	if(portChanged) {
+           prjData.workStatus.decompositionNeeded=true;
+        }
   }
   if(vol->type==LINEPORT)
    if(fabs(prjData.portloads.map[LPname]-LinePortZcLineEdit->text().toDouble())>1.e-5){
      prjData.portloads.map[LPname]=LinePortZcLineEdit->text().toDouble();
      prjData.savePortLoads();
+  }
+  if (vol->type==GRID){
+	if(vol->gridNum!=gridNumSB->value())  {
+             vol->gridNum=gridNumSB->value(); changed=true;
+             prjData.workStatus.reloadNeeded=!prjData.workStatus.firstDecomposition;
+             prjData.workStatus.decompositionNeeded=true;
+             mainOCAF->setPartsStatus();
+	}
+	int pml=PML->checkState()==Qt::Checked;
+        if(vol->PML!=pml){
+	   vol->PML=pml;
+	   changed=true;	    
+           prjData.workStatus.reloadNeeded=!prjData.workStatus.firstDecomposition;
+           prjData.workStatus.decompositionNeeded=true;
+	}
+#if defined(EXPLICIT_INVARIANT)
+	int invDir=invariant->checkState()==Qt::Checked;
+        if(vol->invariant!=invDir){
+	   vol->invariant=invDir;
+	   changed=true;	    
+           prjData.workStatus.reloadNeeded=!prjData.workStatus.firstDecomposition;
+           prjData.workStatus.decompositionNeeded=true;
+	}
+#endif
   }
   if(changed){
          mainOCAF->partitionVolSaveNeeded=true;
@@ -1784,15 +1859,15 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
       DB::Volume *vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
       if(vol){ 
 	 if(mainOCAF->EmP.assemblyType==COMPONENT) {
-	     menu.addAction(assignMaterialAction);
+	     if (vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE) menu.addAction(assignMaterialAction);
              menu.addAction(setCompPropertiesAction);
              if (vol->type==WAVEGUIDE) menu.addAction(showWgModesAction);
          } else { 
 	     menu.addAction(importPartPropertiesAction);
 	 }
       }
-      if(showlayers)                              menu.addAction(assignLayerAction);
-      if(mainOCAF->EmP.assemblyType!=COMPONENT)   menu.addAction(openSubAssAction);
+      if(showlayers)                        menu.addAction(assignLayerAction);
+      if(mainOCAF->EmP.assemblyType==NET)   menu.addAction(openSubAssAction);
       menu.exec(event->globalPos());
     }
 //    menu.addAction(showMeshAction);

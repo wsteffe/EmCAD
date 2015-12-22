@@ -124,6 +124,8 @@
 #include <GeomPlate_BuildAveragePlane.hxx>
 #include <gp_Pln.hxx>
 #include <Geom_Plane.hxx>
+#include <Geom_Circle.hxx>
+#include <Geom_Line.hxx>
 #include <TColgp_HArray1OfPnt.hxx>
 
 #include <BRepAdaptor_Curve.hxx>
@@ -293,6 +295,22 @@ bool isCompName(TCollection_AsciiString &name)
   else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
 }
 
+bool isIFName(TCollection_AsciiString &name)
+{
+  int len=name.Length();
+  if(len<3) return false;
+  TCollection_AsciiString start=name.SubString(1,3);
+  start.LowerCase();
+  if (start!="if") return false;
+  const char *str=name.ToCString();
+  int l=2;
+  for(; l<len && isdigit(str[l]); ) l++;
+  if(l==len) return true;
+  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+}
+
+
+
 
 bool isBCondName(TCollection_AsciiString &name)
 {
@@ -392,6 +410,7 @@ bool isLPName(TCollection_AsciiString &name)
   if(l==len) return true;
   else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
 }
+
 
 bool isValidMultibodyPartName(TCollection_AsciiString &name)
 {
@@ -584,6 +603,14 @@ int MwOCAF::isPart(TDF_Label label){
   if(itis) itis=itis && EmP.FindVolume(name.ToCString());
   return itis;
 }
+
+int MwOCAF::volType(TDF_Label label){
+  DB::Volume *vol=getLabelVol(label);
+  if(!vol) return 0;
+  else return vol->type;
+}
+
+
 
 int MwOCAF::isSimpleShape(TDF_Label label){
   return shapeTool->IsSimpleShape(label);
@@ -1108,7 +1135,7 @@ void MwOCAF::openLabel(TDF_Label label)
  for (TDF_ChildIterator it(label, Standard_False); it.More(); it.Next()) 
  {
      TDF_Label item = it.Value();
-     displayLabelShape(item, Standard_True);  //recursion;
+     if(volType(label)!=GRID) displayLabelShape(item, Standard_True);  //recursion;
  }
 }
 
@@ -1150,7 +1177,7 @@ void MwOCAF::displayAllParts(){
      Handle(TDF_Reference)  refAtt;
      assert(label1.FindAttribute(TDF_Reference::GetID(),refAtt));
      TDF_Label label = refAtt->Get();
-     displayLabelShape(label, true);
+     if(volType(label)!=GRID) displayLabelShape(label, true);
  }
 }
 
@@ -1424,12 +1451,12 @@ void MwOCAF::imprint(){
      TDF_Label label = refAtt->Get();
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
-     if(vol->type==SPLITTER || vol->type==GRID) continue;
+     if(vol->type==SPLITTER || vol->type==GRID ) continue;
      if(!(thePartShapes.IsBound(label1.Tag()))){
         TopoDS_Shape S= shapeTool->GetShape(label);
         assert(!S.IsNull());
         if(S.ShapeType()==TopAbs_COMPOUND){
-	   if(vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND ){
+	   if(vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND){
                 TopoDS_Shell  newShell;
                 BRep_Builder builder;
                 builder.MakeShell(newShell);
@@ -1508,7 +1535,7 @@ void MwOCAF::imprint(){
      Handle(TDF_Reference)  refAtt;
      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
      DB::Volume *vol=getLabelVol(label1);
-     if(vol) if(vol->type==SPLITTER || vol->type==GRID) continue;
+     if(vol) if(vol->type==SPLITTER || vol->type==GRID ) continue;
 //---
      Handle(TDataStd_Name)  nameAtt;
      TCollection_AsciiString name;
@@ -1570,7 +1597,7 @@ void MwOCAF::updatePartColors(){
  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
    TDF_Label label1 = it.Value();
    DB::Volume *vol=getLabelVol(label1);
-   if(vol) if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->type==SPLITTER ){
+   if(vol) if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==BOUNDARYCOND || vol->PML || vol->type==WAVEGUIDE || vol->type==SPLITTER ){
      Handle(TDF_Reference)  refAtt;
      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
      TDF_Label label = refAtt->Get();
@@ -1656,6 +1683,7 @@ void MwOCAF::makeSplitFaces(){
  }
 }
 
+/*
 bool MwOCAF::updateSplitPlanes(){
  evalBBox();
  bool changed=false;
@@ -1674,6 +1702,7 @@ bool MwOCAF::updateSplitPlanes(){
  }
  return changed;
 }
+*/
 
 void MwOCAF::makeSplitFaces(TDF_Label label1){
      double BBX[2],BBY[2],BBZ[2];
@@ -1746,91 +1775,170 @@ void MwOCAF::makeSplitFaces(TDF_Label label1){
      S= shapeTool->GetShape(newlabel); assert(S.IsEqual(newS));
 }
 
-/*
+double BB_orthoR(double BBX[2],double BBY[2],double BBZ[2], gp_Pnt O, gp_Vec Z )
+{
+     double R=0;
+     for (int i =0; i <2; i++)
+     for (int j =0; j <2; j++)
+     for (int k =0; k <2; k++)
+     {
+        gp_Pnt P = gp_Pnt(BBX[i],BBY[j],BBZ[k]);
+        gp_Vec OP=gp_Vec(O, P);
+        R=max(R,Z.CrossMagnitude(OP));
+     }
+     return R;
+}
+double BB_paraR(double BBX[2],double BBY[2],double BBZ[2], gp_Pnt O, gp_Vec Z )
+{
+     double R=0;
+     for (int i =0; i <2; i++)
+     for (int j =0; j <2; j++)
+     for (int k =0; k <2; k++)
+     {
+        gp_Pnt P = gp_Pnt(BBX[i],BBY[j],BBZ[k]);
+        gp_Vec OP=gp_Vec(O, P);
+        R=max(R,fabs(Z.Dot(OP)));
+     }
+     return R;
+}
+
+
+
 bool MwOCAF::makeGridFaces(TDF_Label label1){
      double BBX[2],BBY[2],BBZ[2];
      BBox.Get(BBX[0], BBY[0], BBZ[0], BBX[1], BBY[1], BBZ[1]);
-     gp_Pnt CP = gp_Pnt((BBX[0]+BBX[1])/2,
+     gp_Pnt BOX_CP = gp_Pnt((BBX[0]+BBX[1])/2,
 		     (BBY[0]+BBY[1])/2,
 		     (BBZ[0]+BBZ[1])/2
 		    );
      Handle(TDF_Reference)  refAtt;
      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) return false;
      TDF_Label label = refAtt->Get();
-     DB::Volume *vol=getLabelVol(label1);
-     TopoDS_Shape S= shapeTool->GetShape(label1);
+     DB::Volume *vol=getLabelVol(label);
+     TopoDS_Shape S= shapeTool->GetShape(label);
      if(S.IsNull()) return false;
-     double R=0;
+     TopTools_IndexedMapOfShape faces;
+     TopExp::MapShapes(S,TopAbs_FACE,faces);
+     if (faces.Extent()==vol->gridNum)  return false;
      TopTools_IndexedMapOfShape edges;
      TopExp::MapShapes(S,TopAbs_EDGE,edges);
-     assert(edges.Extent()==1);
-     TopoDS_Edge E= TopoDS::Edge(edges.FindKey(1));
-     BRepAdaptor_Curve C(TopoDS::Edge(E));
+     if(edges.Extent()<1) return false;
+     bool hasLine=false;
+     bool hasCircle=false;
+     Handle(Geom_Circle) gCirc; 
+     TopoDS_Edge Eline,Ecircle;
+     double line_u1,line_u2, circle_u1,circle_u2;
+     for (int I=1; I<=edges.Extent(); I++){
+      TopoDS_Edge E= TopoDS::Edge(edges.FindKey(I));
+      double u1,u2;
+      Handle(Geom_Curve) gc=BRep_Tool::Curve (E, u1, u2);
+      if(gc->IsInstance (STANDARD_TYPE (Geom_Line))){
+	   hasLine=true;
+	   Eline=E;
+	   line_u1=u1;
+	   line_u2=u2;
+      }
+      if(gc->IsInstance (STANDARD_TYPE (Geom_Circle))){
+	   hasCircle=true;
+	   Ecircle=E;
+           gCirc =(Handle(Geom_Circle)&) gc;
+	   circle_u1=u1;
+	   circle_u2=u2;
+      }
+     }
+     bool cylGrid=hasLine && hasCircle;
+     vol->invariant=!cylGrid;
+
+     gp_Pnt Circ_O;
+     gp_Dir Circ_Dir;
+     int planeNum=vol->gridNum;
+     TopoDS_Edge Esweep;
+     if(cylGrid) Esweep=Eline;
+     else{ Esweep=hasCircle ? Ecircle : Eline; }
+     if(!cylGrid){
+       DB::Transform *invt = new DB::Transform();
+       strcpy(invt->name,vol->name);
+       EmP.insertInvariant(invt);
+       invt=EmP.FindInvariant(vol->name);
+       if(hasCircle){
+	 invt->rotAngle=(circle_u2-circle_u1)/(planeNum-1);
+         gp_Dir A=gCirc->Circ().Axis().Direction();
+	 invt->rotAxis[0]=A.X();
+	 invt->rotAxis[1]=A.Y();
+	 invt->rotAxis[2]=A.Z();
+         gp_Pnt O=gCirc->Circ().Axis().Location();
+	 invt->rotOrigin[0]=O.X();
+	 invt->rotOrigin[1]=O.Y();
+	 invt->rotOrigin[2]=O.Z();
+       } else if(hasLine) {
+         TopoDS_Vertex V1,V2;
+         TopExp::Vertices(Eline,V1,V2);
+         gp_Pnt P1 = BRep_Tool::Pnt(V1);
+         gp_Pnt P2 = BRep_Tool::Pnt(V2);
+         gp_Vec trasl=gp_Vec(P1, P2)/(planeNum-1);
+	 invt->trasl[0]=trasl.X();
+	 invt->trasl[1]=trasl.Y();
+	 invt->trasl[2]=trasl.Z();
+       }
+     }
+     BRepAdaptor_Curve C(TopoDS::Edge(Esweep));
      double Elen = GCPnts_AbscissaPoint::Length (C);
-     int planeNum=Elen/vol->gridSpace-0.7;
-     planeNum=max(0,planeNum);
-     TopoDS_Shape S0= shapeTool->GetShape(label);
-     TopTools_IndexedMapOfShape faces0;
-     TopExp::MapShapes(S0,TopAbs_FACE,faces0);
-     if (faces0.Extent()==planeNum)  return false;
-     TopoDS_Vertex V1,V2;
-     TopExp::Vertices(E,V1,V2);
-     gp_Pnt P1 = BRep_Tool::Pnt(V1);
-     gp_Pnt P2 = BRep_Tool::Pnt(V2);
-     gp_Vec Evec=gp_Vec(P1, P2);
-     Evec=Evec/Evec.Magnitude();
-     for (int i =0; i <2; i++)
-     for (int j =0; j <2; j++)
-     for (int k =0; k <2; k++)
-     {
-        gp_Pnt P = gp_Pnt(BBX[i],BBY[j],BBZ[k]);
-        gp_Vec vec=gp_Vec(CP, P);
-        R=max(R,Evec.CrossMagnitude(vec));
-     }
-     R*=1.3;
-     TopTools_IndexedMapOfShape splitVertices;
-     Standard_Real X1, Y1, Z1;
-     P1.Coord (X1, Y1, Z1);
-     Standard_Real X2, Y2, Z2;
-     P2.Coord (X2, Y2, Z2);
-     for (int VI=1; VI<=planeNum; VI++){
-         Standard_Real X=X1+(X2-X1)*VI/(planeNum+1);
-         Standard_Real Y=Y1+(Y2-Y1)*VI/(planeNum+1);
-         Standard_Real Z=Z1+(Z2-Z1)*VI/(planeNum+1);
-         gp_Pnt P(X,Y,Z);
-         TopoDS_Vertex V = BRepBuilderAPI_MakeVertex(P);
-         splitVertices.Add(V);
-     }
      BRep_Builder builder;
      TopoDS_Compound  newS;
      builder.MakeCompound(newS);
-     builder.Add(newS,E);
-     for (int VI=1; VI<=splitVertices.Extent(); VI++){
-       TopoDS_Vertex V = TopoDS::Vertex(splitVertices.FindKey(VI));
-       gp_Pnt P = BRep_Tool::Pnt(V);
-       gp_Vec vec=gp_Vec(CP, P);
-       gp_Vec Tvec=(Evec.Dot(vec))*Evec;
-       P =CP;
-       P.Translate(Tvec);
-       gp_Dir Edir=gp_Dir(Evec);
-       gp_Ax2 ax=gp_Ax2(P,Edir);
-       gp_Circ c = gp_Circ(ax,R);
-       TopoDS_Edge cE=BRepBuilderAPI_MakeEdge(c);
-       TopoDS_Wire cW=BRepBuilderAPI_MakeWire(cE);
-       TopoDS_Face F=BRepBuilderAPI_MakeFace(cW);
-       builder.Add(newS,V);
-       builder.Add(newS,F);
+     builder.Add(newS,Esweep);
+     double u1,u2;
+     Handle(Geom_Curve) gec=BRep_Tool::Curve (Esweep, u1, u2);
+     for (int VI=0; VI<planeNum; VI++){
+        gp_Pnt P;
+        gp_Vec Etan;
+	gec->D1(u1+(u2-u1)*VI/(planeNum-1),P,Etan);
+        Etan=Etan/Etan.Magnitude();
+	if(cylGrid){
+          gp_Pnt O=gCirc->Circ().Axis().Location();
+	  gp_Dir Zdir=gCirc->Circ().Axis().Direction();
+	  gp_Vec Zvec=Zdir;
+          gp_Vec trasl=gp_Vec(O,BOX_CP);
+          trasl=(Zvec.Dot(trasl))*Zvec;
+          O.Translate(trasl);
+	  gp_Vec OP=gp_Vec(O, P);
+          double R=Zvec.CrossMagnitude(OP);
+          double h=1.2*BB_paraR(BBX,BBY,BBZ, O, Zvec );
+	  gp_Vec OP2=h*Zvec;
+          gp_Pnt P2=O; P2.Translate(OP2);
+	  gp_Vec OP1=-h*Zvec;
+          gp_Pnt P1=O; P1.Translate(OP1);
+          gp_Ax2 ax=gp_Ax2(O,Zdir);
+          gp_Circ sec_c = gp_Circ(ax,R);
+          TopoDS_Wire spine = BRepBuilderAPI_MakeWire(BRepBuilderAPI_MakeEdge (P1,P2));
+          TopoDS_Edge sec_cE=BRepBuilderAPI_MakeEdge(sec_c);
+          TopoDS_Wire sec_cW=BRepBuilderAPI_MakeWire(sec_cE);
+          TopoDS_Shape cyl = BRepOffsetAPI_MakePipe (spine, sec_cW);
+          builder.Add(newS,cyl);
+	}else{
+          gp_Dir Edir=gp_Dir(Etan);
+          gp_Vec trasl=gp_Vec(BOX_CP, P);
+          trasl=(Etan.Dot(trasl))*Etan;
+          gp_Pnt O=BOX_CP; O.Translate(trasl);
+          gp_Ax2 ax=gp_Ax2(O,Edir);
+          double R=1.1*BB_orthoR(BBX,BBY,BBZ, O, Etan );
+          gp_Circ sec_c = gp_Circ(ax,R);
+          TopoDS_Edge sec_cE=BRepBuilderAPI_MakeEdge(sec_c);
+          TopoDS_Wire sec_cW=BRepBuilderAPI_MakeWire(sec_cE);
+          TopoDS_Face F=BRepBuilderAPI_MakeFace(sec_cW);
+          builder.Add(newS,F);
+	}
      }
      TDF_Label newlabel=replaceLabelShape(label,newS);
      refAtt->Set(newlabel);
      Quantity_Color col(Quantity_NOC_SEAGREEN);
      setLabelPresentation(newlabel,Quantity_NOC_SEAGREEN, 0.5);
-     displayLabelShape(newlabel, true);
+     displayLabelShape(newlabel, false);
      S= shapeTool->GetShape(newlabel); assert(S.IsEqual(newS));
      return true;
 }
-*/
 
+/*
 bool MwOCAF::makeGridFaces(TDF_Label label1){
      double BBX[2],BBY[2],BBZ[2];
      BBox.Get(BBX[0], BBY[0], BBZ[0], BBX[1], BBY[1], BBZ[1]);
@@ -1906,18 +2014,41 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      S= shapeTool->GetShape(newlabel); assert(S.IsEqual(newS));
      return true;
 }
+*/
 
 
+gp_Vec MwOCAF::getEdgeDir(TDF_Label label1){
+     Handle(TDF_Reference)  refAtt;
+     if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) return gp_Vec(0,0,0);
+     TDF_Label label = refAtt->Get();
+     DB::Volume *vol=getLabelVol(label1);
+     TopoDS_Shape S= shapeTool->GetShape(label1);
+     if(S.IsNull()) return gp_Vec(0,0,0);
+     double R=0;
+     TopTools_IndexedMapOfShape edges;
+     TopExp::MapShapes(S,TopAbs_EDGE,edges);
+     assert(edges.Extent()==1);
+     TopoDS_Edge E= TopoDS::Edge(edges.FindKey(1));
+     TopoDS_Vertex V1,V2;
+     TopExp::Vertices(E,V1,V2);
+     gp_Pnt P1 = BRep_Tool::Pnt(V1);
+     gp_Pnt P2 = BRep_Tool::Pnt(V2);
+     gp_Vec vec=gp_Vec(P1, P2);
+     vec=vec/vec.Magnitude();
+     return vec;
+}
 
 
 void MwOCAF::split(){
  TopTools_IndexedMapOfShape  originalParts;
  assert(hasParts());
  bool hasSplitter=false;
+ bool hasPML=false;
  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
      TDF_Label label1 = it.Value();
      DB::Volume *vol=getLabelVol(label1);
      hasSplitter=hasSplitter|| vol->type==SPLITTER || vol->type==GRID;
+     hasPML=hasPML|| vol->PML;
  }
 //----------------------------------------------------------------------------------
  if(hasSplitter){
@@ -1942,7 +2073,7 @@ void MwOCAF::split(){
      assert(!S.IsNull());
      if(vol->type==DIELECTRIC || vol->type==HOLE) assert(S.ShapeType()==TopAbs_SOLID);
      if(vol->type==WAVEGUIDE) assert(S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_FACE);
-     if(!S.IsNull()) if(vol->type!=SPLITTER && vol->type!=GRID)  if (ShapesMap.Add(S)) PS.AddArgument(S);
+     if(!S.IsNull()) if(vol->type!=SPLITTER && vol->type!=GRID )  if (ShapesMap.Add(S)) PS.AddArgument(S);
   }
   TopTools_IndexedMapOfShape  upIndexedFaces;
   for (int FI=1; FI<=indexedFaces->Extent(); FI++){
@@ -1978,9 +2109,9 @@ void MwOCAF::split(){
      if(!vol) continue; 
      TopoDS_Shape S= shapeTool->GetShape(label);
      assert(!S.IsNull());
-     if(!S.IsNull()) if(vol->type==SPLITTER || vol->type==GRID)
+     if(!S.IsNull()) if(vol->type==SPLITTER || vol->type==GRID )
 		              for (TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()) 
-				      if (!ShapesMap.Contains(exp.Current()) && ToolsMap.Add(exp.Current())) PS.AddTool(exp.Current());
+				       if (ToolsMap.Add(exp.Current())) PS.AddTool(exp.Current());
   }
 
   try {
@@ -1988,6 +2119,53 @@ void MwOCAF::split(){
   } catch ( Standard_Failure ) {throw ImprintFailure();}
 
   const BOPCol_IndexedDataMapOfShapeListOfShape& PSmap=PS.ImagesResult();
+
+  TopTools_MapOfShape dielectricFaces2;
+
+  GEOMAlgo_Splitter PS2;
+  if(hasPML){
+   TopTools_MapOfShape dielectricFaces;
+   PS2.SetLimit(TopAbs_COMPOUND);
+   TopTools_MapOfShape ShapesMap2, Tools2Map;
+   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
+      TDF_Label label1 = it.Value();
+      Handle(TDF_Reference)  refAtt;
+      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
+      TDF_Label label = refAtt->Get();
+      DB::Volume *vol=getLabelVol(label1);
+      if(!vol) continue; 
+      TopoDS_Shape S= shapeTool->GetShape(label);
+      assert(!S.IsNull());
+      if(!S.IsNull()){
+	   if(vol->type==GRID && vol->PML) if(ShapesMap2.Add(S)) PS2.AddArgument(S);
+           if(vol->type!=SPLITTER && !vol->type!=GRID ) if(PS.ImagesResult().Contains(S)){
+                const BOPCol_ListOfShape &RSlist = PS.ImagesResult().FindFromKey(S);
+	        for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
+                  TopoDS_Shape Si=RSit.Value();
+		  PS2.AddArgument(Si);
+	  	  if(Si.ShapeType()==TopAbs_SOLID)
+			for (TopExp_Explorer exp(Si,TopAbs_FACE); exp.More(); exp.Next()) dielectricFaces.Add(exp.Current());
+                }
+           }
+      }
+  }
+  try {
+     PS2.Perform();
+  } catch ( Standard_Failure ) {throw ImprintFailure();}
+
+
+  for(TopTools_MapIteratorOfMapOfShape amapIter(dielectricFaces);amapIter.More(); amapIter.Next()) {
+      TopoDS_Shape S=amapIter.Key();
+      const BOPCol_ListOfShape &RSlist = PS2.ImagesResult().FindFromKey(S);
+      BOPCol_ListIteratorOfListOfShape RSit(RSlist);
+      dielectricFaces2.Add(RSit.Value());
+  }
+
+ }
+
+ const BOPCol_IndexedDataMapOfShapeListOfShape& PS2map=PS2.ImagesResult();
+ bool hasPS2=hasPML;
+
 
 //-----------------------------------------------------------------------------
 //  Replace original parts with the splitted parts:
@@ -2005,7 +2183,7 @@ void MwOCAF::split(){
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
      TDF_Label label = refAtt->Get();
-     if(vol->type==SPLITTER || vol->type==GRID) {
+     if(vol->type==SPLITTER || (vol->type==GRID && !vol->PML)) {
 	TDF_Label father=label.Father();
         removeWithSubComponents(label);
 	updateAssembly(father);
@@ -2014,8 +2192,16 @@ void MwOCAF::split(){
      }
      TopoDS_Shape S = shapeTool->GetShape(label);
 //     TopoDS_Shape S = shapeTool->GetShape(label1);
-     if(!S.IsNull()) if(PSmap.Contains(S)) {
-      const BOPCol_ListOfShape &RSlist = PS.ImagesResult().FindFromKey(S);
+     bool S_in_PS=false;
+     if(!S.IsNull()){
+	  if(vol->type!=GRID) S_in_PS=PSmap.Contains(S);
+     }
+     bool S_in_PS2=false;
+     if(!S.IsNull()){
+	  if(vol->type==GRID) S_in_PS2=PS2map.Contains(S);
+     }
+     if(S_in_PS){
+     const BOPCol_ListOfShape &RSlist = PSmap.FindFromKey(S);
      if(!RSlist.IsEmpty()) {
 //   takes notice of the data stored in old Solid
 //           S1<< the healed Solid
@@ -2032,6 +2218,11 @@ void MwOCAF::split(){
 		int shNum=0;
 	        for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
                   TopoDS_Shape Si=RSit.Value();
+		  if(hasPS2){
+                   const BOPCol_ListOfShape &RSlist2 = PS2map.FindFromKey(Si);
+		   BOPCol_ListIteratorOfListOfShape RSit2(RSlist2);
+                   Si=RSit2.Value();
+		  }
                   shNum++;
 	  	  if(Si.ShapeType()==TopAbs_SOLID){
 		      if(CHECK_CREATED_SHAPES){
@@ -2047,7 +2238,15 @@ void MwOCAF::split(){
                  BRep_Builder builder;
                  builder.MakeShell(newShell);
 	         for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
-	              if(RSit.Value().ShapeType()==TopAbs_FACE) builder.Add(newShell,TopoDS::Face(RSit.Value()));
+	              if(RSit.Value().ShapeType()==TopAbs_FACE){
+                           TopoDS_Shape Si=RSit.Value();
+		           if(hasPS2){
+                             const BOPCol_ListOfShape &RSlist2 = PS2map.FindFromKey(Si);
+		             BOPCol_ListIteratorOfListOfShape RSit2(RSlist2);
+                             Si=RSit2.Value();
+			   }
+			   builder.Add(newShell,TopoDS::Face(Si));
+		      }
                  }
 	         newS =newShell;
              } else  {
@@ -2063,6 +2262,49 @@ void MwOCAF::split(){
              } 
       }
       }
+     else if(S_in_PS2){
+     const BOPCol_ListOfShape &RSlist = PS2map.FindFromKey(S);
+     if(!RSlist.IsEmpty()) {
+//   takes notice of the data stored in old Solid
+//           S1<< the healed Solid
+//	     TopoDS_Shape S1=S;
+// 	     if(Context->IsRecorded(S)) S1=Context->Value(S);
+//Builds the new shape in case shape is Solid
+	     TopoDS_Shape newS;
+             if(S.ShapeType()==TopAbs_FACE  ){
+                 TopoDS_Shell  newShell;
+                 BRep_Builder builder;
+                 builder.MakeShell(newShell);
+	         for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
+	              if(RSit.Value().ShapeType()==TopAbs_FACE) 
+			      if(dielectricFaces2.Contains(RSit.Value()))
+				      builder.Add(newShell,TopoDS::Face(RSit.Value()));
+                 }
+	         newS =newShell;
+	     } else if(S.ShapeType()==TopAbs_COMPOUND  ){
+                 TopoDS_Compound  newComp;
+                 BRep_Builder builder;
+                 builder.MakeCompound(newComp);
+	         for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
+	              if(RSit.Value().ShapeType()==TopAbs_COMPOUND) 
+			  for (TopExp_Explorer exp(RSit.Value(),TopAbs_FACE); exp.More(); exp.Next()) 
+			      if(dielectricFaces2.Contains(exp.Current())) builder.Add(newComp,exp.Current());
+                 }
+	         newS =newComp;
+             } else  {
+		 assert(RSlist.Extent()==1);
+		 BOPCol_ListIteratorOfListOfShape RSit(RSlist);
+		 newS =RSit.Value();
+	     }
+//Replace Shape with new shape:
+             if(!newS.IsNull()){ 
+	        TDF_Label newlabel=replaceLabelShape(label,newS);
+	        displayLabelShape(newlabel, true);
+	        refAtt->Set(newlabel);
+             } 
+      }
+      }
+
   }
 
 //  resetShapeTool();
@@ -2127,6 +2369,11 @@ void MwOCAF::split(){
 	  for (BOPCol_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
 //	       if (reshape->Status(RSit.Value(), Fi, Standard_True)>=0){
                  TopoDS_Shape Fi=RSit.Value();
+		 if(hasPS2){
+                       const BOPCol_ListOfShape &RSlist2 = PS2map.FindFromKey(Fi);
+		       BOPCol_ListIteratorOfListOfShape RSit2(RSlist2);
+                       Fi=RSit2.Value();
+	         }
 	         Fi.Orientation(TopAbs_FORWARD);
 	         if(indexedFaces->Contains(Fi)){
 		   int FI = indexedFaces->FindIndex(Fi);
@@ -2147,6 +2394,11 @@ void MwOCAF::split(){
 //		if (reshape->Status(RSit.Value(), Ei, Standard_True)>=0)
 	  {
 	      TopoDS_Shape Ei=RSit.Value();
+	      if(hasPS2){
+                   const BOPCol_ListOfShape &RSlist2 = PS2map.FindFromKey(Ei);
+		   BOPCol_ListIteratorOfListOfShape RSit2(RSlist2);
+                   Ei=RSit2.Value();
+	      }
 	      Ei.Orientation(TopAbs_FORWARD);
 	      if(indexedEdges->Contains(Ei)){
 		   int EI = indexedEdges->FindIndex(Ei);
@@ -2166,6 +2418,12 @@ void MwOCAF::split(){
 //		  if (reshape->Status(RSit.Value(), Pi, Standard_True)>=0)
 	  {
 	      TopoDS_Shape Pi=RSit.Value();
+	      TopoDS_Shape Ei=RSit.Value();
+	      if(hasPS2){
+                   const BOPCol_ListOfShape &RSlist2 = PS2map.FindFromKey(Pi);
+		   BOPCol_ListIteratorOfListOfShape RSit2(RSlist2);
+                   Pi=RSit2.Value();
+	      }
 	      Pi.Orientation(TopAbs_FORWARD);
 	      if(indexedVertices->Contains(Pi)){
 		   int PI = indexedVertices->FindIndex(Pi);
@@ -2247,6 +2505,7 @@ TDF_LabelSequence*  MwOCAF::getEquivalents (const TDF_Label& label){
 	 }
 	 return NULL;
    }
+   return NULL;
 }
 
 void MwOCAF::makeIndexedShapes(const TDF_Label &label){
@@ -2498,7 +2757,8 @@ void MwOCAF::makeFaceAdjCells(TDF_Label label){
             int FI=indexedFaces->FindIndex(F);
             if(FI){
 		 if(S.ShapeType()==TopAbs_SOLID) assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
-		 if(faceAdjParts[2*(FI-1)+si]!=TCollection_AsciiString("-")) si=1-si;
+		 assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
+//		 if(faceAdjParts[2*(FI-1)+si]!=TCollection_AsciiString("-")) si=1-si;
 		 faceAdjParts[2*(FI-1)+si]=partName;
             }
     }
@@ -2557,6 +2817,7 @@ void MwOCAF::makeFaceAdjBdrCond(TDF_Label label){
             F.Orientation(TopAbs_FORWARD);
             int FI=indexedFaces->FindIndex(F);
             if(FI) if(vol->type==BOUNDARYCOND) faceAdjBdrCond[FI-1]=TCollection_AsciiString(vol->material);
+            if(FI) if(vol->PML)                faceAdjBdrCond[FI-1]=TCollection_AsciiString("PML");
             if(FI) if(vol->type==WAVEGUIDE)    faceAdjBdrCond[FI-1]=TCollection_AsciiString("WAVEGUIDE");
     }
 }
@@ -2574,8 +2835,8 @@ void MwOCAF::makeFaceAdjBdrCond(){
       Handle(TDF_Reference)  refAtt;
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
       TDF_Label label = refAtt->Get();
-      DB::Volume *vol=getLabelVol(label); 
-      if(vol) if(vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE) makeFaceAdjBdrCond(label);
+      DB::Volume *vol=getLabelVol(label);
+      if(vol) if(vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->PML) makeFaceAdjBdrCond(label);
    }
 // externally defined conditions 
    int *fmap=new int[FNum]; for (int FI =1; FI <= FNum; FI++) fmap[FI-1]=FI;
@@ -2989,7 +3250,7 @@ void MwOCAF::generateSubshapes(const TDF_Label &label, Handle(XCAFDoc_ShapeTool)
 	    bool skip=false;
 	    bool lp=false;
             DB::Volume *vol=getLabelVol(label);
-            if(vol){ skip=(vol->type==SPLITTER || vol->type==GRID); lp=vol->type==LINEPORT;}
+            if(vol){ skip=vol->type==SPLITTER || vol->type==GRID; lp=vol->type==LINEPORT;}
             if(!skip){
              if(lp) for(exp1.Init(Sh, TopAbs_EDGE); exp1.More(); exp1.Next()){
                TopoDS_Shape E=exp1.Current();
@@ -3323,7 +3584,7 @@ void MwOCAF::readPartsStatus()
      TCollection_AsciiString partName=nameAtt->Get();
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
-     if(vol->type==SPLITTER || vol->type==GRID ) continue;
+     if(vol->type==SPLITTER) continue;
      std::string fileName=projectDir;
      fileName+=std::string("/");
      fileName+=std::string(partName.ToCString());
@@ -3353,6 +3614,7 @@ void MwOCAF::setPartsStatus()
      if(vol->type==UNDEFINED) {prjStatus.partTypes=false; vol->defined=0;}
      if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE)  
 	     if(!strcmp(vol->material,"?")) {prjStatus.partMaterials=false; vol->defined=0; }
+     if(vol->type==GRID) vol->defined=vol->gridNum? 1: 0;
    }
 }
 
@@ -3439,23 +3701,6 @@ void putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TD
            else if(emP->assemblyType==COMPONENT) vol->type=defaultPartType(S,partName);
      }
  }
- DB::Volume* vol;
- vol=emP->FindVolume("PEC");
- if(!vol){
-  vol =new DB::Volume();
-  strcpy(vol->name,"PEC");
-  strcpy(vol->material,"PEC");
-  vol->type=BOUNDARYCOND;
-  emP->insertVolume(vol);
- }
- vol=emP->FindVolume("PMC");
- if(!vol){
-  vol =new DB::Volume();
-  strcpy(vol->name,"PMC");
-  strcpy(vol->material,"PMC");
-  vol->type=BOUNDARYCOND;
-  emP->insertVolume(vol);
- }
 
 }
 
@@ -3531,18 +3776,21 @@ void MwOCAF::saveImportedStruct(const char *dir,
    Handle(XCAFDoc_LayerTool) subLayTool  =XCAFDoc_DocumentTool::LayerTool(subDoc->Main());
    TDF_Label subShapes=XCAFDoc_DocumentTool::ShapesLabel(subDoc->Main());
 
+   int assemblyType;
    DB::EmProblem *subEmP=new DB::EmProblem();
    strcpy(subEmP->defaultBC,EmP.defaultBC);
 
    if(isCompName(assName))
-      subEmP->assemblyType=COMPONENT;
+      assemblyType=subEmP->assemblyType=COMPONENT;
+   else if(isIFName(assName))
+      assemblyType=subEmP->assemblyType=INTERFACE;
    else if(COMPONENTISASSEMBLY)
-      subEmP->assemblyType= (hasSubAssembly(shapeTool, ass) && !hasMultibodyPart(shapeTool, ass)) ? NET: COMPONENT;
+      assemblyType=subEmP->assemblyType= (hasSubAssembly(shapeTool, ass) && !hasMultibodyPart(shapeTool, ass)) ? NET: COMPONENT;
    else
-      subEmP->assemblyType= shapeTool->IsAssembly(ass)? NET: COMPONENT;
+      assemblyType=subEmP->assemblyType= shapeTool->IsAssembly(ass)? NET: COMPONENT;
 
 // Copy the subassembly structure into the subdocument:
-   copySubAss(subShapeTool,subColTool,subLayTool,subShapes, shapeTool, colorTool,layerTool, ass, 1, subEmP->assemblyType);
+   copySubAss(subShapeTool,subColTool,subLayTool,subShapes, shapeTool, colorTool,layerTool, ass, 1, assemblyType);
    putVolumesInDB_(subEmP, subShapeTool, subDoc->Main());
 
 // set subass name and location into the related parts label:
@@ -3569,7 +3817,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
 // If considered subassembly is a  COMPONENT creates the Partition dir
    std::string partition=std::string(dir)+std::string("/Partition");
    partition=nativePath(partition);
-   if(subEmP->assemblyType==COMPONENT){
+   if(assemblyType==COMPONENT){
       std::string cmp=assName.ToCString();
       if(componentlist) if(componentlist->find(cmp)==componentlist->end()) componentlist->insert(cmp);
       if(!FileExists(partition.c_str())) createdir(partition.c_str());
@@ -3594,7 +3842,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
 
 // Set subdirs list.  Remove downIF (part.brep)
    std::string subdfname=std::string(dir)+std::string("/subdirs");
-   if(subEmP->assemblyType==NET) {
+   if(assemblyType==NET) {
        bool addSubdirs=!FileExists(subdfname.c_str());
        FILE *subdfid;
        if(addSubdirs) subdfid= fopen(nativePath(subdfname).c_str(), "w");
@@ -3622,7 +3870,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
 
 // Set modified.
    setModified(dir);
-   if(subEmP->assemblyType==COMPONENT) { setModified(partition.c_str()); }
+   if(assemblyType==COMPONENT) { setModified(partition.c_str()); }
 
    std::string occFileName=std::string(dir);
    if(USEXMLXCAF) occFileName+=std::string("/model.xml");
@@ -3637,18 +3885,18 @@ void MwOCAF::saveImportedStruct(const char *dir,
    if(!FileExists(emFileName.c_str())) { 
        FILE *fid= fopen(nativePath(emFileName).c_str(), "w");
        fprintf(fid, "Level  %d\n", level);
-       fprintf(fid, "AssemblyType  %d\n", subEmP->assemblyType);
+       fprintf(fid, "AssemblyType  %d\n", assemblyType);
        fprintf(fid, "DefaultBoundCond  \"%s\"\n", subEmP->defaultBC);
        if(addImport) if(!EmP.stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP.stepFilePath.c_str());
        subEmP->save(fid);
        fclose(fid);
        std::string asstypeFileName=std::string(dir)+std::string("/assemblyType");
        FILE *assfid= fopen(nativePath(asstypeFileName).c_str(), "w");
-       fprintf(assfid, "%d\n", subEmP->assemblyType);
+       fprintf(assfid, "%d\n", assemblyType);
        fclose(assfid);
    }
 // If it is a COMPONENT writes an initial model.em also in the Partition dir
-   if(subEmP->assemblyType==COMPONENT){ 
+   if(assemblyType==COMPONENT){ 
       std::string emFileName=partition+std::string("/model.em");
       FILE *emfid= fopen(nativePath(emFileName).c_str(), "w");
       fprintf(emfid, "Level  %d\n", level+1);
@@ -3658,7 +3906,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
    delete(subEmP);
 
 // Recursion on sublevels
-   if(subEmP->assemblyType==NET) for (TDF_ChildIterator it(ass, Standard_False); it.More(); it.Next()){
+   if(assemblyType==NET) for (TDF_ChildIterator it(ass, Standard_False); it.More(); it.Next()){
      TDF_Label label = it.Value();
      Handle(XCAFDoc_Location) locAtt;
      if(!label.FindAttribute(XCAFDoc_Location::GetID(),locAtt)) continue;
@@ -3779,9 +4027,9 @@ void MwOCAF::addPorts(std::map<std::string, int, std::less<std::string> > &ports
         TEMport=name+"_TEM";
         TEport=name+"_TE";
         TMport=name+"_TM";
-        if(ports.find(TEMport)==ports.end()) ports[TEMport]=vol->TEMportsNum;
-        if(ports.find(TEport)==ports.end()) ports[TEport]=vol->TEportsNum;
-        if(ports.find(TMport)==ports.end()) ports[TMport]=vol->TMportsNum;
+        ports[TEMport]=vol->TEMportsNum;
+        ports[TEport]=vol->TEportsNum;
+        ports[TMport]=vol->TMportsNum;
       }
       if(vol->type==LINEPORT){
         std::string Lport=name+"_v";

@@ -24,6 +24,8 @@
 
 #include<MallocUtils.h>
 #include<string>
+#include<vector>
+#include<map>
 #include<ListUtils.h>
 #include<TreeUtils.h>
 #include<Message.h>
@@ -43,6 +45,7 @@
 #define SPLITTER           4
 #define HOLE               5
 #define LINEPORT           6
+#define INTERFACE          7
 #define ASSEMBLY          10
 #define COMPONENT         11
 #define NET               12
@@ -122,25 +125,39 @@ public:
   str_t      name;
   int        type;
   str_t      material;
+  int        master;
   int        TEMportsNum;
   int        TEportsNum;
   int        TMportsNum;
   int        compSolid;
   int        defined;
   int        disabled;
+  int        gridNum;
+  int        PML;
+  int        invariant;
   double     meshRefinement;
+  std::map<int,int> Fmap, Cmap;
   Volume();
   Volume & operator =(Volume const &rhs);
 };
 
-
+class Transform {
+public:
+  str_t      name;
+  double     trasl[3];
+  double     rotAxis[3];
+  double     rotOrigin[3];
+  double     rotAngle;
+  Transform();
+  Transform& operator =(const Transform &rhs);
+};
 
 int fcmp_Material(const void *a, const void *b);
 
 
 class EmProblem{
 public:
-  Tree_T  *materials, *volumes;
+  Tree_T  *materials, *volumes, *invariants;
 //------------------------
   EmProblem();
   ~EmProblem();
@@ -149,6 +166,9 @@ public:
   void delMaterial  (Material*  m);
   void insertVolume (Volume*    v);
   void delVolume    (Volume*    v);
+  void addInvariant (Transform* t);
+  void insertInvariant (Transform* t);
+  void delInvariant    (Transform* t);
   void save(FILE *fid, bool onlyMesh=false, bool onlyWG=false, std::string WGprefix=std::string(""));
   void saveMaterials(FILE *fid);
   std::string stepFilePath;
@@ -159,6 +179,7 @@ public:
   int assemblyType;
   Material  *FindMaterial(const str_t name);
   Volume    *FindVolume(const str_t name);
+  Transform *FindInvariant(const str_t name);
   int volNum(){ return Tree_Nbr(volumes);}
 };
 

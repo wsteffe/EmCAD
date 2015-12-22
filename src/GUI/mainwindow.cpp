@@ -126,7 +126,7 @@ extern std::map<std::string, std::string> emcadAccount;
 extern std::map<std::string, std::string> botoConfig;
 
 int useAWS;
-bool componentIsAssembly(){ return (emcadConfig[std::string("ComponentIsAssembly")]==std::string("True"));}
+bool componentIsAssembly(){ return (emcadConfig[std::string("ComponentIsAssembly")]!=std::string("false"));}
 
 ViewWidget*    mainOCC;
 MwOCAF*       mainOCAF;
@@ -460,7 +460,9 @@ MainWindow::~MainWindow(){
 }
 
 void WorkStatus::reset(){
+   reloadNeeded=0;
    decompositionNeeded=0;
+   firstDecomposition=1;
    materialChanged=0;
    remeshNeeded=0;
    modelizationNeeded=0;
@@ -1423,6 +1425,7 @@ bool MainWindow::worksave()
 {
    if(!runStatus.projectIsOpen) return false;
    mainOCAF->worksave(currentWorkPath.toLatin1().data());
+   return true;
 }
 
 void ProjectData::saveSettings(){
@@ -1462,11 +1465,13 @@ void ProjectData::saveWorkStatus(){
    QString wkstatusFileName=mainWorkPath+"/workstatus.dat";
    FILE *fid= fopen(nativePath(wkstatusFileName).toLatin1().data(), "w");
    fprintf(fid, "decomposition needed  %d\n", workStatus.decompositionNeeded);
+   fprintf(fid, "first decomposition %d\n", workStatus.firstDecomposition);
    fprintf(fid, "material changed %d\n", workStatus.materialChanged);
    fprintf(fid, "remesh needed  %d\n", workStatus.remeshNeeded);
    fprintf(fid, "modelization needed  %d\n", workStatus.modelizationNeeded);
    fprintf(fid, "component save needed %d\n", workStatus.componentsaveNeeded);
    fprintf(fid, "reduction needed %d\n", workStatus.reductionNeeded);
+   fprintf(fid, "reload needed %d\n", workStatus.reloadNeeded);
    fclose(fid);
 }
 
@@ -1909,6 +1914,7 @@ void Preprocessor::setMaterialData(QString dir)
       ocaf->setTEMnum();
       ocaf->addPorts(prjData.ports.map, prjData.portloads.map);
       if(ocaf->worksaveNeeded) ocaf->worksave(dir.toLatin1().data());
+      else prjData.savePorts();
       MwOCAF* subocaf=new MwOCAF();
       QString subDir=dir+"/Partition";
       subocaf->workopen(subDir.toLatin1().data());
@@ -2068,7 +2074,8 @@ void Preprocessor::decompose(){
    setMaterialData();
    setSuperFaces(currentWorkPath);
    if(mainOCAF->EmP.assemblyType==NET) saveMainCirc();
-   prjData.workStatus.decompositionNeeded=false;
+   prjData.workStatus.decompositionNeeded=0;
+   prjData.workStatus.firstDecomposition=0;
 }
 
 
@@ -2135,6 +2142,10 @@ void MainWindow::openAllDoc(QString dir)
 
 
 void MainWindow::startOperation(){
+  if(prjData.workStatus.reloadNeeded){
+      prjData.workStatus.reloadNeeded=0;
+      reload();
+  }
   preproc.currentWorkPath=currentWorkPath;
   TCollection_AsciiString name;
   mainOCAF->getAssName(name);
@@ -2989,60 +3000,6 @@ void MainWindow::atMesherEnd() {
   runStatus.runningMesher=false; checkActions();
 }
 
-
-
-
-
-
-void MainWindow::makeSubDirs()
-{
-  if(currentWorkPath.isEmpty()){
-//     temporaryMessage("you must save the project before making subprojects");
-     return;
-  }
-//-------------------------------------------------------
-  QDir dir(currentWorkPath);
-  QString ifdirname="interfaces";
-  if(!dir.exists(ifdirname)){
-   dir.mkdir(ifdirname);
-  }
-//-------------------------------------------------------
-  if(mainOCAF->EmP.assemblyType==NET){
-    QString sdfName=currentWorkPath+"/subdirs";
-    QFile sdfile(sdfName);
-    sdfile.open(QFile::WriteOnly);
-    QTextStream sdf(&sdfile);
-//    fprintf(mkfid,"DIRS  =");
-    for (int i = 1; i <= mainOCAF->numberOfParts(); i++){
-     TCollection_AsciiString TCname;
-     if(!mainOCAF->getPartName(i, TCname)) continue;
-     QString partName=QString(TCname.ToCString());
-     DB::Volume* vol = mainOCAF->EmP.FindVolume(partName.toLatin1().data());
-     if(vol->type!=ASSEMBLY) continue;
-     QString fullPartDir=currentWorkPath+"/"+partName;
-     sdf << partName <<"\n";
-//     fprintf(mkfid,"  ../%s/interfaces",partName.toLatin1().data());
-     if(dir.exists(partName)) continue;
-     dir.mkdir(partName);
-     QString emFileName=fullPartDir+"/model.em";
-     setModified(fullPartDir);
-     FILE *emfid= fopen(nativePath(emFileName.toLatin1().data()).c_str(), "w");
-     fprintf(emfid, "Level  %d\n", mainOCAF->EmP.level+1);
-     fclose(emfid);
-    }
-    sdfile.close();
-  } else if(mainOCAF->EmP.assemblyType==COMPONENT){
-     QString splitPath=currentWorkPath+"/Partition";
-     if(!dir.exists(splitPath)){ 
-       dir.mkdir(splitPath);
-       QString emFileName=splitPath+"/model.em";
-       setModified(splitPath);
-       FILE *emfid= fopen(nativePath(emFileName.toLatin1().data()).c_str(), "w");
-       fprintf(emfid, "Level  %d\n", mainOCAF->EmP.level+1);
-       fclose(emfid);
-     }
-  }
-}
 
 
 void MainWindow::setDefaultPECbc()
@@ -4002,7 +3959,7 @@ ConfigDialog::ConfigDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(pa
      AWS_secret_access_key_LineEdit->setText(QString(botoConfig[std::string("aws_secret_access_key")].c_str()));
 
      componentIsAssembly=new QCheckBox("Components defined as CAD assemblies", this);
-     if(emcadConfig[std::string("ComponentIsAssembly")]==std::string("True"))  componentIsAssembly->setCheckState(Qt::Checked);
+     if(emcadConfig[std::string("ComponentIsAssembly")]==std::string("true"))  componentIsAssembly->setCheckState(Qt::Checked);
      else                                                                      componentIsAssembly->setCheckState(Qt::Unchecked);
 
      QGridLayout *configLayout = new QGridLayout();
@@ -4059,7 +4016,7 @@ void ConfigDialog::set(){
   tmp=std::string(AWS_bucket_LineEdit->text().toLatin1());
   if(tmp!=emcadConfig[std::string("AWS_bucket")]) { emcadConfig[std::string("AWS_bucket")]=tmp; emcad_changed=true;}
 
-  tmp=(componentIsAssembly->checkState()==Qt::Checked)? std::string("True"): std::string("False");
+  tmp=(componentIsAssembly->checkState()==Qt::Checked)? std::string("true"): std::string("false");
   if(tmp!=emcadConfig[std::string("ComponentIsAssembly")]) {emcadConfig[std::string("ComponentIsAssembly")]=tmp; emcad_changed=true;}
 
   if(emcad_changed) WriteFile(config_filename, &emcadConfig);

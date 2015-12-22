@@ -145,7 +145,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
 	      const char* dirName, const char* modelDir,
 	      TopTools_IndexedMapOfShape *indexedFaces,
 	      TopTools_IndexedMapOfShape *indexedEdges,
-	      TopTools_IndexedMapOfShape *indexedVertices)
+	      TopTools_IndexedMapOfShape *indexedVertices,
+	      std::vector<int> &Fmaster)
 {
 
   FILE *fout;
@@ -326,10 +327,12 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
     int FI=indexedFaces->FindIndex(F);
     if(!FI) continue;
     if(!isPartition && ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level !=ocaf->EmP.level) continue;
-    int Ssign=GmshOCCfaceSign(gf);
-//    int Ssign=GfaceOCCfaceSign(gf);
+//    int Ssign=GmshOCCfaceSign(gf);
+    int Ssign=GfaceOCCfaceSign(gf);
     assert(Ssign>0);
+    bool skipFaceMesh=true;
     if(!isPartition){
+        skipFaceMesh=false;
 	std::string faceFileName=dirName;
         char fname[50]; sprintf(fname,"F%d.mwm",FI);
         faceFileName+="/interfaces/";
@@ -343,15 +346,23 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
       TCollection_AsciiString vol1name=ocaf->faceAdjParts[2*(FI-1)+rev];
       TCollection_AsciiString vol2name=ocaf->faceAdjParts[2*(FI-1)+1-rev];
       if(vol1name==TCollection_AsciiString("-") && vol2name==TCollection_AsciiString("-")) continue;
+      DB::Volume *vol1=NULL;
+      if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP.FindVolume(vol1name.ToCString());
+      if(vol1) if(vol1->disabled) vol1=NULL;
+      DB::Volume *vol2=NULL;
+      if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP.FindVolume(vol2name.ToCString());
+      if(vol2) if(vol2->disabled) vol2=NULL;
       if(ocaf->faceData[FI-1].shared){
-       DB::Volume *vol1=NULL;
-       if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP.FindVolume(vol1name.ToCString());
-       if(vol1) if(vol1->disabled) vol1=NULL;
        if(!vol1) vol1name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
-       DB::Volume *vol2=NULL;
-       if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP.FindVolume(vol2name.ToCString());
-       if(vol2) if(vol2->disabled) vol2=NULL;
        if(!vol2) vol2name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
+      }
+      if(skipFaceMesh && vol1){
+	    char m1name[100]; sprintf(m1name,"Vol%d",vol1->master);
+	    if(!vol1->master || !strcmp(vol1->name,m1name)) skipFaceMesh=false;
+      }
+      if(skipFaceMesh && vol2){
+	    char m2name[100]; sprintf(m2name,"Vol%d",vol2->master);
+	    if(!vol2->master || !strcmp(vol2->name,m2name)) skipFaceMesh=false;
       }
       if(  bdrname==TCollection_AsciiString("-")
         &&(vol1name==TCollection_AsciiString("-") || vol2name==TCollection_AsciiString("-"))
@@ -359,11 +370,19 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
       bool hasbdrc =(bdrname!=TCollection_AsciiString("-"))
 	         &&(bdrname!=TCollection_AsciiString("WAVEGUIDE"))
 	         &&(bdrname!=TCollection_AsciiString("INTERFACE"));
+      if(hasbdrc && (bdrname!=TCollection_AsciiString("PEC")) && (bdrname!=TCollection_AsciiString("PML")) ) skipFaceMesh=false;
       onWG =bdrname==TCollection_AsciiString("WAVEGUIDE");
+      if(onWG) skipFaceMesh=false;
       fprintf(fout, "DEF S%d  MWM_Surface {\n", FI);
-      fprintf(fout, "  volumes  [\"%s\", \"%s\"]\n",  vol1name.ToCString(), vol2name.ToCString());
+      if(Fmaster[FI-1]>=0)
+         fprintf(fout, "  volumes  [\"%s\", \"%s\"]\n",  vol1name.ToCString(), vol2name.ToCString());
+      else
+         fprintf(fout, "  volumes  [\"%s\", \"%s\"]\n",  vol2name.ToCString(), vol1name.ToCString());
+      if(Fmaster[FI-1]) fprintf(fout, "  master  %d\n", abs(Fmaster[FI-1]) );
       if(fwg && onWG){ fprintf(fwg, "DEF S%d  MWM_Surface {\n", FI);
-                       fprintf(fwg, "  volumes  [\"%s\", \"%s\"]\n",  vol1name.ToCString(), vol2name.ToCString()); }
+                       fprintf(fwg, "  volumes  [\"%s\", \"%s\"]\n",  vol1name.ToCString(), vol2name.ToCString()); 
+                       if(Fmaster[FI-1]) fprintf(fwg, "  master  %d\n", abs(Fmaster[FI-1]) );
+      }
       if(hasbdrc) fprintf(fout, "  material \"%s\"\n",  bdrname.ToCString());
     }
 
@@ -393,7 +412,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
     int Wsgn=(W.Orientation()==TopAbs_FORWARD) ? 1 : -1;    
     for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
       TopoDS_Shape E=it2.Value();
-      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? 1 : -1;
+      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Wsgn : -Wsgn;
       E.Orientation(TopAbs_FORWARD);
       int EI=indexedEdges->FindIndex(E);
       GEdge *ge=indexedGEdges[EI];
@@ -412,14 +431,21 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
      std::reverse(Fedges.begin(),Fedges.end());
      std::reverse(FedgesSign.begin(),FedgesSign.end());
     }
+
+
     int FPNum=0;
     int FtriaNum=gf->triangles.size();
+
+    int reversedFace=0;
+    if(isPartition) if(Fmaster[FI-1]<0) reversedFace=1;
+
+    if(!skipFaceMesh) {
 
     for(int k = 0; k <2; k++) for(int TI = 0; TI <FtriaNum; ++TI){
       MTriangle *t = gf->triangles[TI];
       SPoint3 CP(0.0,0.0,0.0);
       for(int j = 0; j < 3; ++j){
-        MVertex *v = t->getVertex(j);
+        MVertex *v=reversedFace ? t->getVertex((3-j)%3) : t->getVertex(j);
         int I = v->getIndex();
         if(PI2FPI.find(I)==PI2FPI.end())
         if (v->onWhat()->dim() < 2 || k==1){
@@ -473,6 +499,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
        if (dot(n,crossprod(A,B))<0) cout<< "Wrong orientation of face "<< FI<<endl;
       }
    }
+
+  } //!skipFaceMesh 
 //----------------------------------
   fprintf(fout, "  curves [\n");
   if(fwg && onWG) fprintf(fwg, "  curves [\n");
@@ -567,6 +595,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
    }
    fprintf(fout, "  ]\n");
   }
+
+   if(!skipFaceMesh) {
 //----------------------------------
    fprintf(fout, "  points [\n");
    for(int i = 0; i< FPNum; i++){
@@ -591,25 +621,39 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
 //----------------------------------
    if(gf->geomType() != GEntity::Plane){
      fprintf(fout, "  normals [\n");
-     for(int i=0; i<FPNum; i++) 
-       fprintf(fout, "\t%.16f %.16f %.16f,\n",
-	         normals[3*i +0], 
-	         normals[3*i +1], 
-	         normals[3*i +2]
-       );
-     fprintf(fout, "  ]\n");
-   }
-   if(fwg && onWG){
-     if(gf->geomType() != GEntity::Plane){
-       fprintf(fwg, "  normals [\n");
+     if(reversedFace)
        for(int i=0; i<FPNum; i++) 
-         fprintf(fwg, "\t%.16f %.16f %.16f,\n",
+         fprintf(fout, "\t%.16f %.16f %.16f,\n",
+	        -normals[3*i +0], 
+	        -normals[3*i +1], 
+	        -normals[3*i +2]
+         );
+     else
+       for(int i=0; i<FPNum; i++) 
+         fprintf(fout, "\t%.16f %.16f %.16f,\n",
 	         normals[3*i +0], 
 	         normals[3*i +1], 
 	         normals[3*i +2]
          );
-       fprintf(fwg, "  ]\n");
-     }
+     fprintf(fout, "  ]\n");
+   }
+   if(fwg && onWG && gf->geomType() != GEntity::Plane){
+     fprintf(fwg, "  normals [\n");
+     if(reversedFace)
+       for(int i=0; i<FPNum; i++)
+         fprintf(fwg, "\t%.16f %.16f %.16f,\n",
+	        -normals[3*i +0], 
+	        -normals[3*i +1], 
+	        -normals[3*i +2]
+         );
+     else
+       for(int i=0; i<FPNum; i++)
+	 fprintf(fwg, "\t%.16f %.16f %.16f,\n",
+	         normals[3*i +0], 
+	         normals[3*i +1], 
+	         normals[3*i +2]
+         );
+     fprintf(fwg, "  ]\n");
    }
 //----------------------------------
  fprintf(fout, "  curvePoints [\n");
@@ -669,7 +713,10 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
   for(int TI = 0; TI <FtriaNum;  ++TI){
      MTriangle *t = gf->triangles[TI];
      fprintf(fout, "\t");
-     for(int j = 0; j < 3; ++j) fprintf(fout, "%d,", PI2FPI[t->getVertex(j)->getIndex()]);
+     for(int j = 0; j < 3; ++j){ 
+      MVertex *v = reversedFace ? t->getVertex((3-j)%3) : t->getVertex(j);
+      fprintf(fout, "%d,", PI2FPI[v->getIndex()]);
+     }
      fprintf(fout, "-1,\n");
   }
   fprintf(fout, "  ]\n");
@@ -678,7 +725,10 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
     for(int TI = 0; TI <FtriaNum;  ++TI){
        MTriangle *t = gf->triangles[TI];
        fprintf(fwg, "\t");
-       for(int j = 0; j < 3; ++j) fprintf(fwg, "%d,", PI2FPI[t->getVertex(j)->getIndex()]);
+       for(int j = 0; j < 3; ++j){
+          MVertex *v = reversedFace ? t->getVertex((3-j)%3) : t->getVertex(j);
+	  fprintf(fwg, "%d,", PI2FPI[v->getIndex()]);
+       }
        fprintf(fwg, "-1,\n");
     }
     fprintf(fwg, "  ]\n");
@@ -693,6 +743,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
      fprintf(fwg, "  ]\n");
    }
 
+   } //!skipFaceMesh
 //----------------------------------
     if(isPartition)  { fprintf(fout, "}\n\n"); if(fwg && onWG) fprintf(fwg, "}\n\n");  }
     else             fclose(fout);

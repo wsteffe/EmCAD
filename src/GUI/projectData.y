@@ -72,7 +72,7 @@ char	*sval;
 %token DEF MAINASSNAME NETWORK LENGTH FREQ UNIT EXP MESH WAVELENGTH RATIO ANA BAND NUM MOR
 %token RESPONSE PARAMETER TYPE PART XSCALE YSCALE AUTO ZERO POLE CURVE
 %token FILTER MAPPING METHOD ITERMAX AUTOMATIC MAPPED
-%token REMESH DECOMPOSITION MATERIAL MODELIZATION COMPONENT SAVE REDUCTION NEEDED CHANGED
+%token REMESH FIRST DECOMPOSITION MATERIAL MODELIZATION COMPONENT SAVE REDUCTION RELOAD NEEDED DONE CHANGED
 
 
 %type <fval> SFFloat
@@ -335,6 +335,10 @@ WorkStatus:
             {
               prjData.workStatus.decompositionNeeded=$3;
             }
+	|  FIRST DECOMPOSITION INTEGER
+            {
+              prjData.workStatus.firstDecomposition=$3;
+            }
         |  MATERIAL CHANGED  INTEGER
             {
               prjData.workStatus.materialChanged=$3;
@@ -354,6 +358,10 @@ WorkStatus:
         |  REDUCTION  NEEDED  INTEGER
             {
               prjData.workStatus.reductionNeeded=$3;
+            }
+        |  RELOAD  NEEDED  INTEGER
+            {
+              prjData.workStatus.reloadNeeded=$3;
             }
 
 %%

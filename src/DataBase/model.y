@@ -73,9 +73,10 @@ DB::BufferIn<int> 	*Ibuff;
 
 DB::StringList_t *strList;
 
-DB::MatBuffer       DB::Material::buff  =DB::MatBuffer();
+DB::MatBuffer        DB::Material::buff  =DB::MatBuffer();
 DB::Material *mat;
 DB::Volume   *vol;
+DB::Transform *invt;
 DB::str_t    name,str1,str2;
 
 
@@ -83,8 +84,10 @@ DB::Buffer<char,10,80>	 StringBuffer;
 DB::Buffer<char,10,80>	 *Sbuff=&StringBuffer;
 DB::Vec<char>            Cnames;
 
-DB::Buffer<int,    10> 	IntBuffer;
+DB::Buffer<int, 10> 	IntBuffer;
+DB::Buffer<double, 10> 	DoubleBuffer;
 DB::Vec<int>	matColor;
+DB::Vec<double>	dVec;
 
 int Spec,Spmc,Swg,Sres;
 DB::Volume  *Specv;
@@ -104,7 +107,7 @@ char	*sval;
 %token IMPORT
 %token ASSEMBLYTYPE  LEVEL
 %token DEF SET CIRCUITNAME DEFAULTBC
-%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM MWM_VOLUME MWM_UNITS MWM_LINEPORT
+%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
 %token LENGTH FREQUENCY BAND RESISTANCE SURFACERESISTANCE MESHREFINEMENT COMPSOLID
 %token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
 %token VOLUMES DISABLED
@@ -133,6 +136,7 @@ MwmItems
 MwmItem
 	: Units
 	| SetCircuitType
+	| Invariant
         | Level
         | DefaultBoundCond
 	| Import
@@ -317,6 +321,47 @@ Units
 
 
 
+// ***   Invariant
+
+InvariantElements
+	: InvariantElement InvariantElements
+	|
+	;
+
+InvariantElement
+	:  ROTATION  ANGLE   {Fbuff = NULL;}    SFFloat             {invt->rotAngle=$4; }
+	|  ROTATION  AXIS {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
+            {
+              DoubleBuffer.flush(&dVec); 
+              for(int i=0; i<3; i++) invt->rotAxis[i]=dVec[i];
+            }
+	|  ROTATION  ORIGIN {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
+            {
+              DoubleBuffer.flush(&dVec); 
+              for(int i=0; i<3; i++) invt->rotOrigin[i]=dVec[i];
+            }
+        |  TRANSLATION    {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
+            {
+              DoubleBuffer.flush(&dVec); 
+              for(int i=0; i<3; i++) invt->trasl[i]=dVec[i];
+            }
+	;
+
+InvariantBegin
+	: DEF Name  MWM_INVARIANT 
+	 {     
+              invt =loadingEmP->FindInvariant(name);
+              if(invt) loadingEmP->delInvariant(invt);
+	      invt = new DB::Transform();
+	      strcpy(invt->name,name);
+	      loadingEmP->addInvariant(invt);
+	 }
+
+Invariant
+	: InvariantBegin NodeBegin InvariantElements NodeEnd
+	;
+
+
 
 // ***   Material
 
@@ -332,8 +377,8 @@ MaterialElement
 	|  HTANDELTA            {Fbuff = NULL;}    SFFloat             {mat->htandelta=$3; mat->edispersive=1;}
 	|  ECONDUCTIVITY        {Fbuff = NULL;}    SFFloat             {mat->econductivity=$3; mat->edispersive=1;}
 	|  HCONDUCTIVITY        {Fbuff = NULL;}    SFFloat             {mat->hconductivity=$3; mat->hdispersive=1; }
-	|  EPSLORENTZ	        {Fbuff  = &mat->buff.epsLorentz; Fbuff->reset();}	   MFVec3f  {mat->edispersive=1;}
-	|  MULORENTZ            {Fbuff  = &mat->buff.muLorentz; Fbuff->reset();}	   MFVec3f  {mat->hdispersive=1;}
+	|  EPSLORENTZ	        {Fbuff  = &mat->buff.epsLorentz; Fbuff->reset();}   MFVec3f  {mat->edispersive=1;}
+	|  MULORENTZ            {Fbuff  = &mat->buff.muLorentz; Fbuff->reset();}    MFVec3f  {mat->hdispersive=1;}
 	|  SURFACERESISTANCE    {Fbuff = NULL;}    SFFloat             {mat->Sresistance=$3; }
         |  FREQUENCY BAND       {Fbuff = NULL;}    SFFloat SFFloat     {mat->freqBand[0]=$4; mat->freqBand[1]=$5; }
         |  COLOR                { Ibuff = &IntBuffer; Ibuff->reset();}	   MFInt32
@@ -430,6 +475,19 @@ VolumeElement
                 {
                   vol->TMportsNum =$3;
                 }
+	|  GRIDNUM	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->gridNum =$3;
+                }
+	|  PML	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->PML =$3;
+                }
+	|  INVARIANT  {Ibuff  =NULL;}       SFInt32
+                {
+                  vol->invariant =$3;
+                }
+	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
 	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
 
 	|  COMPSOLID         {Ibuff = NULL;}    SFInt32      {vol->compSolid=$3; }

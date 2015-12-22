@@ -29,6 +29,7 @@
 #define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
 
+#include<vector>
 
 namespace DB {
 
@@ -101,6 +102,15 @@ template<class T, int len, int stride=1> class Buffer: public BufferIn<T>{
     if(vec->data) Free(vec->data);
     vec->alloc(liste->n/stride);
     memcpy(vec->data, liste->array, liste->n * liste->size);
+    List_Reset(liste);
+  }
+  void flush(std::vector<T> *vec){
+    if(liste->n==0){ vec->clear(); return;}
+    vec->resize(liste->n);
+    for(int i=0; i<liste->n; i++){
+	 T *d= (T *) &liste->array[i*liste->size];
+	 (*vec)[i]=*d;
+    }
     List_Reset(liste);
   }
 };

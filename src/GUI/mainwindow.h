@@ -215,7 +215,6 @@ private slots:
     void saveAs();
     void save();
     void newProject();
-    void makeSubDirs();
     void setDefaultPECbc();
     void setDefaultPMCbc();
     void setGlobals();

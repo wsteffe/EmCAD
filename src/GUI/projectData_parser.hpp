@@ -80,14 +80,17 @@ extern int projectDatadebug;
     AUTOMATIC = 290,
     MAPPED = 291,
     REMESH = 292,
-    DECOMPOSITION = 293,
-    MATERIAL = 294,
-    MODELIZATION = 295,
-    COMPONENT = 296,
-    SAVE = 297,
-    REDUCTION = 298,
-    NEEDED = 299,
-    CHANGED = 300
+    FIRST = 293,
+    DECOMPOSITION = 294,
+    MATERIAL = 295,
+    MODELIZATION = 296,
+    COMPONENT = 297,
+    SAVE = 298,
+    REDUCTION = 299,
+    RELOAD = 300,
+    NEEDED = 301,
+    DONE = 302,
+    CHANGED = 303
   };
 #endif
 
@@ -102,7 +105,7 @@ int	ival;
 double	fval;
 char	*sval;
 
-#line 106 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
+#line 109 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

@@ -178,6 +178,7 @@ DEF				{ BEGIN(expectID); return DEF;}
 MWM_Material			{ return MWM_MATERIAL; }
 MWM_Volume			{ return MWM_VOLUME; }
 MWM_Units			{ return MWM_UNITS; }
+MWM_Invariant			{ return MWM_INVARIANT; }
 AssemblyType			{ return ASSEMBLYTYPE; }
 Level		 	        { return LEVEL; }
 Dielectric			{ return tDIELECTRIC; }
@@ -213,6 +214,14 @@ material			{ return MATERIAL; }
 TEMportsNum			{ return TEMPORTSNUM; }
 TEportsNum			{ return TEPORTSNUM; }
 TMportsNum			{ return TMPORTSNUM; }
+gridNum			        { return GRIDNUM; }
+PML			        { return PML; }
+invariant			{ return INVARIANT; }
+translation			{ return TRANSLATION; }
+rotation			{ return ROTATION; }
+axis			        { return AXIS; }
+origin			        { return ORIGIN; }
+angle			        { return ANGLE; }
 meshRefinement			{ return MESHREFINEMENT; }
 compSolid			{ return COMPSOLID; }
 disabled                        { return DISABLED; }
