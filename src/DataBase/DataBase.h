@@ -91,8 +91,8 @@ struct  StringList_t {
 
 class MatBuffer{
 public:
-  Buffer<double, 100, 3>	epsLorentz;
-  Buffer<double, 100, 3> 	muLorentz;
+  Buffer<double, 100, 3>  epsLorentz;
+  Buffer<double, 100, 3>  muLorentz;
 };
 class Material {
 public:

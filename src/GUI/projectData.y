@@ -27,6 +27,7 @@
 
 #include "projectData.h"
 #include <Message.h>
+#include <vector>
 
 extern ProjectData prjData;
 
@@ -56,6 +57,9 @@ static void yyprint (FILE *file, int type, YYSTYPE value);
 
 void projectData_msg(int type, char *fmt, ...);
 
+namespace ProjData {
+ std::vector<double>  *Fbuff=NULL;
+}
 
 %} 
 
@@ -71,7 +75,7 @@ char	*sval;
 
 %token DEF MAINASSNAME NETWORK LENGTH FREQ UNIT EXP MESH WAVELENGTH RATIO ANA BAND NUM MOR
 %token RESPONSE PARAMETER TYPE PART XSCALE YSCALE AUTO ZERO POLE CURVE
-%token FILTER MAPPING METHOD ITERMAX AUTOMATIC MAPPED
+%token FILTER PASS ORDER RETURNLOSS QFACTOR MAPPING METHOD ITERMAX AUTOMATIC MAPPED TX ZEROS
 %token REMESH FIRST DECOMPOSITION MATERIAL MODELIZATION COMPONENT SAVE REDUCTION RELOAD NEEDED DONE CHANGED
 
 
@@ -79,7 +83,6 @@ char	*sval;
 %type <ival> SFBool SFInt32
 
 %start All
-
 
 %%
 
@@ -98,6 +101,7 @@ PrjDataItem
         | Units
         | Mesh
         | FreqAna
+        | FilterDesign
         | Mor
         | WorkStatus
 	| error		{YYABORT;}
@@ -120,7 +124,14 @@ SFBool
 
 SFFloat
 	: FLOATING
+		{
+		      if(ProjData::Fbuff) ProjData::Fbuff->push_back($1);
+		}
 	| INTEGER
+		{
+		       $$ = (double)$1;
+		       if(ProjData::Fbuff) ProjData::Fbuff->push_back((double)$1);
+		}
 	;
 
 
@@ -329,6 +340,29 @@ FreqAna:
               prjData.autoFilterMapping=$4;
             }
 	;
+
+FilterDesign:
+           FILTER PASS BAND SFFloat SFFloat
+            {
+              prjData.filterPassBand[0]=$4;
+              prjData.filterPassBand[1]=$5;
+            }
+        |  FILTER ORDER INTEGER
+            {
+              prjData.filterOrder = $3;
+            }
+        |  FILTER RETURNLOSS SFFloat
+            {
+              prjData.filterRetLoss = $3;
+            }
+        |  FILTER QFACTOR SFFloat
+            {
+              prjData.filterQfactor = $3;
+            }
+        |  FILTER TX ZEROS {ProjData::Fbuff =&prjData.filterZeros; ProjData::Fbuff->clear();} MFFloat
+            {
+              ProjData::Fbuff=NULL;
+            }
 
 WorkStatus:
 	   DECOMPOSITION  NEEDED INTEGER

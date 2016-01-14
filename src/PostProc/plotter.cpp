@@ -303,6 +303,7 @@ void MwPlot::loadFile(){
   switch(plottedCircuit){
       case ELECROMAGNETICDEVICE: fname=prjData.mainAssName+"_RM"; break;
       case MAPPEDCIRCUIT:        fname=prjData.mainAssName+"_RM_mapped"; break;
+      case IDEALCIRCUIT:         fname=prjData.mainAssName+"_ideal"; break;
   }
   switch(plotType){
        case FREQRESP_PLOT:  fname=fname+".ts"; break;
@@ -361,7 +362,10 @@ void MwPlot::plotZeroPole(int initial){
 	   plot->setTitle("S Param Zeros and Poles");
 	   break;
       case MAPPEDCIRCUIT:        
-	   plot->setTitle("Mapped S Param Zeros and Poles");
+	   plot->setTitle("Mapped Filter S Param Zeros and Poles");
+	   break;
+      case IDEALCIRCUIT:        
+	   plot->setTitle("Ideal Filter S Param Zeros and Poles");
 	   break;
   }
   plot->updateAxes();
@@ -437,7 +441,8 @@ void MwPlot::plotFreqResponse(int initial)
 		  else                           title="Imag(Y) [1/ohm]"; 
 		  break;
   }
-  if(plottedCircuit==MAPPEDCIRCUIT){QString tag="Mapped "; title=tag+title;}
+  if(plottedCircuit==MAPPEDCIRCUIT){QString tag="Mapped Filter "; title=tag+title;}
+  if(plottedCircuit==IDEALCIRCUIT){QString tag="Ideal Filter "; title=tag+title;}
   plot->setTitle(title);
   plot->updateAxes();
 

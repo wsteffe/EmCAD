@@ -74,23 +74,29 @@ extern int projectDatadebug;
     POLE = 284,
     CURVE = 285,
     FILTER = 286,
-    MAPPING = 287,
-    METHOD = 288,
-    ITERMAX = 289,
-    AUTOMATIC = 290,
-    MAPPED = 291,
-    REMESH = 292,
-    FIRST = 293,
-    DECOMPOSITION = 294,
-    MATERIAL = 295,
-    MODELIZATION = 296,
-    COMPONENT = 297,
-    SAVE = 298,
-    REDUCTION = 299,
-    RELOAD = 300,
-    NEEDED = 301,
-    DONE = 302,
-    CHANGED = 303
+    PASS = 287,
+    ORDER = 288,
+    RETURNLOSS = 289,
+    QFACTOR = 290,
+    MAPPING = 291,
+    METHOD = 292,
+    ITERMAX = 293,
+    AUTOMATIC = 294,
+    MAPPED = 295,
+    TX = 296,
+    ZEROS = 297,
+    REMESH = 298,
+    FIRST = 299,
+    DECOMPOSITION = 300,
+    MATERIAL = 301,
+    MODELIZATION = 302,
+    COMPONENT = 303,
+    SAVE = 304,
+    REDUCTION = 305,
+    RELOAD = 306,
+    NEEDED = 307,
+    DONE = 308,
+    CHANGED = 309
   };
 #endif
 
@@ -99,13 +105,13 @@ extern int projectDatadebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 62 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.y" /* yacc.c:1909  */
+#line 66 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.y" /* yacc.c:1909  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 109 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
+#line 115 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

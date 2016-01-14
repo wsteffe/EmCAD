@@ -27,7 +27,7 @@ add_custom_target(modeler ALL
 set(MODELER_EXE_FILES
 	build/exe.win-amd64-2.7/aws_analyse.exe
 	build/exe.win-amd64-2.7/aws_filtermap.exe
-	build/exe.win-amd64-2.7/aws_symmfiltermap.exe
+	build/exe.win-amd64-2.7/aws_symmfilter.exe
 	build/exe.win-amd64-2.7/aws_getcredit.exe
 	build/exe.win-amd64-2.7/aws_modelize1.exe
 	build/exe.win-amd64-2.7/aws_modelize1_get.exe
@@ -139,7 +139,7 @@ install(PROGRAMS  aws_filtermap.py
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
 
-install(PROGRAMS  aws_symmfiltermap.py
+install(PROGRAMS  aws_symmfilter.py
        	DESTINATION aws
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )

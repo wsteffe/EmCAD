@@ -481,6 +481,8 @@ ProjectData::ProjectData(){
        freqUnitE=9;
        meshPerWavelen=20;
        freqBand[0]=freqBand[1]=0.0;
+       filterPassBand[0]=filterPassBand[1]=0.0;
+       filterOrder=0;
        anaFreqBand[0]=anaFreqBand[1]=0.0;
        zpFreqBand[0]=zpFreqBand[1]=0.0;
        zpImFreqBand[0]=zpImFreqBand[1]=0.0;
@@ -504,6 +506,9 @@ ProjectData::ProjectData(){
        autoZeropole=0;
        autoMappedZeropole=0;
        autoFilterMapping=0;
+       filterOrder=0;
+       filterQfactor=0.0;
+       filterRetLoss=0.0;
 }
 
 MainWindow::MainWindow()
@@ -551,8 +556,10 @@ MainWindow::MainWindow()
 //      Plotter
         freqRespPlot = new MwPlot(FREQRESP_PLOT);
         mapped_freqRespPlot = new MwPlot(FREQRESP_PLOT);
+        ideal_freqRespPlot = new MwPlot(FREQRESP_PLOT);
         zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
         mapped_zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
+        ideal_zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
 
 // Project
 	projectBar = new QToolBar(this);
@@ -1438,6 +1445,10 @@ void ProjectData::saveSettings(){
    fprintf(fid, "freq unit exp %d\n", freqUnitE);
    fprintf(fid, "mesh wavelength ratio %d\n", meshPerWavelen);
    fprintf(fid, "mor freq band %10.5f %10.5f\n", freqBand[0], freqBand[1]);
+   fprintf(fid, "filter pass band %10.5f %10.5f\n", filterPassBand[0], filterPassBand[1]);
+   fprintf(fid, "filter order %d\n", filterOrder);
+   fprintf(fid, "filter Qfactor %10.5f\n", filterQfactor);
+   fprintf(fid, "filter returnloss %10.5f\n", filterRetLoss);
    fprintf(fid, "mor freq num %d\n", MORFreqNum);
    fprintf(fid, "ana freq band %10.5f %10.5f\n", anaFreqBand[0], anaFreqBand[1]);
    fprintf(fid, "ana freq num %d\n", anaFreqNum);
@@ -1458,6 +1469,11 @@ void ProjectData::saveSettings(){
    fprintf(fid, "automatic zero pole  %d\n", autoZeropole);
    fprintf(fid, "automatic mapped zero pole  %d\n", autoMappedZeropole);
    fprintf(fid, "automatic filter mapping  %d\n", autoFilterMapping);
+   if(filterZeros.size()>0){
+     fprintf(fid, "filter tx zeros [\n");
+	for (int i=0; i< filterZeros.size(); i++) fprintf(fid, " %10.5f\n", filterZeros[i]);
+     fprintf(fid, "]\n");
+   }
    fclose(fid);
 }
 
@@ -1576,7 +1592,7 @@ void MainWindow::exportMaterial()
 }
 
 
-void MainWindow::exportSpiceCircuit()
+void MainWindow::exportSpice()
 {
         QFileDialog dialog(this,tr("Export Spice Circuit"));
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
@@ -1601,9 +1617,9 @@ void MainWindow::exportSpiceCircuit()
 }
 
 
-void MainWindow::exportMappedCircuit()
+void MainWindow::exportMappedJC()
 {
-        QFileDialog dialog(this,tr("Export Mapped Circuit"));
+        QFileDialog dialog(this,tr("Export Mapped JC Circuit"));
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
 	dialog.setNameFilter(tr("*.JC"));
 	QString	fname=prjData.mainAssName+"_RM_mapped.JC";
@@ -1625,6 +1641,78 @@ void MainWindow::exportMappedCircuit()
 	}
 }
 
+void MainWindow::exportMappedSpice()
+{
+        QFileDialog dialog(this,tr("Export Mapped Spice Circuit"));
+	dialog.setAcceptMode(QFileDialog::AcceptSave);
+	dialog.setNameFilter(tr("*.JC"));
+	QString	fname=prjData.mainAssName+"_RM_mapped.sp";
+	dialog.selectFile(fname);
+	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
+//	dialog.setFileMode ( QFileDialog::DirectoryOnly );
+	QString	path;
+	if(dialog.exec()){
+           QStringList pathList= dialog.selectedFiles();
+	   path= pathList.at(0);
+	}
+	if( !path.isEmpty() )
+	{
+	     if(!path.endsWith(".sp")) path+=".sp";
+             QString mappedSPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.sp");
+             if(!FileExists(mappedSPpath.toLatin1().data())) return;
+	     if(QFile::exists(path)) QFile::remove (path);
+	     QFile::copy(mappedSPpath, path);
+	}
+}
+
+
+void MainWindow::exportIdealJC()
+{
+        QFileDialog dialog(this,tr("Export Ideal JC Circuit"));
+	dialog.setAcceptMode(QFileDialog::AcceptSave);
+	dialog.setNameFilter(tr("*.JC"));
+	QString	fname=prjData.mainAssName+"_ideal.JC";
+	dialog.selectFile(fname);
+	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
+//	dialog.setFileMode ( QFileDialog::DirectoryOnly );
+	QString	path;
+	if(dialog.exec()){
+           QStringList pathList= dialog.selectedFiles();
+	   path= pathList.at(0);
+	}
+	if( !path.isEmpty() )
+	{
+	     if(!path.endsWith(".JC")) path+=".JC";
+             QString mappedJCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.JC");
+             if(!FileExists(mappedJCpath.toLatin1().data())) return;
+	     if(QFile::exists(path)) QFile::remove (path);
+	     QFile::copy(mappedJCpath, path);
+	}
+}
+
+void MainWindow::exportIdealSpice()
+{
+        QFileDialog dialog(this,tr("Export Ideal Spice Circuit"));
+	dialog.setAcceptMode(QFileDialog::AcceptSave);
+	dialog.setNameFilter(tr("*.JC"));
+	QString	fname=prjData.mainAssName+"_ideal.sp";
+	dialog.selectFile(fname);
+	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
+//	dialog.setFileMode ( QFileDialog::DirectoryOnly );
+	QString	path;
+	if(dialog.exec()){
+           QStringList pathList= dialog.selectedFiles();
+	   path= pathList.at(0);
+	}
+	if( !path.isEmpty() )
+	{
+	     if(!path.endsWith(".sp")) path+=".sp";
+             QString mappedSPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.sp");
+             if(!FileExists(mappedSPpath.toLatin1().data())) return;
+	     if(QFile::exists(path)) QFile::remove (path);
+	     QFile::copy(mappedSPpath, path);
+	}
+}
 
 
 void MainWindow::newProject()
@@ -2559,6 +2647,9 @@ void Modeler::freqAna()
 	 case MAPPEDCIRCUIT:
             circuitName=prjData.mainAssName+"_RM_mapped";
             break;
+	 case IDEALCIRCUIT:
+            circuitName=prjData.mainAssName+"_ideal";
+            break;
     }
     QString workDir=mainWorkPath+"/Data/Circuits";
     QString JCpath=workDir+"/"+circuitName+".JC";
@@ -2639,6 +2730,9 @@ void Modeler::zeropoleAna()
 	 case MAPPEDCIRCUIT:
             circuitName=prjData.mainAssName+"_RM_mapped";
             break;
+	 case IDEALCIRCUIT:
+            circuitName=prjData.mainAssName+"_ideal";
+            break;
     }
     QString workDir=mainWorkPath+"/Data/Circuits";
     QString JCpath=workDir+"/"+circuitName+".JC";
@@ -2684,7 +2778,7 @@ void Modeler::zeropoleAna()
     QString mssg;
     if(proc->exitCode()==0){
        mssg="Completed Zero Pole Analysis of \"" ; mssg+=circuitName; mssg+="\"";
-    }else if(proc->exitCode()==1){
+    }else{
        mssg="Failed Zero Pole Analysis of \"" ; mssg+=circuitName; mssg+="\"";
     }
     sendLogMessage(mssg);
@@ -2692,6 +2786,93 @@ void Modeler::zeropoleAna()
     emit(zeropoleEnd());
     exit();
 }
+
+void Modeler::filterDesign()
+{
+    QString script;
+    if(useAWS){
+       script=QString(emcadPath);
+       #ifdef WNT
+         script.chop(13);
+	 QString ext=".exe";
+       #else
+         script.chop(9);
+	 QString ext=".py";
+       #endif
+       script+="aws/aws_symmfilter";
+       script=nativePath(script+ext);
+    }else{
+       script="symmfilter";
+    }
+    QString workDir=mainWorkPath+"/Data/Circuits";
+
+    QString cktName=prjData.mainAssName+"_ideal";
+    QString MUpath=workDir+"/"+cktName+".inp";
+
+    FILE *mufid;
+    if(!(mufid = fopen(MUpath.toLatin1().data(), "w"))){
+        emit(filterDesignEnd());
+        exit();
+    }
+    char f_unit[5];
+    int fI=prjData.freqUnitE/3;
+    switch(fI){
+	 case 0: strcpy(f_unit,"Hz"); break;
+	 case 1: strcpy(f_unit,"KHz"); break;
+	 case 2: strcpy(f_unit,"MHz"); break;
+	 case 3: strcpy(f_unit,"GHz"); break;
+    }
+
+    fprintf(mufid , "//Ideal Filter Design:\n\n");
+    fprintf(mufid,  "f_unit:=\"%s\":\n",f_unit); 
+    fprintf(mufid , "f_min_pass:= %f:\n",prjData.filterPassBand[0]);
+    fprintf(mufid , "f_max_pass:= %f:\n",prjData.filterPassBand[1]);
+    fprintf(mufid,  "rloss:= %f:\n",fabs(prjData.filterRetLoss)); 
+    fprintf(mufid , "nresonator:= %d:\n",prjData.filterOrder);
+    int NZ=prjData.filterZeros.size();
+    fprintf(mufid , "npoli:= %d:\n",NZ);
+    fprintf(mufid , "poli_f:= [ ",NZ);
+    for(int i=0; i<NZ; i++){
+	  fprintf(mufid , "%f",i,prjData.filterZeros[i]);
+	  if(i<NZ-1) fprintf(mufid , ", ");
+	  if(i && !(i%5) ) fprintf(mufid , "\n");
+    }
+    fprintf(mufid , " ]:\n");
+    fprintf(mufid,  "Q:= %f:\n",fabs(prjData.filterQfactor)); 
+    fclose(mufid);
+
+    QProcess *proc=new QProcess;
+    proc->setWorkingDirectory(nativePath(workDir));
+
+    QString app=script;
+    QStringList args;
+
+    if(useAWS){ 
+      args << QString("-project");
+      args << prjData.projectName;
+       args << QString("-bucket");
+       args << QString(emcadConfig[std::string("AWS_bucket")].c_str());
+       args << QString("-queue");
+       args << EmCAD_queue_url;
+    }
+    args << cktName;
+    QString Cmd=app+QString("  ")+args.join(QString(" "));
+    char *cmd=Cmd.toLatin1().data();
+    proc->start(app, args);
+    proc->waitForStarted();
+    proc->waitForFinished(-1);
+    QString mssg;
+    if(proc->exitCode()==0){
+       mssg="Completed Ideal Filter Design";
+    }else{
+       mssg="Failed Ideal Filter Design";
+    }
+    sendLogMessage(mssg);
+    proc->terminate();
+    emit(filterDesignEnd());
+    exit();
+}
+
 
 
 void Modeler::filterMap()
@@ -2706,17 +2887,17 @@ void Modeler::filterMap()
          script.chop(9);
 	 QString ext=".py";
        #endif
-       if(prjData.filtermapMethod==0) script+="aws/aws_symmfiltermap";
+       if(prjData.filtermapMethod==0) script+="aws/aws_symmfilter";
        else                           script+="aws/aws_filtermap";
        script=nativePath(script+ext);
     }else{
-       if(prjData.filtermapMethod==0) script="symmfiltermap";
-       else                           script="symmfiltermap";
+       if(prjData.filtermapMethod==0) script="symmfilter";
+       else                           script="filtermap";
     }
     QString workDir=mainWorkPath+"/Data/Circuits";
 
     if(prjData.filtermapMethod==0){
-      QString MUpath=workDir+"/symmfilter.inp";
+      QString MUpath=workDir+"/"+prjData.mainAssName+"_RM_mapped.inp";
       if(!FileExists(MUpath.toLatin1().data())){
         emit(filterMapEnd());
         exit();
@@ -2748,7 +2929,8 @@ void Modeler::filterMap()
        args << QString("-queue");
        args << EmCAD_queue_url;
     }
-    args << prjData.mainAssName;
+    QString cktName=prjData.mainAssName+"_RM_mapped";
+    args << cktName;
     QString Cmd=app+QString("  ")+args.join(QString(" "));
     char *cmd=Cmd.toLatin1().data();
     proc->start(app, args);
@@ -2867,6 +3049,10 @@ void Modeler::run()
  }
  prjData.workStatus.modelizationNeeded=0;
  prjData.workStatus.checkReduction();
+ if(task==FILTERDESIGN ){
+       msleep(1000);
+       filterDesign();
+ }
  if(task==FREQANA ){
        msleep(1000); 
        if(mainOCAF->EmP.assemblyType==NET) if(prjData.workStatus.reductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE) mainReduce();
@@ -2914,10 +3100,19 @@ void Modeler::run()
 }
 
 
-void MainWindow::startAna(modelerTask task){
+void MainWindow::startTask(modelerTask task){
     modeler.task=task;
     runStatus.runningModeler=true;
-    QString mssg="Analysing\""; statusMessage(mssg);
+    QString msg="Analysing"; 
+    switch(task){
+	 case PORTS: msg="WG Ports Analysis Running"; break;
+	 case FILTERDESIGN: msg="Filter Design Running"; break;
+	 case FREQANA: msg="Freq Domain Ana Running";; break;
+	 case ZEROPOLE: msg="Zero Pole Ana Running";; break;
+	 case FILTERMAP: msg="Filter Map Running"; break;
+	 case UPDATE: msg="Updating all results"; break;
+        }
+    statusMessage(msg);
     checkActions();
     modeler.receiver=this;
     modeler.start();
@@ -2986,7 +3181,12 @@ void MainWindow::filterMap(){
   FilterMapDialog *dialog=new FilterMapDialog(this);
   connect(&modeler, SIGNAL(filterMapEnd()), dialog, SLOT(atFilterMapEnd()));
   dialog->show();
-//  startAna(FILTERMAP);
+}
+
+void MainWindow::filterDesign(){
+  FilterDesignDialog *dialog=new FilterDesignDialog(this);
+  connect(&modeler, SIGNAL(filterDesignEnd()), dialog, SLOT(atFilterDesignEnd()));
+  dialog->show();
 }
 
 
@@ -3142,6 +3342,15 @@ void MainWindow::responsePlot()
   freqRespPlot->show();
 }
 
+void MainWindow::ideal_responsePlot()
+{
+  mapped_freqRespPlot->plottedCircuit=IDEALCIRCUIT;
+  mapped_freqRespPlot->loadFile();
+  mapped_freqRespPlot->plotFreqResponse();
+  mapped_freqRespPlot->window()->resize(800,500);
+  mapped_freqRespPlot->show();
+}
+
 void MainWindow::mapped_responsePlot()
 {
   mapped_freqRespPlot->plottedCircuit=MAPPEDCIRCUIT;
@@ -3158,6 +3367,15 @@ void MainWindow::zeropolePlot()
   zeroPolePlot->plotZeroPole();
   zeroPolePlot->window()->resize(800,500);
   zeroPolePlot->show();
+}
+
+void MainWindow::ideal_zeropolePlot()
+{
+  mapped_zeroPolePlot->plottedCircuit=IDEALCIRCUIT;
+  mapped_zeroPolePlot->loadFile();
+  mapped_zeroPolePlot->plotZeroPole();
+  mapped_zeroPolePlot->window()->resize(800,500);
+  mapped_zeroPolePlot->show();
 }
 
 void MainWindow::mapped_zeropolePlot()
@@ -3229,13 +3447,25 @@ void MainWindow::createActions()
 //    exportMaterialAction->setEnabled(false);
     connect(exportMaterialAction, SIGNAL(triggered()), this, SLOT(exportMaterial()));
 
-    exportSpiceCircuitAction = new QAction(tr("&Export Spice Circuit"), this);
-    exportSpiceCircuitAction->setEnabled(false);
-    connect(exportSpiceCircuitAction, SIGNAL(triggered()), this, SLOT(exportSpiceCircuit()));
+    exportSpiceAction = new QAction(tr("&Spice Circuit"), this);
+    exportSpiceAction->setEnabled(false);
+    connect(exportSpiceAction, SIGNAL(triggered()), this, SLOT(exportSpice()));
 
-    exportMappedCircuitAction = new QAction(tr("&Export Mapped Circuit"), this);
-    exportMappedCircuitAction->setEnabled(false);
-    connect(exportMappedCircuitAction, SIGNAL(triggered()), this, SLOT(exportMappedCircuit()));
+    exportMappedJCAction = new QAction(tr("&Mapped JC Circuit"), this);
+    exportMappedJCAction->setEnabled(false);
+    connect(exportMappedJCAction, SIGNAL(triggered()), this, SLOT(exportMappedJC()));
+
+    exportMappedSpiceAction = new QAction(tr("&Mapped Spice Circuit"), this);
+    exportMappedSpiceAction->setEnabled(false);
+    connect(exportMappedSpiceAction, SIGNAL(triggered()), this, SLOT(exportMappedSpice()));
+
+    exportIdealJCAction = new QAction(tr("&Ideal JC Circuit"), this);
+    exportIdealJCAction->setEnabled(false);
+    connect(exportIdealJCAction, SIGNAL(triggered()), this, SLOT(exportIdealJC()));
+
+    exportIdealSpiceAction = new QAction(tr("&Ideal Spice Circuit"), this);
+    exportIdealSpiceAction->setEnabled(false);
+    connect(exportIdealSpiceAction, SIGNAL(triggered()), this, SLOT(exportIdealSpice()));
 
 
     importADSprjAction = new QAction(tr("&Import ADS project"), this);
@@ -3324,6 +3554,11 @@ void MainWindow::createActions()
     filterMapAction->setEnabled(false);
     connect(filterMapAction, SIGNAL(triggered()), this, SLOT(filterMap()));
 
+    filterDesignAction = new QAction(tr("&Ideal Filter"), this);
+    filterDesignAction->setStatusTip(tr("Design a filter circuit with a specified frequency response"));
+    filterDesignAction->setEnabled(false);
+    connect(filterDesignAction, SIGNAL(triggered()), this, SLOT(filterDesign()));
+
     updateAction = new QAction(tr("&Update"), this);
     updateAction->setStatusTip(tr("Update electromagnetic models and analyses"));
     updateAction->setEnabled(true);
@@ -3335,25 +3570,35 @@ void MainWindow::createActions()
     meshViewAction->setEnabled(false);
     connect(meshViewAction, SIGNAL(triggered()), this, SLOT(meshView()));
 
-    responsePlotAction = new QAction(tr("&Frequency Response"), this);
+    responsePlotAction = new QAction(tr("&Electromanetic Model"), this);
     responsePlotAction->setStatusTip(tr("Plots the frequency response of the electromagnetic device"));
     responsePlotAction->setEnabled(false);
     connect(responsePlotAction, SIGNAL(triggered()), this, SLOT(responsePlot()));
 
-    mapped_responsePlotAction = new QAction(tr("&Mapped Frequency Response"), this);
-    mapped_responsePlotAction->setStatusTip(tr("Plots the frequency response of the mapped circuit"));
+    mapped_responsePlotAction = new QAction(tr("&Mapped Filter"), this);
+    mapped_responsePlotAction->setStatusTip(tr("Plots the frequency response of the mapped filter circuit"));
     mapped_responsePlotAction->setEnabled(false);
     connect(mapped_responsePlotAction, SIGNAL(triggered()), this, SLOT(mapped_responsePlot()));
 
-    zeropolePlotAction = new QAction(tr("&Zeros/Poles"), this);
+    ideal_responsePlotAction = new QAction(tr("&Ideal Filter"), this);
+    ideal_responsePlotAction->setStatusTip(tr("Plots the frequency response of the ideal filter"));
+    ideal_responsePlotAction->setEnabled(false);
+    connect(ideal_responsePlotAction, SIGNAL(triggered()), this, SLOT(ideal_responsePlot()));
+
+    zeropolePlotAction = new QAction(tr("&Electromanetic Model"), this);
     zeropolePlotAction->setStatusTip(tr("Plots the Zeros/Poles pattern of S parameters of the electromagnetic device"));
     zeropolePlotAction->setEnabled(false);
     connect(zeropolePlotAction, SIGNAL(triggered()), this, SLOT(zeropolePlot()));
 
-    mapped_zeropolePlotAction = new QAction(tr("&Plot mapped Zeros/Poles"), this);
-    mapped_zeropolePlotAction->setStatusTip(tr("Plot the Zeros/Poles pattern of S parameters of the mapped circuit"));
+    mapped_zeropolePlotAction = new QAction(tr("&Mapped Filter"), this);
+    mapped_zeropolePlotAction->setStatusTip(tr("Plot the Zeros/Poles pattern of S parameters of the mapped filter circuit"));
     mapped_zeropolePlotAction->setEnabled(false);
     connect(mapped_zeropolePlotAction, SIGNAL(triggered()), this, SLOT(mapped_zeropolePlot()));
+
+    ideal_zeropolePlotAction = new QAction(tr("&Ideal Filter"), this);
+    ideal_zeropolePlotAction->setStatusTip(tr("Plot the Zeros/Poles pattern of S parameters of the ideal filter"));
+    ideal_zeropolePlotAction->setEnabled(false);
+    connect(ideal_zeropolePlotAction, SIGNAL(triggered()), this, SLOT(ideal_zeropolePlot()));
 
     accountStatusAction = new QAction(tr("&Account Status"), this);
     accountStatusAction->setStatusTip(tr("View Account Status"));
@@ -3535,8 +3780,11 @@ void MainWindow::createMenus()
 		importMenu->addAction( importIdealCircuitAction );
 	exportMenu=fileMenu->addMenu(tr("&Export"));
 		exportMenu->addAction( exportMaterialAction );
-		exportMenu->addAction( exportSpiceCircuitAction );
-		exportMenu->addAction( exportMappedCircuitAction );
+		exportMenu->addAction( exportSpiceAction );
+		exportMenu->addAction( exportIdealJCAction );
+		exportMenu->addAction( exportIdealSpiceAction );
+		exportMenu->addAction( exportMappedJCAction );
+		exportMenu->addAction( exportMappedSpiceAction );
 	fileMenu->addAction( openParentAction );
 	fileMenu->addAction( openSubAssAction );
 	fileMenu->addAction( closeAction );
@@ -3580,10 +3828,14 @@ void MainWindow::createMenus()
 		viewMenu->addSeparator();
 		viewMenu->addAction( meshViewAction );
 		plotsMenu = viewMenu->addMenu( tr("&Plots") );
-		        plotsMenu->addAction( responsePlotAction );
-		        plotsMenu->addAction( mapped_responsePlotAction );
-		        plotsMenu->addAction( zeropolePlotAction );
-		        plotsMenu->addAction( mapped_zeropolePlotAction );
+		plotFreqResponseMenu = plotsMenu->addMenu( tr("&Frequency Response") );
+		plotZeroPoleMenu = plotsMenu->addMenu( tr("&Zeros and Poles") );
+		        plotFreqResponseMenu->addAction( responsePlotAction );
+		        plotFreqResponseMenu->addAction( mapped_responsePlotAction );
+		        plotFreqResponseMenu->addAction( ideal_responsePlotAction );
+		        plotZeroPoleMenu->addAction( zeropolePlotAction );
+		        plotZeroPoleMenu->addAction( mapped_zeropolePlotAction );
+		        plotZeroPoleMenu->addAction( ideal_zeropolePlotAction );
 		viewMenu->addSeparator();
 		viewMenu->addAction( accountStatusAction );
 
@@ -3604,6 +3856,8 @@ void MainWindow::createMenus()
 		editMenu->addAction( reloadAction );
 		editMenu->addSeparator();
 		editMenu->addAction( modelizeAction );
+                designsMenu = editMenu->addMenu( tr("&Designs ") );
+		       designsMenu->addAction( filterDesignAction );
                 analysesMenu = editMenu->addMenu( tr("&Analyses ") );
 		       analysesMenu->addAction( portModesAction );
 		       analysesMenu->addAction( freqAnaAction );
@@ -3630,12 +3884,22 @@ void MainWindow::checkActions()
   bool hasRM_SZP=FileExists(RM_SZPpath.toLatin1().data());
   bool hasRM_TS=FileExists(RM_TSpath.toLatin1().data());
   QString mappedJCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.JC");
+  QString mappedSPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.sp");
   QString mappedSZPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.SZP");
   QString mappedTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.ts");
-  QString filtInpPath=nativePath(mainWorkPath+"/Data/Circuits/symmfilter.inp");
+  QString filtInpPath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.inp");
+  QString idealJCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.JC");
+  QString idealSPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.sp");
+  QString idealSZPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.SZP");
+  QString idealTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.ts");
   bool hasMappedJC=FileExists(mappedJCpath.toLatin1().data());
+  bool hasMappedSP=FileExists(mappedSPpath.toLatin1().data());
   bool hasMappedSZP=FileExists(mappedSZPpath.toLatin1().data());
   bool hasMappedTS=FileExists(mappedTSpath.toLatin1().data());
+  bool hasIdealJC=FileExists(idealJCpath.toLatin1().data());
+  bool hasIdealSP=FileExists(idealSPpath.toLatin1().data());
+  bool hasIdealSZP=FileExists(idealSZPpath.toLatin1().data());
+  bool hasIdealTS=FileExists(idealTSpath.toLatin1().data());
   bool hasFiltInp=FileExists(filtInpPath.toLatin1().data());
   newProjectAction->setEnabled(!runStatus.projectIsOpen);
 //  saveAction->setEnabled(runStatus.projectIsOpen);
@@ -3650,8 +3914,11 @@ void MainWindow::checkActions()
   importMaterialAction->setEnabled(runStatus.projectIsOpen);
   importIdealCircuitAction->setEnabled(runStatus.projectIsOpen);
   exportMaterialAction->setEnabled(runStatus.projectIsOpen);
-  exportSpiceCircuitAction->setEnabled(runStatus.projectIsOpen);
-  exportMappedCircuitAction->setEnabled(runStatus.projectIsOpen);
+  exportSpiceAction->setEnabled(runStatus.projectIsOpen);
+  exportIdealJCAction->setEnabled(runStatus.projectIsOpen && hasIdealJC);
+  exportIdealSpiceAction->setEnabled(runStatus.projectIsOpen && hasIdealSP);
+  exportMappedJCAction->setEnabled(runStatus.projectIsOpen && hasMappedJC);
+  exportMappedSpiceAction->setEnabled(runStatus.projectIsOpen && hasMappedSP);
   decomposeAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && !mainOCAF->EmP.level && mainOCAF->prjStatus.partMaterials);
   meshAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && !mainOCAF->EmP.level && mainOCAF->prjStatus.partMaterials);
   reloadAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher &&mainOCAF->EmP.hasGeo );
@@ -3660,11 +3927,14 @@ void MainWindow::checkActions()
   zeropolePlotAction->setEnabled(runStatus.projectIsOpen && hasRM_SZP);
   mapped_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasMappedTS);
   mapped_zeropolePlotAction->setEnabled(runStatus.projectIsOpen && hasMappedSZP);
+  ideal_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasIdealTS);
+  ideal_zeropolePlotAction->setEnabled(runStatus.projectIsOpen && hasIdealSZP);
   modelizeAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher   && mainOCAF->prjStatus.partMaterials);
   portModesAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher   && mainOCAF->prjStatus.partMaterials);
-  freqAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher   && mainOCAF->prjStatus.partMaterials);
+  freqAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher );
   zeropoleAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher   && mainOCAF->prjStatus.partMaterials);
-  filterMapAction->setEnabled(!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && hasFiltInp);
+  filterDesignAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
+  filterMapAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && hasFiltInp);
   updateAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher   && mainOCAF->prjStatus.partMaterials);
   exitAction->setEnabled(!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher );
 }
@@ -4182,8 +4452,8 @@ FreqAnaDialog::FreqAnaDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(
      circuitChooser = new QComboBox();
      circuitChooser->addItem(tr("Elecromagnetic Device"));
      circuitChooser->addItem(tr("Mapped circuit"));
-     QString mappedJCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.JC");
-     circuitChooser->setEnabled(FileExists(mappedJCpath.toLatin1().data()));
+     circuitChooser->addItem(tr("Ideal Filter"));
+ 
 
      QHBoxLayout *circuitLayout = new QHBoxLayout();
      circuitLayout->addWidget(circuitLabel);
@@ -4281,14 +4551,21 @@ void FreqAnaDialog::set(){
       }
       prjData.analysedCircuit = (SelectedCircuit) circuitChooser->currentIndex();
       int autostate=(automatic->checkState()==Qt::Checked)? 1 :0;
+      QString JCpath;
       switch(prjData.analysedCircuit){
 	 case ELECROMAGNETICDEVICE:
+           JCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.JC");
            if( prjData.autoFreqResponse!=autostate) {changed=true; prjData.autoFreqResponse=autostate;}
 	   break;
 	 case MAPPEDCIRCUIT:
+           JCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.JC");
            if( prjData.autoMappedFreqResponse!=autostate) {changed=true; prjData.autoMappedFreqResponse=autostate;}
 	   break;
+	 case IDEALCIRCUIT:
+           JCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_ideal.JC");
+	   break;
       }
+      startButton->setEnabled(FileExists(JCpath.toLatin1().data()));
       if(changed) prjData.saveSettings();
 }
 
@@ -4297,7 +4574,7 @@ void FreqAnaDialog::start(){
  setButton->setEnabled(false);
  startButton->setEnabled(false);
  closeButton->setEnabled(false);
- mainw->startAna(FREQANA);
+ mainw->startTask(FREQANA);
 }
 
 void FreqAnaDialog::atFreqAnaEnd(){
@@ -4548,7 +4825,7 @@ void ZeroPoleDialog::start(){
  setButton->setEnabled(false);
  startButton->setEnabled(false);
  closeButton->setEnabled(false);
- mainw->startAna(ZEROPOLE);
+ mainw->startTask(ZEROPOLE);
 }
 
 void ZeroPoleDialog::atZeroPoleEnd(){
@@ -4561,6 +4838,253 @@ void ZeroPoleDialog::help()
 {
     mainw->showDocumentation(QLatin1String("#1"));
 }
+
+
+
+//*************
+FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
+{
+     mainw=parent;
+     setModal(0);
+     setWindowTitle(tr("Ideal Filter Design"));
+
+     QIntValidator *iterNumValidator = new QIntValidator(this);
+     iterNumValidator->setBottom(1);
+
+
+     QGridLayout *designSettingsLayout = new QGridLayout();
+
+     QLabel *passBandLabel= new QLabel();
+     passBandLabel->setText(tr("Pass Band:"));
+     int fI=prjData.freqUnitE/3;
+     switch(fI){
+	  case 0: passBandLabel->setText(tr("Pass Band [Hz]:")); break;
+	  case 1: passBandLabel->setText(tr("Pass Band [KHz]:")); break;
+	  case 2: passBandLabel->setText(tr("Pass Band [MHz]:")); break;
+	  case 3: passBandLabel->setText(tr("Pass Band [GHz]:")); break;
+     }
+
+     QLabel *bandSepLabel= new QLabel();
+     bandSepLabel->setText(tr("  :  "));
+
+     freqvalidator = new QDoubleValidator(this);
+     freqvalidator->setDecimals(1000); // (standard anyway)
+     freqvalidator->setNotation(QDoubleValidator::ScientificNotation);
+     freqvalidator->setBottom(0);
+
+     QIntValidator *filterOrderValidator = new QIntValidator(this);
+     filterOrderValidator->setRange(2,500);
+
+     f1LineEdit = new QLineEdit();
+     f1LineEdit->setText(QString("%1").arg(prjData.filterPassBand[0], 0, 'f', 5));
+     f1LineEdit->setValidator(freqvalidator);		
+     f2LineEdit = new QLineEdit();
+     f2LineEdit->setText(QString("%1").arg(prjData.filterPassBand[1], 0, 'f', 5));
+     f2LineEdit->setValidator(freqvalidator);
+
+     f1LineEdit->setFixedWidth(150);
+     f2LineEdit->setFixedWidth(150);
+
+     QLabel *retLossLabel= new QLabel(); 
+     retLossLabel->setText(tr("In Band Ret Loss [dB]:"));
+     QDoubleValidator *rlvalidator = new QDoubleValidator(this);
+     rlvalidator->setDecimals(1000); // (standard anyway)
+     rlvalidator->setNotation(QDoubleValidator::ScientificNotation);
+     rlvalidator->setTop(0);
+     retLossLineEdit = new QLineEdit();
+     retLossLineEdit->setText(QString("%1").arg(prjData.filterRetLoss, 0, 'g', -1));
+     retLossLineEdit->setValidator(rlvalidator);		
+
+     QLabel *filterOrderLabel= new QLabel();
+     filterOrderLabel->setText(tr("Filter Order:"));
+     filterOrderSB = new QSpinBox();
+     filterOrderSB->setValue(prjData.filterOrder);
+     filterOrderSB->setMinimum(0);
+
+     QLabel *txZerosNumLabel= new QLabel(); 
+     txZerosNumLabel->setText(tr("Tx Zeros Number:"));
+     txZerosNumSB = new QSpinBox();
+     txZerosNumSB->setMinimum(0);
+     txZerosNumSB->setValue(prjData.filterZeros.size());
+
+     txZeros= new QTableWidget(0, 1, this);
+     #if defined(QT5)
+      txZeros->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+     #elif defined(QT4)
+      txZeros->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+     #endif
+     QTableWidgetItem *Zheader = new QTableWidgetItem();
+     switch(fI){
+	  case 0: Zheader->setText(tr("Tx Zeros [Hz]:")); break;
+	  case 1: Zheader->setText(tr("Tx Zeros [KHz]:")); break;
+	  case 2: Zheader->setText(tr("Tx Zeros [MHz]:")); break;
+	  case 3: Zheader->setText(tr("Tx Zeros [GHz]:")); break;
+     }
+     txZeros->setHorizontalHeaderItem(0, Zheader);
+     setTxZerosNum(prjData.filterZeros.size());
+     for (int i = 0; i <prjData.filterZeros.size(); ++i) {
+         QLineEdit* le = (QLineEdit*) txZeros->cellWidget(i,0);
+         le->setText(QString("%1").arg(prjData.filterZeros[i], 0, 'f', 6));
+     }
+
+     QLabel *QfactorLabel= new QLabel();
+     QfactorLabel->setText(tr("Resonators Q factor:"));
+     
+     QDoubleValidator *qvalidator = new QDoubleValidator(this);
+     qvalidator->setDecimals(1000); // (standard anyway)
+     qvalidator->setNotation(QDoubleValidator::ScientificNotation);
+     qvalidator->setBottom(0);
+     QfactorLineEdit = new QLineEdit();
+     QfactorLineEdit->setText(QString("%1").arg(prjData.filterQfactor, 0, 'g', -1));
+     QfactorLineEdit->setValidator(qvalidator);		
+
+
+     QGridLayout *bandLayout = new QGridLayout();
+     QGridLayout *nLayout = new QGridLayout();
+     QGridLayout *zerosLayout = new QGridLayout();
+     QGridLayout *qfactorLayout = new QGridLayout();
+//     nLayout->setColumnMinimumWidth(1,30);
+
+     bandLayout->addWidget(passBandLabel, 0, 0);
+     bandLayout->addWidget(f1LineEdit,1, 0);
+     bandLayout->addWidget(bandSepLabel,1, 1);
+     bandLayout->addWidget(f2LineEdit,1, 1);
+     bandLayout->setRowMinimumHeight(1,25);
+     bandLayout->addWidget(retLossLabel,2, 0);
+     bandLayout->addWidget(retLossLineEdit,2, 1);
+
+     nLayout->addWidget(filterOrderLabel, 0, 0);
+     nLayout->addWidget(filterOrderSB, 0, 1);
+
+     nLayout->addWidget(txZerosNumLabel, 1, 0);
+     nLayout->addWidget(txZerosNumSB, 1, 1);
+
+     zerosLayout->addWidget(txZeros, 0, 0);
+
+     qfactorLayout->addWidget(QfactorLabel, 0, 0);
+     qfactorLayout->addWidget(QfactorLineEdit, 0, 1);
+
+     QGroupBox *bandGroupBox=new QGroupBox();
+     bandGroupBox->setLayout(bandLayout);
+
+     QGroupBox *nGroupBox=new QGroupBox();
+     nGroupBox->setLayout(nLayout);
+
+     QGroupBox *zerosGroupBox=new QGroupBox();
+     zerosGroupBox->setLayout(zerosLayout);
+
+     QGroupBox *qfactorGroupBox=new QGroupBox();
+     qfactorGroupBox->setLayout(qfactorLayout);
+
+//****************************************
+//   control buttons:
+//
+     setButton = new QPushButton(tr("Set"));
+     setButton->resize(1.5,3);
+     startButton =new QPushButton(tr("Start"));
+     startButton->resize(1.5,3);
+     closeButton =new QPushButton(tr("Close"));
+     closeButton->resize(1.5,3);
+     QPushButton *helpButton  = new QPushButton(tr("Help"));
+     helpButton->resize(1.5,3);
+
+     QHBoxLayout *buttonLayout = new QHBoxLayout();
+     buttonLayout->addWidget(setButton);
+     buttonLayout->addWidget(startButton);
+     buttonLayout->addWidget(closeButton);
+     buttonLayout->addWidget(helpButton);
+
+     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
+     buttonGroupBox->setLayout(buttonLayout);
+
+//******
+     connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(set()));
+     connect(startButton,  SIGNAL(clicked()), this, SLOT(start()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
+     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+     connect(txZerosNumSB, SIGNAL( valueChanged (int) ), this, SLOT(setTxZerosNum(int)) );
+
+     setFocusPolicy(Qt::StrongFocus);
+
+     mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(bandGroupBox);
+     mainLayout->addWidget(nGroupBox);
+     mainLayout->addWidget(zerosGroupBox);
+     mainLayout->addWidget(qfactorGroupBox);
+     mainLayout->addWidget(buttonGroupBox);
+
+     setFocusPolicy(Qt::StrongFocus);
+
+}
+
+void FilterDesignDialog::setTxZerosNum(int n){
+	txZeros->setRowCount(n);
+        for (int i = 0; i <n; ++i) for (int j = 0; j <3; ++j){
+              QLineEdit* le = new QLineEdit();
+	      le->setValidator(freqvalidator);
+              txZeros->setCellWidget(i,0,le);
+	}
+}
+void FilterDesignDialog::set(){
+    bool changed=false;
+      
+    double tmp=f1LineEdit->text().toDouble();
+    if(fabs(prjData.filterPassBand[0]-tmp)>1.e-4) { prjData.filterPassBand[0]=tmp; changed=true;}
+    tmp=f2LineEdit->text().toDouble();
+    if(fabs(prjData.filterPassBand[1]-tmp)>1.e-4) { prjData.filterPassBand[1]=tmp; changed=true;}
+
+    tmp=retLossLineEdit->text().toDouble();
+    if(fabs(prjData.filterRetLoss-tmp)>1.e-2) { prjData.filterRetLoss=tmp; changed=true;}
+
+    if(filterOrderSB->value() != prjData.filterOrder){
+	changed=true;
+	prjData.filterOrder=filterOrderSB->value();
+    }
+
+    bool zerosChanged=false;
+    if(changed) prjData.saveSettings();
+    std::vector<double> filterZeros;
+    for (int i = 0; i <txZerosNumSB->value(); ++i) {
+       QLineEdit* le = (QLineEdit*) txZeros->cellWidget(i,0);
+       filterZeros.push_back(le->text().toDouble());
+    }
+    if(txZerosNumSB->value()!=prjData.filterZeros.size()) zerosChanged=true;
+    else for (int i = 0; i <filterZeros.size(); ++i)
+              if(fabs(filterZeros[i])>0) 
+	         if(fabs(1-prjData.filterZeros[i]/filterZeros[i])>1.e-6) zerosChanged=true;
+
+    if(zerosChanged){
+     prjData.filterZeros=filterZeros;
+     changed=true;
+    }
+
+    tmp=QfactorLineEdit->text().toDouble();
+    if(fabs(prjData.filterQfactor-tmp)>1.e-4) { prjData.filterQfactor=tmp; changed=true;}
+
+    if(changed) prjData.saveSettings();
+}
+
+void FilterDesignDialog::start(){
+ set();
+ setButton->setEnabled(false);
+ startButton->setEnabled(false);
+ closeButton->setEnabled(false);
+ mainw->startTask(FILTERDESIGN);
+}
+
+void FilterDesignDialog::atFilterDesignEnd(){
+ setButton->setEnabled(true);
+ startButton->setEnabled(true);
+ closeButton->setEnabled(true);
+}
+
+
+void FilterDesignDialog::help()
+{
+    mainw->showDocumentation(QLatin1String("#1"));
+}
+
 
 
 //*************
@@ -4671,7 +5195,7 @@ void FilterMapDialog::start(){
  setButton->setEnabled(false);
  startButton->setEnabled(false);
  closeButton->setEnabled(false);
- mainw->startAna(FILTERMAP);
+ mainw->startTask(FILTERMAP);
 }
 
 void FilterMapDialog::atFilterMapEnd(){

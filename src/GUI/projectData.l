@@ -191,6 +191,12 @@ parameter                       { return PARAMETER; }
 freq	                        { return FREQ; }
 num	                        { return NUM; }
 filter	                	{ return FILTER; }
+order	                	{ return ORDER; }
+returnloss	                { return RETURNLOSS; }
+Qfactor	                	{ return QFACTOR; }
+tx	                	{ return TX; }
+zeros	                	{ return ZEROS; }
+pass	                	{ return PASS; }
 automatic	  	 	{ return AUTOMATIC; }
 mapping	  	 	        { return MAPPING; }
 method	  	 	        { return METHOD; }

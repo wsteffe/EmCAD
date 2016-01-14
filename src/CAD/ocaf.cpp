@@ -3425,8 +3425,7 @@ void MwOCAF::workopen(const char* wkprojpath)
         prjStatus.read(prjstatusFileName.c_str());
         std::string emFileName=projectDir+"/model.em";
         emFileName=nativePath(emFileName);
-        assert(FileExists(emFileName.c_str()));
-        loadModel(this, emFileName.c_str(), false);
+        if(FileExists(emFileName.c_str())) loadModel(this, emFileName.c_str(), false);
         if(FileExists(EmP.occFilePath.c_str())){
 	   openDoc(EmP.occFilePath.c_str());
 	   EmP.hasGeo=true;

@@ -32,7 +32,7 @@ setup(
         executables = [
 		       Executable("aws_analyse.py"),
 		       Executable("aws_filtermap.py"),
-		       Executable("aws_symmfiltermap.py"),
+		       Executable("aws_symmfilter.py"),
 		       Executable("aws_getcredit.py"),
 		       Executable("aws_modelize1.py"),
 		       Executable("aws_modelize1_get.py"),

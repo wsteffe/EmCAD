@@ -62,7 +62,7 @@ int ReadFile(std::string fname, std::map<std::string, std::string> *m);
 
 int WriteFile(std::string fname, std::map<std::string, std::string> *m);
 
-enum modelerTask { CIRCUITS, PORTS, FREQANA, ZEROPOLE, FILTERMAP, UPDATE};
+enum modelerTask { CIRCUITS, PORTS, FREQANA, ZEROPOLE, FILTERDESIGN, FILTERMAP, UPDATE};
 
 
 class Modeler : public QThread
@@ -86,11 +86,13 @@ class Modeler : public QThread
     void freqAna();
     void zeropoleAna();
     void filterMap();
+    void filterDesign();
     QObject *receiver;
   signals:
     void modelerEnd();
     void freqAnaEnd();
     void zeropoleEnd();
+    void filterDesignEnd();
     void filterMapEnd();
     void sendLogMessageSignal(const QString &);
     void sendStatusMessageSignal(const QString);
@@ -175,7 +177,7 @@ class MainWindow : public QMainWindow
 
     void saveMaterials();
     void checkActions();
-    void startAna(modelerTask task);
+    void startTask(modelerTask task);
     void startOperation();
     void importEMC(QString partName, QString fileName);
 
@@ -198,8 +200,10 @@ private slots:
     void open();
     void meshView();
     void responsePlot();
+    void ideal_responsePlot();
     void mapped_responsePlot();
     void zeropolePlot();
+    void ideal_zeropolePlot();
     void mapped_zeropolePlot();
     void accountStatus();
     void openParent();
@@ -208,8 +212,11 @@ private slots:
     void importMaterial();
     void importIdealCircuit();
     void exportMaterial();
-    void exportSpiceCircuit();
-    void exportMappedCircuit();
+    void exportSpice();
+    void exportMappedJC();
+    void exportMappedSpice();
+    void exportIdealJC();
+    void exportIdealSpice();
     void importDataDir();
     void importADSprj();
     void saveAs();
@@ -229,6 +236,7 @@ private slots:
     void freqAna();
     void zeropoleAna();
     void filterMap();
+    void filterDesign();
     void aboutQt();
     void xyzPosition (V3d_Coordinate X, 
        	              V3d_Coordinate Y, 
@@ -271,10 +279,13 @@ private:
     QMenu *viewMenu;
     QMenu *editMenu;
     QMenu *analysesMenu;
+    QMenu *designsMenu;
     QMenu *helpMenu;
 
     QMenu *viewGeomMenu;
     QMenu *plotsMenu;
+    QMenu *plotFreqResponseMenu;
+    QMenu *plotZeroPoleMenu;
     QMenu *gridMenu;
     
     QMenu *setCircTypeMenu;
@@ -293,8 +304,11 @@ private:
     QAction *importDataDirAction;
     QAction *importADSprjAction;
     QAction *exportMaterialAction;
-    QAction *exportSpiceCircuitAction;
-    QAction *exportMappedCircuitAction;
+    QAction *exportSpiceAction;
+    QAction *exportMappedJCAction;
+    QAction *exportMappedSpiceAction;
+    QAction *exportIdealJCAction;
+    QAction *exportIdealSpiceAction;
     QAction *newProjectAction;
     QActionGroup *assemblyTypeActionGroup;
     QActionGroup *defaultBC_ActionGroup;
@@ -322,13 +336,16 @@ private:
     QAction *meshViewAction;
     QAction *responsePlotAction;
     QAction *mapped_responsePlotAction;
+    QAction *ideal_responsePlotAction;
     QAction *zeropolePlotAction;
     QAction *mapped_zeropolePlotAction;
+    QAction *ideal_zeropolePlotAction;
     QAction *accountStatusAction;
     QAction *portModesAction;
     QAction *freqAnaAction;
     QAction *zeropoleAnaAction;
     QAction *filterMapAction;
+    QAction *filterDesignAction;
     QAction *updateAction;
 
     QAction *fitAction;
@@ -403,6 +420,8 @@ private:
    MwPlot *zeroPolePlot;
    MwPlot *mapped_freqRespPlot;
    MwPlot *mapped_zeroPolePlot;
+   MwPlot *ideal_freqRespPlot;
+   MwPlot *ideal_zeroPolePlot;
 
    void keyPressEvent(QKeyEvent *event) {
         switch (event->key()) {
@@ -560,6 +579,39 @@ class ZeroPoleDialog : public QDialog
       QDoubleValidator *freqvalidator;
 
 
+};
+
+
+class FilterDesignDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     FilterDesignDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+
+ public slots:
+      void set();
+      void start();
+      void help();
+      void setTxZerosNum(int n);
+      void atFilterDesignEnd();
+//      void updateParType(int i);
+
+ public:
+      QDoubleValidator *freqvalidator;
+      QSpinBox *filterOrderSB;
+      QLineEdit *retLossLineEdit;
+      QLineEdit *QfactorLineEdit;
+      QSpinBox   *txZerosNumSB;
+      QLineEdit *f1LineEdit;
+      QLineEdit *f2LineEdit;
+      QTableWidget *txZeros;
+      MainWindow * mainw;
+      QPushButton *setButton;
+      QPushButton *startButton;
+      QPushButton *closeButton;
+      QLineEdit *iterNumLineEdit;
+      QVBoxLayout *mainLayout;
 };
 
 

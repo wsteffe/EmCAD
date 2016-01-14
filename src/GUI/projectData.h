@@ -23,13 +23,14 @@
 #include <math.h>
 #include <map>
 #include <set>
+#include <vector>
 #include <array>
 
 
 enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
 #ifndef _SELECTEDCIRCUIT_H_
 #define _SELECTEDCIRCUIT_H_
-enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1};
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2};
 #endif
 enum FilterMapMethod {SYMMETRICFILTER=0, TUNECIRCUIT=1};
 
@@ -88,13 +89,19 @@ struct ProjectData
     int    MORFreqNum;
     int    anaFreqNum;
     int    anaMORFreqNum;
-    int    filtermapMethod;
-    int    filtermapItermax;
     int    autoFreqResponse;
     int    autoMappedFreqResponse;
     int    autoZeropole;
     int    autoMappedZeropole;
     int    autoFilterMapping;
+
+    double filterPassBand[2];
+    double filterRetLoss;
+    double filterQfactor;
+    int    filterOrder;
+    int    filtermapMethod;
+    int    filtermapItermax;
+    std::vector<double> filterZeros;
 
     StringList components;
     StringList wgcomponents;

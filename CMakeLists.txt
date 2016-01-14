@@ -20,7 +20,7 @@
 project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
-set(EmCAD_VERSION_MINOR 2)
+set(EmCAD_VERSION_MINOR 3)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
 
