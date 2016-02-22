@@ -186,6 +186,9 @@ Hole				{ return tHOLE; }
 DefaultBoundCond                { return DEFAULTBC; }
 CircuitName			{ return CIRCUITNAME; }
 BoundaryCondition		{ return tBOUNDARYCONDITION; }
+Net	  	 		{ return tNET; }
+Component 		        { return tCOMPONENT; }
+Interface 		        { return tINTERFACE; }
 Assembly 		        { return tASSEMBLY; }
 SurfaceResistance		{ return SURFACERESISTANCE; }
 WaveGuide			{ return tWAVEGUIDE; }

@@ -99,9 +99,12 @@ extern int modeldebug;
     tLINEPORT = 309,
     tSPLITTER = 310,
     tGRID = 311,
-    tASSEMBLY = 312,
-    tUNDEFINED = 313,
-    SOLID = 314
+    tCOMPONENT = 312,
+    tINTERFACE = 313,
+    tNET = 314,
+    tASSEMBLY = 315,
+    tUNDEFINED = 316,
+    SOLID = 317
   };
 #endif
 
@@ -116,7 +119,7 @@ int	ival;
 double	fval;
 char	*sval;
 
-#line 120 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
+#line 123 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

@@ -58,10 +58,6 @@ extern MainWindow *mainWindow;
 extern ProjectData prjData;
 extern QString    mainWorkPath;
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
-
 
 /*
 void TreeWidgetItem::setExpanded ( bool expand ) 
@@ -202,17 +198,22 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
 //                             ||(mainOCAF->isComponent(label)&&!mainOCAF->isAssembly(label));
          bool shouldHaveLayers=false;
          bool hasLayers=mainOCAF->getLabelLayers(label, layers);
-         qtext.append(" [ ");
 	 QBrush redbrush=QBrush(QColor(255, 0, 0, 127));
-         if(vol->type==ASSEMBLY)     qtext.append("CMP");
-         if(vol->type==WAVEGUIDE)    qtext.append("WG ");
-         if(vol->type==LINEPORT)     qtext.append("LP ");
-         if(vol->type==DIELECTRIC)   qtext.append("DIEL ");
-         if(vol->type==HOLE)         qtext.append("HOLE ");
-         if(vol->type==SPLITTER)     qtext.append("-|-");
-         if(vol->type==GRID)         qtext.append("|||");
-         if(vol->type==BOUNDARYCOND) qtext.append("BC ");
-         if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->type==HOLE && strcmp(vol->material,"?")) qtext.append(vol->material);
+	 if(vol->type==DIELECTRIC || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND){
+           qtext.append(" [ ");
+	   if(strcmp(vol->material,"?")) qtext.append(vol->material);
+           qtext.append(" ]");
+	 }
+//         if(vol->type==ASSEMBLY)     qtext.append("CMP");
+//         if(vol->type==COMPONENT)    qtext.append("CMP");
+//         if(vol->type==INTERFACE)    qtext.append("IF");
+//         if(vol->type==WAVEGUIDE)    qtext.append("MAT ");
+//         if(vol->type==LINEPORT)     qtext.append("LP ");
+//         if(vol->type==DIELECTRIC)   qtext.append("MAT ");
+//         if(vol->type==HOLE)         qtext.append("HOLE ");
+//         if(vol->type==BOUNDARYCOND) qtext.append("MAT ");
+         if(vol->type==SPLITTER)     qtext.append(" -|-");
+         if(vol->type==GRID)         qtext.append(" |||");
          if(vol->type==GRID && vol->gridNum) qtext.append(QString(" %1").arg(vol->gridNum));
 #if defined(EXPLICIT_INVARIANT)
          if(vol->type==GRID && vol->invariant) qtext.append(" INVAR");
@@ -220,7 +221,6 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
          if(vol->type==GRID && vol->PML) qtext.append(" PML");
          if(vol->type!=SPLITTER)     if(!vol->defined) item->setBackground ( 0, redbrush );
 	                             else              item->setBackground ( 0, Qt::NoBrush );
-         qtext.append(" ]");
          if(showlayers&&hasLayers){
            qtext.append(" - ");
            for (int i = 1; i <= layers->Length(); i++){
@@ -516,13 +516,24 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      window()->resize(w,h);
 
      QLabel *typeLabel= new QLabel(); typeLabel->setText(tr("Type"));
-     typeChooser = new QComboBox();
+     typeChooser = new QLineEdit();
+     typeChooser->setReadOnly(true);
 
+     typeChooserMap[COMPONENT]=std::string("Component");
+     typeChooserMap[DIELECTRIC]=std::string("Dielectric");
+     typeChooserMap[HOLE]=std::string("Hole");
+     typeChooserMap[WAVEGUIDE]=std::string("WG Port");
+     typeChooserMap[LINEPORT]=std::string("Line Port");
+     typeChooserMap[SPLITTER]=std::string("Splitter");
+     typeChooserMap[GRID]=std::string("Grid");
+     typeChooserMap[BOUNDARYCOND]=std::string("Boundary Cond");
+
+/*     
      int tI=0;
      if(mainOCAF->EmP.assemblyType==NET){
        typeChooser->addItem(tr("Component"));       typeChooserMap[tI++]=ASSEMBLY;
      }
-     else if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==PARTITION){
+     else if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==PARTITION || mainOCAF->EmP.assemblyType==INTERFACE){
        typeChooser->addItem(tr("Dielectric"));      typeChooserMap[tI++]=DIELECTRIC;
        typeChooser->addItem(tr("Hole"));            typeChooserMap[tI++]=HOLE;
        typeChooser->addItem(tr("Waveguide"));       typeChooserMap[tI++]=WAVEGUIDE;
@@ -533,6 +544,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      typeChooser->addItem(tr("Boundary Cond"));   typeChooserMap[tI++]=BOUNDARYCOND;
 
      connect(typeChooser, SIGNAL(  currentIndexChanged  (int) ), this, SLOT(updateType(int)) );
+*/
 
      QGridLayout *nameLayout = new QGridLayout();
      nameLayout->setColumnMinimumWidth(1,20);
@@ -615,7 +627,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      gridSpaceValidator->setDecimals(5);
 
      QLabel *gridSpaceLabel= new QLabel(); 
-     gridSpaceLabel->setText(tr("Plane Number:"));
+     gridSpaceLabel->setText(tr("Division Number:"));
      gridNumSB = new QSpinBox();
      gridNumSB->setValue(2);
      gridNumSB->setMinimum(2);
@@ -695,6 +707,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
 
 }
 
+/*
 void SetCompPropertiesDialog::updateType(int i)
 {
     if(typeChooserMap[i]==WAVEGUIDE){
@@ -727,7 +740,7 @@ void SetCompPropertiesDialog::updateType(int i)
     QApplication::processEvents();
     window()->resize(w,h);
 }
-
+*/
 
 void SetCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
@@ -737,8 +750,9 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
   TEMnumLE->setText(TEMnum);
   TEnumSB->setValue(vol->TEportsNum);
   TMnumSB->setValue(vol->TMportsNum);
-  for (int i = 0; i <typeChooser->count(); ++i)
-	  if(typeChooserMap[i]==vol->type)  typeChooser->setCurrentIndex(i);
+  typeChooser->setText(tr(typeChooserMap[vol->type].c_str()));
+//  for (int i = 0; i <typeChooser->count(); ++i)
+//	  if(typeChooserMap[i]==vol->type)  typeChooser->setCurrentIndex(i);
   if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND)  meshRefLineEdit->setText(QString("%1").arg(vol->meshRefinement));
   if(vol->type==LINEPORT){
 	TCollection_AsciiString assName; mainOCAF->getAssName(assName);
@@ -760,7 +774,7 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
 
 
 void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
-  vol->type=typeChooserMap[typeChooser->currentIndex()];
+//  vol->type=typeChooserMap[typeChooser->currentIndex()];
   bool changed=false;
   if(vol->type==DIELECTRIC || vol->type==HOLE ||vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND) 
    if(fabs(vol->meshRefinement-meshRefLineEdit->text().toDouble())>1.e-5){
@@ -1317,7 +1331,7 @@ void DefineMaterialDialog::setConsTanDeltaLorentz(char type){
        r=muLineEdit->text().toDouble();
  }
  double k=pow(freqBand[1]/freqBand[0],1.0/N);
- double nu=1.0/(1-2*atan(tandelta)/PIG);
+ double nu=1.0/(1-2*atan(tandelta)/M_PI);
  double a=0.0;
  for (int i = 0; i <N; ++i) {
     a+=(pow(k,i*nu-N/2)-tandelta*pow(k,i*(nu-1)))/(1+pow(k,2.0*i-N));
@@ -1588,30 +1602,6 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
       return;
    }
 }
-void TreeWidget::setCurrentItem(QTreeWidgetItem * current, QTreeWidgetItem * previous){
-   TreeWidgetItem *item= (TreeWidgetItem *) current;
-   DB::Material* mat;
-   TDF_Label label;
-   item->getLabel(label);
-   if(!label.IsNull()) if(mainOCAF->isComponent(label) || mainOCAF->isSolid(label)){
-       currentPart=item;
-       getLabelName(label, currentPartName);
-       emit sendPartName(currentPartName);
-       return;
-   } 
-   if(!label.IsNull()) if(mainOCAF->isLayer(label)){ 
-       currentLayer=item;
-       getLabelName(label, currentLayerName);
-       emit sendLayerName(currentLayerName);
-       return;
-   }
-   if(item->getMaterial(mat)){
-      currentMaterial=item;
-      currentMaterialName=mat->name;
-      emit sendMaterialName(currentMaterialName);
-      return;
-   }
-}
 
 void TreeWidget::assignLayerDialog()
 {    
@@ -1851,17 +1841,17 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
 //    menu.addAction(aboutAction);
     TDF_Label selectedLabel;
     if(lastClicked)  lastClicked->getLabel(selectedLabel);
-    if(!selectedLabel.IsNull()) if(mainOCAF->EmP.assemblyType!=PARTITION) if(mainOCAF->isComponent(selectedLabel) || mainOCAF->isSolid(selectedLabel)) 
+    if(!selectedLabel.IsNull()) if(mainOCAF->EmP.assemblyType!=PARTITION) 
     { 
       QString qtext;
       getLabelName(selectedLabel, qtext);
       char *ctext=qtext.toLatin1().data();
       DB::Volume *vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
       if(vol){ 
-	 if(mainOCAF->EmP.assemblyType==COMPONENT) {
+	 if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==INTERFACE) {
 	     if (vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE) menu.addAction(assignMaterialAction);
-             menu.addAction(setCompPropertiesAction);
              if (vol->type==WAVEGUIDE) menu.addAction(showWgModesAction);
+             menu.addAction(setCompPropertiesAction);
          } else { 
 	     menu.addAction(importPartPropertiesAction);
 	 }

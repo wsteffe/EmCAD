@@ -33,10 +33,6 @@
 
 #include<buffer.h>
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
-
 
 #define UNDEFINED          0
 #define DIELECTRIC         1

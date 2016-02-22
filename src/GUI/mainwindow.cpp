@@ -88,9 +88,6 @@
 
 #include <omp.h>
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
 
 #ifndef min
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -1004,6 +1001,7 @@ void MainWindow::openPart()
      else return;
      QString partPath=currentWorkPath+"/"+partName;
      QDir dir(currentWorkPath);
+     char str[101]; strcpy(str,partName.toLatin1().data());
      if(!dir.exists(partName)) return;
      if(prjData.workStatus.componentsaveNeeded) worksaveAllComponents();
      if(mainOCAF->worksaveNeeded) worksave();

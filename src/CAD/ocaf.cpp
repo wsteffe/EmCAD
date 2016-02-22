@@ -87,6 +87,7 @@
 #include <TopTools_ListIteratorOfListOfShape.hxx>
 #include <Geom2d_Curve.hxx>
 #include <TopOpeBRepTool_TOOL.hxx>
+#include <GeomAPI_IntCS.hxx>
 
 #include <BRepCheck_Analyzer.hxx>
 #include <ShapeAnalysis_ShapeContents.hxx>
@@ -136,9 +137,6 @@
 
 #define USEXMLXCAF 0
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
 
 #ifndef min
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -281,18 +279,22 @@ MwOCAF::~MwOCAF()
   if(vertexData)           { delete [] vertexData; vertexData=NULL;}
 }
 
+bool isNetName(TCollection_AsciiString &name)
+{
+  int len=name.Length();
+  if(len<4) return false;
+  TCollection_AsciiString start=name.SubString(1,4);
+  start.LowerCase();
+  return (start=="net_");
+}
+
 bool isCompName(TCollection_AsciiString &name)
 {
   int len=name.Length();
   if(len<4) return false;
   TCollection_AsciiString start=name.SubString(1,4);
   start.LowerCase();
-  if (start!="cmp") return false;
-  const char *str=name.ToCString();
-  int l=3;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="cmp_");
 }
 
 bool isIFName(TCollection_AsciiString &name)
@@ -301,129 +303,96 @@ bool isIFName(TCollection_AsciiString &name)
   if(len<3) return false;
   TCollection_AsciiString start=name.SubString(1,3);
   start.LowerCase();
-  if (start!="if") return false;
-  const char *str=name.ToCString();
-  int l=2;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="if_");
 }
-
-
 
 
 bool isBCondName(TCollection_AsciiString &name)
 {
   int len=name.Length();
-  if(len<2) return false;
-  TCollection_AsciiString start=name.SubString(1,2);
+  if(len<3) return false;
+  TCollection_AsciiString start=name.SubString(1,3);
   start.LowerCase();
-  if (start!="bc") return false;
-  const char *str=name.ToCString();
-  int l=2;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="bc_");
 }
 
 bool isDielName(TCollection_AsciiString &name)
 {
   int len=name.Length();
-  if(len<4) return false;
-  TCollection_AsciiString start=name.SubString(1,4);
+  if(len<5) return false;
+  TCollection_AsciiString start=name.SubString(1,5);
   start.LowerCase();
-  if (start!="diel") return false;
-  const char *str=name.ToCString();
-  int l=4;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="diel_");
 }
 
 bool isHoleName(TCollection_AsciiString &name)
 {
   int len=name.Length();
-  if(len<4) return false;
-  TCollection_AsciiString start=name.SubString(1,4);
+  if(len<5) return false;
+  TCollection_AsciiString start=name.SubString(1,5);
   start.LowerCase();
-  if (start!="hole") return false;
-  const char *str=name.ToCString();
-  int l=4;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="hole_");
 }
 
 
 bool isSplitName(TCollection_AsciiString &name)
 {
   int len=name.Length();
-  if(len<5) return false;
-  TCollection_AsciiString start=name.SubString(1,5);
+  if(len<6) return false;
+  TCollection_AsciiString start=name.SubString(1,6);
   start.LowerCase();
-  if (start!="split") return false;
-  const char *str=name.ToCString();
-  int l=5;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="split_");
 }
 
 bool isGridName(TCollection_AsciiString &name)
 {
   int len=name.Length();
+  if(len<5) return false;
+  TCollection_AsciiString start=name.SubString(1,5);
+  start.LowerCase();
+  return (start=="grid_");
+}
+
+bool isWgPortName(TCollection_AsciiString &name)
+{
+  int len=name.Length();
   if(len<4) return false;
   TCollection_AsciiString start=name.SubString(1,4);
   start.LowerCase();
-  if (start!="grid") return false;
-  const char *str=name.ToCString();
-  int l=4;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="wgp_");
 }
 
-bool isWgName(TCollection_AsciiString &name)
+bool isLinePortName(TCollection_AsciiString &name)
 {
   int len=name.Length();
-  if(len<2) return false;
-  TCollection_AsciiString start=name.SubString(1,2);
+  if(len<3) return false;
+  TCollection_AsciiString start=name.SubString(1,3);
   start.LowerCase();
-  if (start!="wg") return false;
-  const char *str=name.ToCString();
-  int l=2;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
-}
-
-bool isLPName(TCollection_AsciiString &name)
-{
-  int len=name.Length();
-  if(len<2) return false;
-  TCollection_AsciiString start=name.SubString(1,2);
-  start.LowerCase();
-  if (start!="lp") return false;
-  const char *str=name.ToCString();
-  int l=2;
-  for(; l<len && isdigit(str[l]); ) l++;
-  if(l==len) return true;
-  else return (str[l]=='_' || str[l]=='|' || str[l]=='^');
+  return (start=="lp_");
 }
 
 
 bool isValidMultibodyPartName(TCollection_AsciiString &name)
 {
- if(isDielName(name))  return true; 
- if(isHoleName(name))  return true; 
- if(isBCondName(name)) return true; 
- if(isGridName(name))  return true; 
- if(isSplitName(name)) return true; 
- if(isWgName(name))    return true; 
- if(isLPName(name))    return true; 
+ if(isDielName(name))       return true; 
+ if(isHoleName(name))       return true; 
+ if(isBCondName(name))      return true; 
+ if(isGridName(name))       return true; 
+ if(isSplitName(name))      return true; 
+ if(isWgPortName(name))     return true; 
+ if(isLinePortName(name))   return true; 
  return false;
 }
 
+
+bool isValidPartName(TCollection_AsciiString &name)
+{
+ if(isValidMultibodyPartName(name))  return true; 
+ if(isNetName(name))  return true;
+ if(isCompName(name)) return true;
+ if(isIFName(name))   return true;
+ return false;
+}
 
 struct LabelAttributes
 {
@@ -432,7 +401,7 @@ struct LabelAttributes
   bool hasColor;
   bool hasColorL;
   TCollection_AsciiString name;
-  Handle_TColStd_HSequenceOfExtendedString layers;
+  TColStd_HSequenceOfExtendedString layers;
   Quantity_Color color;
   TDF_Label colorL;
   LabelAttributes(){
@@ -447,7 +416,9 @@ void copyLabelAttributes( LabelAttributes &attr, TDF_Label &label,
  Handle(TDataStd_Name)  nameAtt;
  attr.hasName =label.FindAttribute(TDataStd_Name::GetID(),nameAtt);
  if(attr.hasName) attr.name=nameAtt->Get();
- attr.hasLayers =layTool->GetLayers(label,attr.layers);
+ Handle_TColStd_HSequenceOfExtendedString layers;
+ attr.hasLayers =layTool->GetLayers(label,layers);
+ if(attr.hasLayers) attr.layers=*layers;
  attr.hasColor  =colTool->GetColor(label,XCAFDoc_ColorGen,attr.color);
  attr.hasColorL =colTool->GetColor(label,XCAFDoc_ColorGen,attr.colorL);
 }
@@ -465,7 +436,7 @@ void pasteLabelAttributes( LabelAttributes &attr, TDF_Label &label,
            nameAtt->Set(attr.name);
        }
        if(attr.hasLayers) 
-	       for (int i=1; i<=attr.layers->Length(); i++) layTool->SetLayer(label,attr.layers->Value(i));
+	       for (int i=1; i<=attr.layers.Length(); i++) layTool->SetLayer(label,attr.layers.Value(i));
        if(attr.hasColor)  
 	       colTool->SetColor(label,attr.color,XCAFDoc_ColorGen);
        if(attr.hasColorL) 
@@ -599,7 +570,8 @@ bool MwOCAF::getLabelName(TDF_Label item, TCollection_AsciiString &name){
 int MwOCAF::isPart(TDF_Label label){
   TCollection_AsciiString name;
   if(!getLabelName(label, name)) return false;
-  bool itis=isComponent(label) || isSolid(label);
+//  bool itis=isComponent(label) || isSolid(label);
+  bool itis=isValidPartName(name);
   if(itis) itis=itis && EmP.FindVolume(name.ToCString());
   return itis;
 }
@@ -1819,15 +1791,29 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      if(S.IsNull()) return false;
      TopTools_IndexedMapOfShape faces;
      TopExp::MapShapes(S,TopAbs_FACE,faces);
-     if (faces.Extent()==vol->gridNum)  return false;
+     if (faces.Extent()==vol->gridNum+1)  return false;
+     bool hasSection=faces.Extent()==1;
+     TopoDS_Face sectFace;
+     double SectCurve_u=0;
+     TopTools_IndexedMapOfShape Fedges;
+     if(hasSection){
+	 sectFace=TopoDS::Face(faces.FindKey(1));
+         TopExp::MapShapes(sectFace,TopAbs_EDGE,Fedges);
+     }
      TopTools_IndexedMapOfShape edges;
-     TopExp::MapShapes(S,TopAbs_EDGE,edges);
+     for (TopExp_Explorer exp(S,TopAbs_EDGE); exp.More(); exp.Next()){
+       TopoDS_Shape E = exp.Current(); 
+       if(Fedges.FindIndex(E) < 1) if(edges.FindIndex(E) < 1) edges.Add(E);
+     }
      if(edges.Extent()<1) return false;
      bool hasLine=false;
      bool hasCircle=false;
      Handle(Geom_Circle) gCirc; 
      TopoDS_Edge Eline,Ecircle;
      double line_u1,line_u2, circle_u1,circle_u2;
+     bool fullCircle;
+     circle_u1=10^3;
+     circle_u2=-10^3;
      for (int I=1; I<=edges.Extent(); I++){
       TopoDS_Edge E= TopoDS::Edge(edges.FindKey(I));
       double u1,u2;
@@ -1842,16 +1828,29 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
 	   hasCircle=true;
 	   Ecircle=E;
            gCirc =(Handle(Geom_Circle)&) gc;
-	   circle_u1=u1;
-	   circle_u2=u2;
+	   //fullCircle is composed of two arcs
+	   circle_u1=min(circle_u1,u1);
+	   circle_u2=max(circle_u2,u2);
+	   fullCircle=fabs(u2-u1-2*M_PI)<1.e-5;
       }
+     }
+     gp_Pnt Circ_O;
+     gp_Dir Circ_Dir;
+     if(hasCircle){
+        Circ_Dir=gCirc->Circ().Axis().Direction();
+        Circ_O=gCirc->Circ().Axis().Location();
+         if(hasSection){
+	   Handle(Geom_Surface) gSection = BRep_Tool::Surface(sectFace);
+           GeomAPI_IntCS aInterCS(gCirc,gSection);
+	   if(aInterCS.IsDone()){
+             double faceU,faceV;
+             aInterCS.Parameters(1,faceU,faceV,SectCurve_u);
+	   }
+	 }
      }
      bool cylGrid=hasLine && hasCircle;
      vol->invariant=!cylGrid;
-
-     gp_Pnt Circ_O;
-     gp_Dir Circ_Dir;
-     int planeNum=vol->gridNum;
+     int planeNum=vol->gridNum+1;
      TopoDS_Edge Esweep;
      if(cylGrid) Esweep=Eline;
      else{ Esweep=hasCircle ? Ecircle : Eline; }
@@ -1862,14 +1861,12 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
        invt=EmP.FindInvariant(vol->name);
        if(hasCircle){
 	 invt->rotAngle=(circle_u2-circle_u1)/(planeNum-1);
-         gp_Dir A=gCirc->Circ().Axis().Direction();
-	 invt->rotAxis[0]=A.X();
-	 invt->rotAxis[1]=A.Y();
-	 invt->rotAxis[2]=A.Z();
-         gp_Pnt O=gCirc->Circ().Axis().Location();
-	 invt->rotOrigin[0]=O.X();
-	 invt->rotOrigin[1]=O.Y();
-	 invt->rotOrigin[2]=O.Z();
+	 invt->rotAxis[0]=Circ_Dir.X();
+	 invt->rotAxis[1]=Circ_Dir.Y();
+	 invt->rotAxis[2]=Circ_Dir.Z();
+	 invt->rotOrigin[0]=Circ_O.X();
+	 invt->rotOrigin[1]=Circ_O.Y();
+	 invt->rotOrigin[2]=Circ_O.Z();
        } else if(hasLine) {
          TopoDS_Vertex V1,V2;
          TopExp::Vertices(Eline,V1,V2);
@@ -1888,7 +1885,7 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      builder.MakeCompound(newS);
      builder.Add(newS,Esweep);
      double u1,u2;
-     Handle(Geom_Curve) gec=BRep_Tool::Curve (Esweep, u1, u2);
+     Handle(Geom_Curve) gec=BRep_Tool::Curve(Esweep, u1, u2);
      for (int VI=0; VI<planeNum; VI++){
         gp_Pnt P;
         gp_Vec Etan;
@@ -1904,6 +1901,7 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
 	  gp_Vec OP=gp_Vec(O, P);
           double R=Zvec.CrossMagnitude(OP);
           double h=1.2*BB_paraR(BBX,BBY,BBZ, O, Zvec );
+	  if(R<h/1.e6) continue; 
 	  gp_Vec OP2=h*Zvec;
           gp_Pnt P2=O; P2.Translate(OP2);
 	  gp_Vec OP1=-h*Zvec;
@@ -1915,7 +1913,17 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
           TopoDS_Wire sec_cW=BRepBuilderAPI_MakeWire(sec_cE);
           TopoDS_Shape cyl = BRepOffsetAPI_MakePipe (spine, sec_cW);
           builder.Add(newS,cyl);
-	}else{
+	}else if(hasCircle && hasSection){
+	  if(fullCircle && VI==planeNum-1) continue;
+	  gp_Trsf trsf;
+          gp_Ax1 ax1=gp_Ax1(Circ_O,Circ_Dir);
+	  double alpha=fullCircle? 2*M_PI*VI/(planeNum-1): circle_u1+(circle_u2-circle_u1)*VI/(planeNum-1)-SectCurve_u;
+	  trsf.SetRotation(ax1, alpha);
+          BRepBuilderAPI_Transform aTransform(trsf);
+          Standard_Boolean toCopy = Standard_True;  // share entities if possible
+          aTransform.Perform(sectFace, toCopy);
+          builder.Add(newS,aTransform.Shape());
+	}else if(!hasSection){
           gp_Dir Edir=gp_Dir(Etan);
           gp_Vec trasl=gp_Vec(BOX_CP, P);
           trasl=(Etan.Dot(trasl))*Etan;
@@ -3122,109 +3130,128 @@ void addToParts(Handle(XCAFDoc_ShapeTool) shapeTool, const TDF_Label &label){
    }
 }
 
-void  copyMultiBodyRep( 
-		   Handle(XCAFDoc_ShapeTool) STool1, Handle(XCAFDoc_ColorTool) ColTool1, Handle(XCAFDoc_LayerTool) layTool1, const TDF_Label &label1, 
-		   Handle(XCAFDoc_ShapeTool) STool2, Handle(XCAFDoc_ColorTool) ColTool2, Handle(XCAFDoc_LayerTool) layTool2, const TDF_Label &label2)
+
+void  copySubAss2(
+	           Handle(XCAFDoc_ShapeTool) STool1, Handle(XCAFDoc_ColorTool) ColTool1, Handle(XCAFDoc_LayerTool) layTool1, const TDF_Label &label1, 
+		   Handle(XCAFDoc_ShapeTool) STool2, Handle(XCAFDoc_ColorTool) ColTool2, Handle(XCAFDoc_LayerTool) layTool2, const TDF_Label &label2,
+		   int assemblytype,
+		   std::map<std::string, std::set<int> > &nameShapeI,
+		   std::map<int, LabelAttributes> &iAttrs,
+                   TopTools_IndexedMapOfShape  &iShapes
+		 )
 {
-        TDF_Label label2ref=label2;
-        if(STool2->IsReference(label2)) STool2->GetReferredShape(label2,label2ref);
-        Handle(XCAFDoc_Location) locAtt;
-	TopLoc_Location loc2;
-        if(label2.FindAttribute(XCAFDoc_Location::GetID(),locAtt)) loc2=locAtt->Get(); 
-	std::map<std::string, std::set<int> > nameTags;
-//	TopTools_SequenceOfShape compounds;
-	int nameI=0;
-	for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next()){
-		 TDF_Label subl2=it.Value();
-                 TDF_Label subl2ref=subl2;
-                 if(STool2->IsReference(subl2)) STool2->GetReferredShape(subl2,subl2ref);
-                 Handle(TDataStd_Name)  nameAtt;
-                 subl2ref.FindAttribute(TDataStd_Name::GetID(),nameAtt);
-                 TCollection_AsciiString subl2name=nameAtt->Get();
-		 if(isValidMultibodyPartName(subl2name)){
-                     std::string str=subl2name.ToCString();
-                     nameTags[str].insert(subl2.Tag());
-		 }
-	}
-        BRep_Builder builder;
-        typedef std::map<std::string, std::set<int> > ::iterator NameIt;
-	for (NameIt nit=nameTags.begin(); nit!= nameTags.end(); nit++){
-	   TopoDS_Shape subS2;
-           LabelAttributes attr;
-	   if((*nit).second.size()>1){
-             TopoDS_Compound  Cmp;  builder.MakeCompound(Cmp);
-	     for (std::set<int> ::iterator tit=(*nit).second.begin(); tit!= (*nit).second.end(); tit++){
-	       TDF_Label subl2=label2ref.FindChild(*tit,Standard_False);
-               TDF_Label subl2ref=subl2;
-               if(STool2->IsReference(subl2)) STool2->GetReferredShape(subl2,subl2ref);
-               TopoDS_Shape S = STool2->GetShape(subl2);
-               builder.Add(Cmp,S);
-               if(!attr.hasName) copyLabelAttributes(attr, subl2ref, ColTool2, layTool2);
-	     }
-             subS2=Cmp;
-	   } else {
-	      std::set<int> ::iterator tit=(*nit).second.begin();
-	      TDF_Label subl2=label2ref.FindChild(*tit,Standard_False);
-              TDF_Label subl2ref=subl2;
-              if(STool2->IsReference(subl2)) STool2->GetReferredShape(subl2,subl2ref);
-              subS2 = STool2->GetShape(subl2);
-              copyLabelAttributes(attr, subl2ref, ColTool2, layTool2);
-	   }
-	   TopoDS_Shape S2=subS2;
-           S2.Location (loc2.Multiplied(subS2.Location()));
-	   TDF_Label sublabel1=STool1->AddComponent(label1,S2);
-           pasteLabelAttributes(attr, sublabel1, ColTool1, layTool1);
-	   addToParts(STool1, sublabel1);
-	}
+   TDF_Label label1_=label1;
+   LabelAttributes attr1;
+   copyLabelAttributes(attr1, label1_, ColTool1, layTool1);
 
+   TDF_Label label2ref=label2;
+   LabelAttributes attr;
+   copyLabelAttributes(attr, label2ref, ColTool2, layTool2);
+   if(STool2->IsReference(label2)) STool2->GetReferredShape(label2,label2ref);
+   LabelAttributes rattr;
+   copyLabelAttributes(rattr, label2ref, ColTool2, layTool2);
+ 
+   TopLoc_Location loc2= STool2->GetLocation(label2);
+   TopLoc_Location loc2ref= STool2->GetLocation(label2ref);
+
+//---
+//---
+   TopoDS_Shape S2 = STool2->GetShape(label2); if(S2.IsNull()) return;
+   TopoDS_Shape S2r = STool2->GetShape(label2ref);
+   TDF_Label sublabel1;
+   if(isValidPartName(attr.name) && !S2.IsNull()){
+            int I=iShapes.Add(S2);
+            std::string str=attr.name.ToCString();
+            nameShapeI[str].insert(I);
+	    iAttrs[I]=attr;
+   }else if(isValidPartName(rattr.name) && !S2.IsNull()) {
+            int I=iShapes.Add(S2);
+            std::string str=rattr.name.ToCString();
+            nameShapeI[str].insert(I);
+	    iAttrs[I]=rattr;
+   } else {
+	  for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next())  
+	                copySubAss2(STool1,ColTool1,layTool1,label1, STool2, ColTool2,layTool2, it.Value(), assemblytype, nameShapeI, iAttrs, iShapes);
+   }
 }
-
-
 
 
 void  copySubAss(
 	           Handle(XCAFDoc_ShapeTool) STool1, Handle(XCAFDoc_ColorTool) ColTool1, Handle(XCAFDoc_LayerTool) layTool1, const TDF_Label &label1, 
 		   Handle(XCAFDoc_ShapeTool) STool2, Handle(XCAFDoc_ColorTool) ColTool2, Handle(XCAFDoc_LayerTool) layTool2, const TDF_Label &label2,
-		   int toplevel, int assemblytype
+		   int assemblytype
 		 )
 {
+   TDF_Label label1_=label1;
+   LabelAttributes attr1;
+   copyLabelAttributes(attr1, label1_, ColTool1, layTool1);
+
    TDF_Label label2ref=label2;
-   if(STool2->IsReference(label2)) STool2->GetReferredShape(label2,label2ref);
    LabelAttributes attr;
    copyLabelAttributes(attr, label2ref, ColTool2, layTool2);
+   if(STool2->IsReference(label2)) STool2->GetReferredShape(label2,label2ref);
+   LabelAttributes rattr;
+   copyLabelAttributes(rattr, label2ref, ColTool2, layTool2);
+ 
+   TopLoc_Location loc2= STool2->GetLocation(label2);
+   TopLoc_Location loc2ref= STool2->GetLocation(label2ref);
+
 //---
 //---
    TopoDS_Shape S2 = STool2->GetShape(label2); if(S2.IsNull()) return;
+   TopoDS_Shape S2r = STool2->GetShape(label2ref);
    TDF_Label sublabel1;
-   if(toplevel){
 /*
   If S2 is top level shape in the current document and current document not main document label2 holds a referred not located shape.
   In this case the actual location of S2 is stored in the upper document (in a sublabel of the theParts label).
-*/	TDF_TagSource aTag;
-        sublabel1 = aTag.NewChild(label1);
-	STool1->SetShape(sublabel1,S2);
-        if(!sublabel1.IsNull()){
-	   pasteLabelAttributes(attr, sublabel1, ColTool1, layTool1);
-	   STool1->UpdateAssembly(sublabel1);
-           STool1->UpdateAssembly(label1);
-	}
-        for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next())  
-	                copySubAss(STool1,ColTool1,layTool1,sublabel1, STool2, ColTool2,layTool2, it.Value(), 0, assemblytype);
-   }
-   if(!toplevel){     
-	bool expandLabel2=(S2.ShapeType() == TopAbs_COMPOUND) && attr.name==TCollection_AsciiString("REMOVE"); 
-	if(expandLabel2) 
-//           expand Compounds originated from different Step Representations (hybrid Models):
-	     copyMultiBodyRep(STool1,ColTool1,layTool1,label1, STool2, ColTool2,layTool2, label2);
-        else{
-	    sublabel1=STool1->AddComponent(label1,S2);
-            if(!sublabel1.IsNull()){
-	      pasteLabelAttributes(attr, sublabel1, ColTool1, layTool1);
-              STool1->UpdateAssembly(label1);
+*/
+   std::map<std::string, std::set<int> > nameShapeI;
+   std::map<int, LabelAttributes> iAttrs;
+   TopTools_IndexedMapOfShape  iShapes;
+   if(isValidPartName(attr.name)){
+          TDF_TagSource aTag;
+          sublabel1 = aTag.NewChild(label1);
+	  STool1->SetShape(sublabel1,S2);
+          if(!sublabel1.IsNull()){
+	    pasteLabelAttributes(attr, sublabel1, ColTool1, layTool1);
+	    STool1->UpdateAssembly(sublabel1);
+            STool1->UpdateAssembly(label1);
+ 	  }
+	  if(rattr.name !=attr.name && isValidMultibodyPartName(rattr.name))
+	                copySubAss2(STool1,ColTool1,layTool1,sublabel1, STool2, ColTool2,layTool2, label2ref, assemblytype, nameShapeI, iAttrs, iShapes);          
+	  else{
+	      for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next())  
+	                copySubAss2(STool1,ColTool1,layTool1,sublabel1, STool2, ColTool2,layTool2, it.Value(), assemblytype, nameShapeI, iAttrs, iShapes);
+	  }
+          typedef std::map<std::string, std::set<int> > ::iterator NameIt;
+	  for (NameIt nit=nameShapeI.begin(); nit!= nameShapeI.end(); nit++){
+	    TopoDS_Shape subS2;
+            LabelAttributes subAttr;
+	    if((*nit).second.size()>1){ //shapes stored on several labels with identical names are put in a compound
+              TopoDS_Compound  Cmp;  
+              BRep_Builder builder;
+	      builder.MakeCompound(Cmp);
+	      for (std::set<int> ::iterator tit=(*nit).second.begin(); tit!= (*nit).second.end(); tit++){
+	       int I=*tit;
+               TopoDS_Shape S = iShapes.FindKey(I);
+	       subAttr=iAttrs[I];
+               builder.Add(Cmp,S);
+	      }
+              subS2=Cmp;
+	    } else {
+	       std::set<int> ::iterator tit=(*nit).second.begin();
+	       int I=*tit;
+               subS2 = iShapes.FindKey(I);
+	       subAttr=iAttrs[I];
 	    }
-	    addToParts(STool1, sublabel1);
-	}
-   }
+	    TDF_Label subsublabel1=STool1->AddComponent(sublabel1,subS2);
+            pasteLabelAttributes(subAttr, subsublabel1, ColTool1, layTool1);
+	    addToParts(STool1, subsublabel1);
+          }	  
+    } else {
+	  for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next())  
+	                copySubAss(STool1,ColTool1,layTool1,label1, STool2, ColTool2,layTool2, it.Value(), assemblytype);
+    }
 }
 
 
@@ -3613,7 +3640,7 @@ void MwOCAF::setPartsStatus()
      if(vol->type==UNDEFINED) {prjStatus.partTypes=false; vol->defined=0;}
      if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE)  
 	     if(!strcmp(vol->material,"?")) {prjStatus.partMaterials=false; vol->defined=0; }
-     if(vol->type==GRID) vol->defined=vol->gridNum? 1: 0;
+     if(vol->type==GRID) vol->defined=vol->gridNum>0 ? 1: 0;
    }
 }
 
@@ -3626,45 +3653,22 @@ TopAbs_ShapeEnum shapeType(TopoDS_Shape S)
  return type;
 }
 
-int defaultPartType(TopoDS_Shape S, TCollection_AsciiString partName)
+int defaultPartType(TCollection_AsciiString partName)
 {
 // Defaults from Names
-     if(isSplitName(partName))          return SPLITTER;
+     if(isCompName(partName))           return COMPONENT;
+     else if(isIFName(partName))        return INTERFACE;
+     else if(isSplitName(partName))     return SPLITTER;
      else if(isGridName(partName))      return GRID;
-     else if(isWgName(partName))        return WAVEGUIDE;
-     else if(isLPName(partName))        return LINEPORT;
+     else if(isWgPortName(partName))    return WAVEGUIDE;
+     else if(isLinePortName(partName))  return LINEPORT;
      else if(isDielName(partName))      return DIELECTRIC;
      else if(isHoleName(partName))      return HOLE;
      else if(isBCondName(partName))     return BOUNDARYCOND;
 // Defaults from Geometries
-     if(!hasSolid(S))                   return BOUNDARYCOND;
-     else                               return DIELECTRIC;
+     return 0;
 }
 
-
-void MwOCAF::setDefaultPartTypes(bool onlyUndefined)
-{
-   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
-   {
-     TDF_Label label1 = it.Value();
-     Handle(TDataStd_Name)  nameAtt;
-     if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
-     TCollection_AsciiString partName=nameAtt->Get();
-     DB::Volume* vol = EmP.FindVolume(partName.ToCString());
-     if(!vol) continue;
-     if(onlyUndefined && vol->type!=UNDEFINED) continue;
-     if(EmP.assemblyType==NET)   vol->type=ASSEMBLY;
-     else if(EmP.assemblyType==COMPONENT) {
-           Handle(TDF_Reference)  refAtt;
-           if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
-           TDF_Label label = refAtt->Get();
-           TopoDS_Shape S;
-           if(!shapeTool->GetShape(label,S)) vol->type=0;
-	   else vol->type=defaultPartType(S,partName);
-     }
-   }
-   prjStatus.partTypes=true;
-}
 
 
 void TransformShape(TopoDS_Shape &S, gp_Trsf T)
@@ -3696,8 +3700,7 @@ void putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TD
 	   emP->insertVolume(vol);
            TopoDS_Shape S;
 	   if(!shapeTool->GetShape(label,S))     vol->type=0;
-	   else if(emP->assemblyType==NET)       vol->type=ASSEMBLY;
-           else if(emP->assemblyType==COMPONENT) vol->type=defaultPartType(S,partName);
+	   else vol->type=defaultPartType(partName);
      }
  }
 
@@ -3753,6 +3756,25 @@ bool MwOCAF::hasSubAssembly(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label ass)
    return hassubass;
 }
 
+bool MwOCAF::hasEmSubComponent(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label ass)
+{
+//   TDF_LabelSequence components;
+//   shapeTool->GetComponents(ass,components);
+   bool hassubcomp=false;
+   for (TDF_ChildIterator it(ass, Standard_False); it.More(); it.Next()){
+//   for (int I = 1; I <=components.Length() ; I++){
+        TDF_Label li = it.Value();
+//        TDF_Label li=components.Value(I);
+        TDF_Label rli=li;
+        if(shapeTool->IsAssembly(li)) if(shapeTool->IsReference(li)) shapeTool->GetReferredShape(li,rli);
+        Handle(TDataStd_Name)  nameAtt;
+        TCollection_AsciiString name;
+        if(rli.FindAttribute(TDataStd_Name::GetID(),nameAtt)) name=nameAtt->Get();
+        if(shapeTool->IsAssembly(rli) || isCompName(name)) if(name!=TCollection_AsciiString("REMOVE")) {hassubcomp=true; break;}
+   }
+   return hassubcomp;
+}
+
 bool COMPONENTISASSEMBLY=false;
 
 void MwOCAF::saveImportedStruct(const char *dir,
@@ -3784,12 +3806,13 @@ void MwOCAF::saveImportedStruct(const char *dir,
    else if(isIFName(assName))
       assemblyType=subEmP->assemblyType=INTERFACE;
    else if(COMPONENTISASSEMBLY)
-      assemblyType=subEmP->assemblyType= (hasSubAssembly(shapeTool, ass) && !hasMultibodyPart(shapeTool, ass)) ? NET: COMPONENT;
+//      assemblyType=subEmP->assemblyType= (hasEmSubComponent(shapeTool, ass) && !hasMultibodyPart(shapeTool, ass)) ? NET: COMPONENT;
+      assemblyType=subEmP->assemblyType= (hasEmSubComponent(shapeTool, ass)) ? NET: COMPONENT;
    else
       assemblyType=subEmP->assemblyType= shapeTool->IsAssembly(ass)? NET: COMPONENT;
 
 // Copy the subassembly structure into the subdocument:
-   copySubAss(subShapeTool,subColTool,subLayTool,subShapes, shapeTool, colorTool,layerTool, ass, 1, assemblyType);
+   copySubAss(subShapeTool,subColTool,subLayTool,subShapes, shapeTool, colorTool,layerTool, ass, assemblyType);
    putVolumesInDB_(subEmP, subShapeTool, subDoc->Main());
 
 // set subass name and location into the related parts label:
@@ -3853,7 +3876,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
            if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
            TCollection_AsciiString partName=nameAtt->Get();
            DB::Volume* vol = subEmP->FindVolume(partName.ToCString());
-           if(vol->type!=ASSEMBLY) continue;
+           assert(vol->type==COMPONENT || vol->type==INTERFACE);
            if(addSubdirs) fprintf(subdfid, "%s\n", partName.ToCString());
 	   std::string partDir=std::string(dir)+std::string("/")+partName.ToCString();
 	   partDir=nativePath(partDir);
@@ -3910,7 +3933,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
      Handle(XCAFDoc_Location) locAtt;
      if(!label.FindAttribute(XCAFDoc_Location::GetID(),locAtt)) continue;
      TDF_Label referred=label;
-     if(shapeTool->IsReference(label)) shapeTool->GetReferredShape(label,referred);
+     if(shapeTool->IsAssembly(label)) if(shapeTool->IsReference(label)) shapeTool->GetReferredShape(label,referred);
      Handle(TDataStd_Name)  nameAtt;
      if(!referred.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
      TCollection_AsciiString subAssName=nameAtt->Get();
@@ -3996,12 +4019,6 @@ bool MwOCAF::savePartsIF()
    return true;
 }
 
-
-void MwOCAF::addComponent(std::set<std::string, std::less<std::string> > &list){
-   TCollection_AsciiString assName; getAssName(assName);
-   std::string line=assName.ToCString();
-   if(list.find(line)==list.end()) if(!line.empty()) list.insert(line);
-}
 
 
 void MwOCAF::addPorts(std::map<std::string, int, std::less<std::string> > &ports, std::map<std::string, double, std::less<std::string> > &portloads)

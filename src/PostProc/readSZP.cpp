@@ -26,11 +26,6 @@
 #include "plotData.h"
 
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
-
-
 extern PlotData plotData;
 
 int readSZP(const char* fName){

@@ -370,7 +370,7 @@ bool saveShape( const char* fileName, TopoDS_Shape shape)
     data->SetApplicationVersion( "1" );
     data->SetDataType( TCollection_ExtendedString( "Shapes" ) );
     data->AddToUserInfo( "Storing the shape in a flat file" );
-    data->AddToComments( TCollection_ExtendedString( "Application is based on CasCade 6.2" ) );
+    data->AddToComments( TCollection_ExtendedString( "Application is based on CasCade 6.8" ) );
 
     if(!fileDriver) fileDriver=new FSD_File();
     if ( fileDriver->Open( fileName, Storage_VSWrite ) != Storage_VSOk ) return false;

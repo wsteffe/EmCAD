@@ -20,6 +20,7 @@
 
 
 #include "DataBase.h"
+#define _USE_MATH_DEFINES
 #include "math.h"
 
 DB::Units unit;
@@ -35,7 +36,7 @@ Units::Units(){
 
 void PhysicConstants::set(Units u){
    double c0_mks =299792458;
-   double mu0_mks=4*PIG*1.e-7;
+   double mu0_mks=4*M_PI*1.e-7;
    double Z0_mks =mu0_mks*c0_mks;
    c0=c0_mks/(u.xm*u.xHz);
    Z0=Z0_mks/u.xOhm;
@@ -417,6 +418,15 @@ void _mwm_print_volume(void *a, void *b)
            fprintf(EMMFILE, "  gridNum    %d\n",  vol->gridNum);
            fprintf(EMMFILE, "  PML    %d\n",  vol->PML);
            fprintf(EMMFILE, "  invariant  %d\n",  vol->invariant);
+	   break;
+     case NET:
+	   fprintf(EMMFILE, "  type  Net\n");
+	   break;
+     case COMPONENT:
+	   fprintf(EMMFILE, "  type  Component\n");
+	   break;
+     case INTERFACE:
+	   fprintf(EMMFILE, "  type  Interface\n");
 	   break;
      case ASSEMBLY:
 	   fprintf(EMMFILE, "  type  Assembly\n");

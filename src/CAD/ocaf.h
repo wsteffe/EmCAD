@@ -415,7 +415,6 @@ class MwOCAF
   bool openParts();
   void readPartsStatus();
   void setPartsStatus();
-  void setDefaultPartTypes(bool onlyUndefined=false);
   void saveImportedStruct(const char *dir, int level, TCollection_AsciiString assName,
 	       	          TopLoc_Location assLoc, TDF_Label root,
 		          std::set<std::string, std::less<std::string> > *componentlist,
@@ -434,7 +433,6 @@ class MwOCAF
   void loadGlobalMat(const char* wkprojpath, bool onlyIfModified=false);
   void workopen(const char* wkprojpath);
   void worksave(const char* wkprojpath);
-  void addComponent(std::set<std::string, std::less<std::string> > &list);
   void setDisabledVolumes();
   void addPorts(std::map<std::string, int, std::less<std::string> > &ports, std::map<std::string, double, std::less<std::string> > &portloads);
   void getAssName(TCollection_AsciiString &assName);
@@ -533,6 +531,7 @@ class MwOCAF
 			   );
   bool hasMultibodyPart(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label ass);
   bool hasSubAssembly(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label ass);
+  bool hasEmSubComponent(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label ass);
   TDF_Label replaceLabelShape(TDF_Label label, TopoDS_Shape newS);
   TopoDS_Solid      theMergedSolid;
   TopoDS_Compound   theIF;

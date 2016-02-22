@@ -62,10 +62,6 @@
 #include "OStools.h"
 #include "DataBase.h"
 
-#ifndef PIG
-#define PIG 3.14159265
-#endif
-
 #ifndef SIGN
 #define SIGN(a)  (((a) > 0) ? 1 : -1)
 #endif
@@ -356,6 +352,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
        if(!vol1) vol1name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
        if(!vol2) vol2name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
       }
+      if(abs(Fmaster[FI-1])==FI)  skipFaceMesh=false;
       if(skipFaceMesh && vol1){
 	    char m1name[100]; sprintf(m1name,"Vol%d",vol1->master);
 	    if(!vol1->master || !strcmp(vol1->name,m1name)) skipFaceMesh=false;
@@ -410,6 +407,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool isPartition,
     for(TopoDS_Iterator it1(F.Oriented(TopAbs_FORWARD),TopAbs_WIRE); it1.More(); it1.Next()){
     TopoDS_Shape W=it1.Value();
     int Wsgn=(W.Orientation()==TopAbs_FORWARD) ? 1 : -1;    
+    if(isPartition) if(Fmaster[FI-1]<0) Wsgn*=-1;
     for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
       TopoDS_Shape E=it2.Value();
       int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Wsgn : -Wsgn;

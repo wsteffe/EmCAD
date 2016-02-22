@@ -110,7 +110,6 @@ class TreeWidget : public QTreeWidget
       void setLastEntered(QTreeWidgetItem * qitem, int column ) {lastEntered=(TreeWidgetItem*) qitem;}
       void about();
       void setCurrentItem(QTreeWidgetItem * qitem, int column );
-      void setCurrentItem(QTreeWidgetItem * current, QTreeWidgetItem * previous);
       void openSubAssembly();
       void atImportedPartProperties();
       void assignLayer();
@@ -237,7 +236,7 @@ class SetCompPropertiesDialog : public QDialog
      void help();
      void getVolumeData(QString matname);
      void setVolumeData(DB::Volume* vol);
-     void updateType(int i);
+//     void updateType(int i);
 
  public:
      int w,h;
@@ -247,9 +246,9 @@ class SetCompPropertiesDialog : public QDialog
      QLineEdit  *nameLineEdit;
      QLineEdit  *meshRefLineEdit;
      QSpinBox   *gridNumSB;
-     QComboBox  *typeChooser;
+     QLineEdit  *typeChooser;
      QLineEdit  *LinePortZcLineEdit;
-     std::map<int, int> typeChooserMap;
+     std::map<int, std::string> typeChooserMap;
      QLineEdit *TEMnumLE;
      QSpinBox  *TEnumSB;
      QSpinBox  *TMnumSB;
