@@ -629,8 +629,8 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      QLabel *gridSpaceLabel= new QLabel(); 
      gridSpaceLabel->setText(tr("Division Number:"));
      gridNumSB = new QSpinBox();
-     gridNumSB->setValue(2);
-     gridNumSB->setMinimum(2);
+     gridNumSB->setValue(1);
+     gridNumSB->setMinimum(1);
 
      PML=new QCheckBox("Perfectly Matched Layer", this);
      PML->setCheckState(Qt::Unchecked);
@@ -707,10 +707,11 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
 
 }
 
-/*
-void SetCompPropertiesDialog::updateType(int i)
+
+void SetCompPropertiesDialog::updateType(int t)
 {
-    if(typeChooserMap[i]==WAVEGUIDE){
+    typeChooser->setText(tr(typeChooserMap[t].c_str()));
+    if(t==WAVEGUIDE){
   	 WgGroupBox->show();
   	 meshGroupBox->show();
 	 w=400; h=420;
@@ -718,29 +719,28 @@ void SetCompPropertiesDialog::updateType(int i)
   	 WgGroupBox->hide();
 	 w=400; h=250;
     }
-    if(typeChooserMap[i]==DIELECTRIC){
+    if(t==DIELECTRIC){
   	 meshGroupBox->show();
 	 w=400; h=250;
     }
-    if(typeChooserMap[i]==HOLE){
+    if(t==HOLE){
   	 meshGroupBox->show();
 	 w=400; h=250;
     }
-    if(typeChooserMap[i]==LINEPORT){
+    if(t==LINEPORT){
   	 LPGroupBox->show();
 	 w=400; h=250;
     }
-    if(typeChooserMap[i]==GRID){
+    if(t==GRID){
   	 GridGroupBox->show();
 	 w=400; h=290;
     }
-    if(typeChooserMap[i]!=WAVEGUIDE && typeChooserMap[i]!=DIELECTRIC && typeChooserMap[i]!=HOLE && typeChooserMap[i]!=BOUNDARYCOND){
+    if(t!=WAVEGUIDE && t!=DIELECTRIC && t!=HOLE && t!=BOUNDARYCOND){
   	 meshGroupBox->hide();
     }
     QApplication::processEvents();
     window()->resize(w,h);
 }
-*/
 
 void SetCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
@@ -750,9 +750,7 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
   TEMnumLE->setText(TEMnum);
   TEnumSB->setValue(vol->TEportsNum);
   TMnumSB->setValue(vol->TMportsNum);
-  typeChooser->setText(tr(typeChooserMap[vol->type].c_str()));
-//  for (int i = 0; i <typeChooser->count(); ++i)
-//	  if(typeChooserMap[i]==vol->type)  typeChooser->setCurrentIndex(i);
+  updateType(vol->type);
   if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND)  meshRefLineEdit->setText(QString("%1").arg(vol->meshRefinement));
   if(vol->type==LINEPORT){
 	TCollection_AsciiString assName; mainOCAF->getAssName(assName);

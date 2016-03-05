@@ -21,7 +21,7 @@ project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
 set(EmCAD_VERSION_MINOR 3)
-set(EmCAD_VERSION_PATCH 1)
+set(EmCAD_VERSION_PATCH 2)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
 
@@ -409,8 +409,8 @@ if(WIN32 OR MINGW)
     libgcc_s_seh-1.dll
     libstdc++-6.dll
     libwinpthread-1.dll
+    libquadmath-0.dll
   )
-#    libquadmath-0.dll
 #    libobjc-4.dll
 #    libssp-0.dll
 
@@ -526,6 +526,8 @@ if(WIN32)
     unset(LIBD CACHE)
   endif(MSVC)
   endforeach(LIB_REQ)
+else(WIN32)
+  set(GMSH_DEPS_LIBRARIES "gmp")
 endif(WIN32)
 
 

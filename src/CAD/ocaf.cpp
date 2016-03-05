@@ -1795,6 +1795,8 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      bool hasSection=faces.Extent()==1;
      TopoDS_Face sectFace;
      double SectCurve_u=0;
+     gp_Pnt SectCurve_P;
+     bool hasSectCurve_P;
      TopTools_IndexedMapOfShape Fedges;
      if(hasSection){
 	 sectFace=TopoDS::Face(faces.FindKey(1));
@@ -1809,6 +1811,7 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      bool hasLine=false;
      bool hasCircle=false;
      Handle(Geom_Circle) gCirc; 
+     Handle(Geom_Line) gLine; 
      TopoDS_Edge Eline,Ecircle;
      double line_u1,line_u2, circle_u1,circle_u2;
      bool fullCircle;
@@ -1821,6 +1824,7 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
       if(gc->IsInstance (STANDARD_TYPE (Geom_Line))){
 	   hasLine=true;
 	   Eline=E;
+           gLine =(Handle(Geom_Line)&) gc;
 	   line_u1=u1;
 	   line_u2=u2;
       }
@@ -1839,15 +1843,20 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      if(hasCircle){
         Circ_Dir=gCirc->Circ().Axis().Direction();
         Circ_O=gCirc->Circ().Axis().Location();
-         if(hasSection){
-	   Handle(Geom_Surface) gSection = BRep_Tool::Surface(sectFace);
-           GeomAPI_IntCS aInterCS(gCirc,gSection);
-	   if(aInterCS.IsDone()){
+     }
+     if(hasSection){
+	  Handle(Geom_Surface) gSection = BRep_Tool::Surface(sectFace);
+          GeomAPI_IntCS aInterCS;
+          if(hasCircle) aInterCS.Perform(gCirc,gSection);
+	  else if(hasLine) aInterCS.Perform(gLine,gSection);
+	  if(aInterCS.IsDone()){
              double faceU,faceV;
              aInterCS.Parameters(1,faceU,faceV,SectCurve_u);
-	   }
-	 }
+	     hasSectCurve_P=aInterCS.NbPoints()>0;
+	     if(hasSectCurve_P) SectCurve_P=aInterCS.Point(1);
+	  }
      }
+
      bool cylGrid=hasLine && hasCircle;
      vol->invariant=!cylGrid;
      int planeNum=vol->gridNum+1;
@@ -1919,6 +1928,16 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
           gp_Ax1 ax1=gp_Ax1(Circ_O,Circ_Dir);
 	  double alpha=fullCircle? 2*M_PI*VI/(planeNum-1): circle_u1+(circle_u2-circle_u1)*VI/(planeNum-1)-SectCurve_u;
 	  trsf.SetRotation(ax1, alpha);
+          BRepBuilderAPI_Transform aTransform(trsf);
+          Standard_Boolean toCopy = Standard_True;  // share entities if possible
+          aTransform.Perform(sectFace, toCopy);
+          builder.Add(newS,aTransform.Shape());
+	}else if(hasSection && hasSectCurve_P){
+          gp_Dir Edir=gp_Dir(Etan);
+          gp_Vec trasl=gp_Vec(SectCurve_P, P);
+          trasl=(Etan.Dot(trasl))*Etan;
+	  gp_Trsf trsf;
+	  trsf.SetTranslation(trasl);
           BRepBuilderAPI_Transform aTransform(trsf);
           Standard_Boolean toCopy = Standard_True;  // share entities if possible
           aTransform.Perform(sectFace, toCopy);

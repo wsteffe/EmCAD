@@ -236,7 +236,7 @@ class SetCompPropertiesDialog : public QDialog
      void help();
      void getVolumeData(QString matname);
      void setVolumeData(DB::Volume* vol);
-//     void updateType(int i);
+     void updateType(int i);
 
  public:
      int w,h;

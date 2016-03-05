@@ -807,12 +807,8 @@ bool readStringlist(QString fname, QStringList &subdirs){
 QString genericName(QString name)
 {
 QString name1=name;
-while(name1.size()>1 && name1.at(name1.size()-1).isDigit()) name1.chop(1);
-if(name1.endsWith("_",Qt::CaseInsensitive)){
-  name1.chop(1);
-  return name1;
-}else 
-  return name;
+while(name1.size()>1 && name1.at(name1.size()-1).isDigit() || name1.endsWith("_",Qt::CaseInsensitive)) name1.chop(1);
+return name1;
 }
 
 
@@ -890,6 +886,10 @@ void MainWindow::setEMC(QString prjDir, QString inDir)
 	      mainOCAF->EmP.addMaterial(mainmat);
 	     }
 	   }
+	} else if(vol->type==GRID){
+	   vol->gridNum=invol->gridNum;
+	   vol->invariant=invol->invariant;
+	   vol->PML=invol->PML;
 	}
       }
     }
@@ -908,6 +908,7 @@ void MainWindow::importEMC(QString partName, QString fileName)
   #ifdef WNT
 //     char tmp[]={"C:\\Temp\\EmCAD-XXXXXX"};
      std::string tmp_str=getenv("TEMP");
+     tmp_str+=std::string("\\EmCAD-XXXXXX");
      int l=tmp_str.size()+1;
      auto tmp=new char[l]; strcpy (tmp,tmp_str.c_str());
      int res = _mktemp_s(tmp, l);
