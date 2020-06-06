@@ -1,6 +1,6 @@
-#line 2 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_lexer.cpp"
+#line 2 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
 
-#line 4 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_lexer.cpp"
+#line 4 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
 
 #define  YY_INT_ALIGNED short int
 
@@ -8,11 +8,17 @@
 
 #define yy_create_buffer projectData_create_buffer
 #define yy_delete_buffer projectData_delete_buffer
-#define yy_flex_debug projectData_flex_debug
+#define yy_scan_buffer projectData_scan_buffer
+#define yy_scan_string projectData_scan_string
+#define yy_scan_bytes projectData_scan_bytes
 #define yy_init_buffer projectData_init_buffer
 #define yy_flush_buffer projectData_flush_buffer
 #define yy_load_buffer_state projectData_load_buffer_state
 #define yy_switch_to_buffer projectData_switch_to_buffer
+#define yypush_buffer_state projectDatapush_buffer_state
+#define yypop_buffer_state projectDatapop_buffer_state
+#define yyensure_buffer_stack projectDataensure_buffer_stack
+#define yy_flex_debug projectData_flex_debug
 #define yyin projectDatain
 #define yyleng projectDataleng
 #define yylex projectDatalex
@@ -27,10 +33,244 @@
 
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
-#define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 35
+#define YY_FLEX_MINOR_VERSION 6
+#define YY_FLEX_SUBMINOR_VERSION 4
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
+#endif
+
+#ifdef yy_create_buffer
+#define projectData_create_buffer_ALREADY_DEFINED
+#else
+#define yy_create_buffer projectData_create_buffer
+#endif
+
+#ifdef yy_delete_buffer
+#define projectData_delete_buffer_ALREADY_DEFINED
+#else
+#define yy_delete_buffer projectData_delete_buffer
+#endif
+
+#ifdef yy_scan_buffer
+#define projectData_scan_buffer_ALREADY_DEFINED
+#else
+#define yy_scan_buffer projectData_scan_buffer
+#endif
+
+#ifdef yy_scan_string
+#define projectData_scan_string_ALREADY_DEFINED
+#else
+#define yy_scan_string projectData_scan_string
+#endif
+
+#ifdef yy_scan_bytes
+#define projectData_scan_bytes_ALREADY_DEFINED
+#else
+#define yy_scan_bytes projectData_scan_bytes
+#endif
+
+#ifdef yy_init_buffer
+#define projectData_init_buffer_ALREADY_DEFINED
+#else
+#define yy_init_buffer projectData_init_buffer
+#endif
+
+#ifdef yy_flush_buffer
+#define projectData_flush_buffer_ALREADY_DEFINED
+#else
+#define yy_flush_buffer projectData_flush_buffer
+#endif
+
+#ifdef yy_load_buffer_state
+#define projectData_load_buffer_state_ALREADY_DEFINED
+#else
+#define yy_load_buffer_state projectData_load_buffer_state
+#endif
+
+#ifdef yy_switch_to_buffer
+#define projectData_switch_to_buffer_ALREADY_DEFINED
+#else
+#define yy_switch_to_buffer projectData_switch_to_buffer
+#endif
+
+#ifdef yypush_buffer_state
+#define projectDatapush_buffer_state_ALREADY_DEFINED
+#else
+#define yypush_buffer_state projectDatapush_buffer_state
+#endif
+
+#ifdef yypop_buffer_state
+#define projectDatapop_buffer_state_ALREADY_DEFINED
+#else
+#define yypop_buffer_state projectDatapop_buffer_state
+#endif
+
+#ifdef yyensure_buffer_stack
+#define projectDataensure_buffer_stack_ALREADY_DEFINED
+#else
+#define yyensure_buffer_stack projectDataensure_buffer_stack
+#endif
+
+#ifdef yylex
+#define projectDatalex_ALREADY_DEFINED
+#else
+#define yylex projectDatalex
+#endif
+
+#ifdef yyrestart
+#define projectDatarestart_ALREADY_DEFINED
+#else
+#define yyrestart projectDatarestart
+#endif
+
+#ifdef yylex_init
+#define projectDatalex_init_ALREADY_DEFINED
+#else
+#define yylex_init projectDatalex_init
+#endif
+
+#ifdef yylex_init_extra
+#define projectDatalex_init_extra_ALREADY_DEFINED
+#else
+#define yylex_init_extra projectDatalex_init_extra
+#endif
+
+#ifdef yylex_destroy
+#define projectDatalex_destroy_ALREADY_DEFINED
+#else
+#define yylex_destroy projectDatalex_destroy
+#endif
+
+#ifdef yyget_debug
+#define projectDataget_debug_ALREADY_DEFINED
+#else
+#define yyget_debug projectDataget_debug
+#endif
+
+#ifdef yyset_debug
+#define projectDataset_debug_ALREADY_DEFINED
+#else
+#define yyset_debug projectDataset_debug
+#endif
+
+#ifdef yyget_extra
+#define projectDataget_extra_ALREADY_DEFINED
+#else
+#define yyget_extra projectDataget_extra
+#endif
+
+#ifdef yyset_extra
+#define projectDataset_extra_ALREADY_DEFINED
+#else
+#define yyset_extra projectDataset_extra
+#endif
+
+#ifdef yyget_in
+#define projectDataget_in_ALREADY_DEFINED
+#else
+#define yyget_in projectDataget_in
+#endif
+
+#ifdef yyset_in
+#define projectDataset_in_ALREADY_DEFINED
+#else
+#define yyset_in projectDataset_in
+#endif
+
+#ifdef yyget_out
+#define projectDataget_out_ALREADY_DEFINED
+#else
+#define yyget_out projectDataget_out
+#endif
+
+#ifdef yyset_out
+#define projectDataset_out_ALREADY_DEFINED
+#else
+#define yyset_out projectDataset_out
+#endif
+
+#ifdef yyget_leng
+#define projectDataget_leng_ALREADY_DEFINED
+#else
+#define yyget_leng projectDataget_leng
+#endif
+
+#ifdef yyget_text
+#define projectDataget_text_ALREADY_DEFINED
+#else
+#define yyget_text projectDataget_text
+#endif
+
+#ifdef yyget_lineno
+#define projectDataget_lineno_ALREADY_DEFINED
+#else
+#define yyget_lineno projectDataget_lineno
+#endif
+
+#ifdef yyset_lineno
+#define projectDataset_lineno_ALREADY_DEFINED
+#else
+#define yyset_lineno projectDataset_lineno
+#endif
+
+#ifdef yywrap
+#define projectDatawrap_ALREADY_DEFINED
+#else
+#define yywrap projectDatawrap
+#endif
+
+#ifdef yyalloc
+#define projectDataalloc_ALREADY_DEFINED
+#else
+#define yyalloc projectDataalloc
+#endif
+
+#ifdef yyrealloc
+#define projectDatarealloc_ALREADY_DEFINED
+#else
+#define yyrealloc projectDatarealloc
+#endif
+
+#ifdef yyfree
+#define projectDatafree_ALREADY_DEFINED
+#else
+#define yyfree projectDatafree
+#endif
+
+#ifdef yytext
+#define projectDatatext_ALREADY_DEFINED
+#else
+#define yytext projectDatatext
+#endif
+
+#ifdef yyleng
+#define projectDataleng_ALREADY_DEFINED
+#else
+#define yyleng projectDataleng
+#endif
+
+#ifdef yyin
+#define projectDatain_ALREADY_DEFINED
+#else
+#define yyin projectDatain
+#endif
+
+#ifdef yyout
+#define projectDataout_ALREADY_DEFINED
+#else
+#define yyout projectDataout
+#endif
+
+#ifdef yy_flex_debug
+#define projectData_flex_debug_ALREADY_DEFINED
+#else
+#define yy_flex_debug projectData_flex_debug
+#endif
+
+#ifdef yylineno
+#define projectDatalineno_ALREADY_DEFINED
+#else
+#define yylineno projectDatalineno
 #endif
 
 /* First, we deal with  platform-specific or compiler-specific issues. */
@@ -103,60 +343,48 @@ typedef unsigned int flex_uint32_t;
 #define UINT32_MAX             (4294967295U)
 #endif
 
+#ifndef SIZE_MAX
+#define SIZE_MAX               (~(size_t)0)
+#endif
+
 #endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
-#ifdef __cplusplus
+/* begin standard C++ headers. */
 
-/* The "const" storage-class-modifier is valid. */
-#define YY_USE_CONST
-
-#else	/* ! __cplusplus */
-
-/* C99 requires __STDC__ to be defined as 1. */
-#if defined (__STDC__)
-
-#define YY_USE_CONST
-
-#endif	/* defined (__STDC__) */
-#endif	/* ! __cplusplus */
-
-#ifdef YY_USE_CONST
+/* TODO: this is always defined, so inline it */
 #define yyconst const
+
+#if defined(__GNUC__) && __GNUC__ >= 3
+#define yynoreturn __attribute__((__noreturn__))
 #else
-#define yyconst
+#define yynoreturn
 #endif
 
 /* Returned upon end-of-file. */
 #define YY_NULL 0
 
-/* Promotes a possibly negative, possibly signed char to an unsigned
- * integer for use as an array index.  If the signed char is negative,
- * we want to instead treat it as an 8-bit unsigned char, hence the
- * double cast.
+/* Promotes a possibly negative, possibly signed char to an
+ *   integer in range [0..255] for use as an array index.
  */
-#define YY_SC_TO_UI(c) ((unsigned int) (unsigned char) c)
+#define YY_SC_TO_UI(c) ((YY_CHAR) (c))
 
 /* Enter a start condition.  This macro really ought to take a parameter,
  * but we do it the disgusting crufty way forced on us by the ()-less
  * definition of BEGIN.
  */
 #define BEGIN (yy_start) = 1 + 2 *
-
 /* Translate the current start state into a value that can be later handed
  * to BEGIN to return to the state.  The YYSTATE alias is for lex
  * compatibility.
  */
 #define YY_START (((yy_start) - 1) / 2)
 #define YYSTATE YY_START
-
 /* Action number for EOF rule of a given start state. */
 #define YY_STATE_EOF(state) (YY_END_OF_BUFFER + state + 1)
-
 /* Special action meaning "start processing a new file". */
-#define YY_NEW_FILE projectDatarestart(projectDatain  )
-
+#define YY_NEW_FILE yyrestart( yyin  )
 #define YY_END_OF_BUFFER_CHAR 0
 
 /* Size of default input buffer. */
@@ -181,36 +409,36 @@ typedef unsigned int flex_uint32_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 
-extern int projectDataleng;
+#ifndef YY_TYPEDEF_YY_SIZE_T
+#define YY_TYPEDEF_YY_SIZE_T
+typedef size_t yy_size_t;
+#endif
 
-extern FILE *projectDatain, *projectDataout;
+extern int yyleng;
+
+extern FILE *yyin, *yyout;
 
 #define EOB_ACT_CONTINUE_SCAN 0
 #define EOB_ACT_END_OF_FILE 1
 #define EOB_ACT_LAST_MATCH 2
-
+    
     #define YY_LESS_LINENO(n)
+    #define YY_LINENO_REWIND_TO(ptr)
     
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
 	do \
 		{ \
-		/* Undo effects of setting up projectDatatext. */ \
+		/* Undo effects of setting up yytext. */ \
         int yyless_macro_arg = (n); \
         YY_LESS_LINENO(yyless_macro_arg);\
 		*yy_cp = (yy_hold_char); \
 		YY_RESTORE_YY_MORE_OFFSET \
 		(yy_c_buf_p) = yy_cp = yy_bp + yyless_macro_arg - YY_MORE_ADJ; \
-		YY_DO_BEFORE_ACTION; /* set up projectDatatext again */ \
+		YY_DO_BEFORE_ACTION; /* set up yytext again */ \
 		} \
 	while ( 0 )
-
 #define unput(c) yyunput( c, (yytext_ptr)  )
-
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
-#endif
 
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
@@ -224,7 +452,7 @@ struct yy_buffer_state
 	/* Size of input buffer in bytes, not including room for EOB
 	 * characters.
 	 */
-	yy_size_t yy_buf_size;
+	int yy_buf_size;
 
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
@@ -252,7 +480,7 @@ struct yy_buffer_state
 
     int yy_bs_lineno; /**< The line count. */
     int yy_bs_column; /**< The column count. */
-    
+
 	/* Whether to try to fill the input buffer when we reach the
 	 * end of it.
 	 */
@@ -269,8 +497,8 @@ struct yy_buffer_state
 	 * possible backing-up.
 	 *
 	 * When we actually see the EOF, we change the status to "new"
-	 * (via projectDatarestart()), so that the user can continue scanning by
-	 * just pointing projectDatain at a new input file.
+	 * (via yyrestart()), so that the user can continue scanning by
+	 * just pointing yyin at a new input file.
 	 */
 #define YY_BUFFER_EOF_PENDING 2
 
@@ -280,7 +508,7 @@ struct yy_buffer_state
 /* Stack of input buffers. */
 static size_t yy_buffer_stack_top = 0; /**< index of top of stack. */
 static size_t yy_buffer_stack_max = 0; /**< capacity of stack. */
-static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
+static YY_BUFFER_STATE * yy_buffer_stack = NULL; /**< Stack as an array. */
 
 /* We provide macros for accessing buffer states in case in the
  * future we want to put the buffer states in a more general
@@ -291,108 +519,103 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 #define YY_CURRENT_BUFFER ( (yy_buffer_stack) \
                           ? (yy_buffer_stack)[(yy_buffer_stack_top)] \
                           : NULL)
-
 /* Same as previous macro, but useful when we know that the buffer stack is not
  * NULL or when we need an lvalue. For internal use only.
  */
 #define YY_CURRENT_BUFFER_LVALUE (yy_buffer_stack)[(yy_buffer_stack_top)]
 
-/* yy_hold_char holds the character lost when projectDatatext is formed. */
+/* yy_hold_char holds the character lost when yytext is formed. */
 static char yy_hold_char;
 static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int projectDataleng;
+int yyleng;
 
 /* Points to current character in buffer. */
-static char *yy_c_buf_p = (char *) 0;
+static char *yy_c_buf_p = NULL;
 static int yy_init = 0;		/* whether we need to initialize */
 static int yy_start = 0;	/* start state number */
 
-/* Flag which is used to allow projectDatawrap()'s to do buffer switches
- * instead of setting up a fresh projectDatain.  A bit of a hack ...
+/* Flag which is used to allow yywrap()'s to do buffer switches
+ * instead of setting up a fresh yyin.  A bit of a hack ...
  */
 static int yy_did_buffer_switch_on_eof;
 
-void projectDatarestart (FILE *input_file  );
-void projectData_switch_to_buffer (YY_BUFFER_STATE new_buffer  );
-YY_BUFFER_STATE projectData_create_buffer (FILE *file,int size  );
-void projectData_delete_buffer (YY_BUFFER_STATE b  );
-void projectData_flush_buffer (YY_BUFFER_STATE b  );
-void projectDatapush_buffer_state (YY_BUFFER_STATE new_buffer  );
-void projectDatapop_buffer_state (void );
+void yyrestart ( FILE *input_file  );
+void yy_switch_to_buffer ( YY_BUFFER_STATE new_buffer  );
+YY_BUFFER_STATE yy_create_buffer ( FILE *file, int size  );
+void yy_delete_buffer ( YY_BUFFER_STATE b  );
+void yy_flush_buffer ( YY_BUFFER_STATE b  );
+void yypush_buffer_state ( YY_BUFFER_STATE new_buffer  );
+void yypop_buffer_state ( void );
 
-static void projectDataensure_buffer_stack (void );
-static void projectData_load_buffer_state (void );
-static void projectData_init_buffer (YY_BUFFER_STATE b,FILE *file  );
+static void yyensure_buffer_stack ( void );
+static void yy_load_buffer_state ( void );
+static void yy_init_buffer ( YY_BUFFER_STATE b, FILE *file  );
+#define YY_FLUSH_BUFFER yy_flush_buffer( YY_CURRENT_BUFFER )
 
-#define YY_FLUSH_BUFFER projectData_flush_buffer(YY_CURRENT_BUFFER )
+YY_BUFFER_STATE yy_scan_buffer ( char *base, yy_size_t size  );
+YY_BUFFER_STATE yy_scan_string ( const char *yy_str  );
+YY_BUFFER_STATE yy_scan_bytes ( const char *bytes, int len  );
 
-YY_BUFFER_STATE projectData_scan_buffer (char *base,yy_size_t size  );
-YY_BUFFER_STATE projectData_scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE projectData_scan_bytes (yyconst char *bytes,int len  );
+void *yyalloc ( yy_size_t  );
+void *yyrealloc ( void *, yy_size_t  );
+void yyfree ( void *  );
 
-void *projectDataalloc (yy_size_t  );
-void *projectDatarealloc (void *,yy_size_t  );
-void projectDatafree (void *  );
-
-#define yy_new_buffer projectData_create_buffer
-
+#define yy_new_buffer yy_create_buffer
 #define yy_set_interactive(is_interactive) \
 	{ \
 	if ( ! YY_CURRENT_BUFFER ){ \
-        projectDataensure_buffer_stack (); \
+        yyensure_buffer_stack (); \
 		YY_CURRENT_BUFFER_LVALUE =    \
-            projectData_create_buffer(projectDatain,YY_BUF_SIZE ); \
+            yy_create_buffer( yyin, YY_BUF_SIZE ); \
 	} \
 	YY_CURRENT_BUFFER_LVALUE->yy_is_interactive = is_interactive; \
 	}
-
 #define yy_set_bol(at_bol) \
 	{ \
 	if ( ! YY_CURRENT_BUFFER ){\
-        projectDataensure_buffer_stack (); \
+        yyensure_buffer_stack (); \
 		YY_CURRENT_BUFFER_LVALUE =    \
-            projectData_create_buffer(projectDatain,YY_BUF_SIZE ); \
+            yy_create_buffer( yyin, YY_BUF_SIZE ); \
 	} \
 	YY_CURRENT_BUFFER_LVALUE->yy_at_bol = at_bol; \
 	}
-
 #define YY_AT_BOL() (YY_CURRENT_BUFFER_LVALUE->yy_at_bol)
 
 /* Begin user sect3 */
 
-#define projectDatawrap(n) 1
+#define projectDatawrap() (/*CONSTCOND*/1)
 #define YY_SKIP_YYWRAP
+typedef flex_uint8_t YY_CHAR;
 
-typedef unsigned char YY_CHAR;
-
-FILE *projectDatain = (FILE *) 0, *projectDataout = (FILE *) 0;
+FILE *yyin = NULL, *yyout = NULL;
 
 typedef int yy_state_type;
 
-extern int projectDatalineno;
+extern int yylineno;
+int yylineno = 1;
 
-int projectDatalineno = 1;
+extern char *yytext;
+#ifdef yytext_ptr
+#undef yytext_ptr
+#endif
+#define yytext_ptr yytext
 
-extern char *projectDatatext;
-#define yytext_ptr projectDatatext
-
-static yy_state_type yy_get_previous_state (void );
-static yy_state_type yy_try_NUL_trans (yy_state_type current_state  );
-static int yy_get_next_buffer (void );
-static void yy_fatal_error (yyconst char msg[]  );
+static yy_state_type yy_get_previous_state ( void );
+static yy_state_type yy_try_NUL_trans ( yy_state_type current_state  );
+static int yy_get_next_buffer ( void );
+static void yynoreturn yy_fatal_error ( const char* msg  );
 
 /* Done after the current pattern has been matched and before the
- * corresponding action - sets up projectDatatext.
+ * corresponding action - sets up yytext.
  */
 #define YY_DO_BEFORE_ACTION \
 	(yytext_ptr) = yy_bp; \
-	projectDataleng = (size_t) (yy_cp - yy_bp); \
+	yyleng = (int) (yy_cp - yy_bp); \
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-
-#define YY_NUM_RULES 67
-#define YY_END_OF_BUFFER 68
+#define YY_NUM_RULES 105
+#define YY_END_OF_BUFFER 106
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -400,59 +623,81 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-static yyconst flex_int16_t yy_accept[296] =
+static const flex_int16_t yy_accept[495] =
     {   0,
-        2,    2,   14,   14,    0,    0,   68,   67,    9,   12,
-       67,   10,    4,    2,    2,    1,    1,   67,   67,   67,
-       67,   67,    7,    8,   67,   67,   67,   67,   67,   67,
-       67,   67,   67,   67,   67,   67,   67,   67,   67,   67,
-       67,   67,   67,   67,    6,    5,   67,   14,   16,    9,
-        0,   13,   10,   11,    2,    1,    0,    2,    0,    0,
-        0,    0,    2,    0,    0,    0,    0,    0,    0,    0,
+        2,    2,   14,   14,    0,    0,  106,  105,    9,   12,
+      105,   10,    4,    2,    2,    1,    1,  105,  105,  105,
+      105,  105,    7,    8,  105,  105,  105,  105,  105,  105,
+      105,  105,  105,  105,  105,  105,  105,  105,  105,  105,
+      105,  105,  105,  105,  105,  105,  105,  105,    6,    5,
+      105,   14,   16,    9,    0,   13,   10,   11,    2,    1,
+        0,    2,    0,    0,    0,    0,    2,    0,    0,    0,
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-        0,    0,    0,    0,    0,    0,    0,    0,    0,   43,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,   66,    0,    0,    0,
         0,    0,    0,    0,    0,    0,    0,   15,   14,   16,
-
-        0,    3,   20,    0,    0,    0,   26,    0,    0,    0,
-        0,    0,    0,   52,    0,    0,    0,    0,    0,    0,
-        0,    0,    0,    0,    0,   25,    0,    0,   38,    0,
+        0,    3,   20,    0,    0,    0,   28,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,   86,    0,
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-        0,    0,    0,    0,    0,    0,    0,    0,    0,   18,
-       33,   51,    0,    0,    0,    0,    0,    0,   37,    0,
-        0,    0,    0,    0,   53,    0,    0,    0,    0,    0,
-        0,   35,   45,   29,    0,    0,    0,    0,    0,    0,
-       62,   34,   23,    0,    0,    0,   28,    0,   19,    0,
-        0,    0,    0,   30,    0,    0,   57,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,   53,    0,    0,   52,
+        0,   27,    0,    0,   47,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
 
-        0,    0,    0,    0,    0,    0,    0,   40,    0,   55,
-        0,    0,    0,    0,    0,    0,    0,    0,   44,    0,
-        0,    0,    0,    0,    0,   39,    0,   24,    0,   49,
-        0,    0,   48,    0,   65,    0,    0,    0,   64,   59,
-        0,    0,    0,   31,   32,    0,   42,    0,   66,    0,
-        0,   50,    0,   47,    0,    0,   22,    0,    0,    0,
-        0,    0,   17,    0,    0,    0,    0,   58,    0,    0,
-        0,   27,    0,    0,   46,   61,    0,    0,    0,   36,
-       63,    0,    0,    0,    0,    0,   41,   54,    0,   21,
-        0,    0,   60,   56,    0
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,    0,   18,   40,   85,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,   46,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,   87,    0,    0,    0,    0,   73,    0,    0,
+        0,    0,   44,   68,   34,   31,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,  100,   60,    0,    0,
+        0,    0,    0,    0,   42,    0,   25,    0,    0,    0,
+        0,   79,    0,   33,    0,   19,    0,    0,    0,    0,
+        0,   37,    0,    0,    0,    0,   78,    0,   95,    0,
+
+       41,    0,    0,    0,    0,    0,    0,    0,   91,   61,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+       50,    0,    0,    0,   54,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+        0,    0,    0,    0,    0,   67,    0,    0,    0,    0,
+       36,    0,   51,    0,   70,   89,   48,   81,    0,    0,
+        0,    0,    0,   49,   26,    0,   83,    0,    0,    0,
+       75,    0,  103,    0,    0,    0,    0,    0,    0,    0,
+       88,  102,   97,    0,    0,    0,   76,    0,    0,    0,
+       65,   80,   72,    0,    0,    0,   35,   38,   39,    0,
+
+       57,    0,  104,    0,    0,   64,    0,    0,   84,    0,
+        0,   71,    0,    0,    0,   24,    0,   56,    0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,   58,    0,
+        0,   17,    0,    0,    0,    0,    0,   82,    0,   96,
+        0,    0,   63,    0,    0,    0,    0,   30,    0,    0,
+        0,   43,    0,    0,    0,   69,   99,    0,   32,   59,
+        0,   90,    0,   45,    0,   77,  101,    0,    0,   29,
+        0,    0,    0,    0,    0,    0,    0,   55,    0,    0,
+        0,   92,    0,   21,    0,    0,   23,   74,   22,    0,
+       98,   62,   94,    0
 
     } ;
 
-static yyconst flex_int32_t yy_ec[256] =
+static const YY_CHAR yy_ec[256] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    2,    3,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    2,    1,    4,    5,    1,    1,    1,    1,    1,
-        1,    1,    6,    7,    8,    9,    1,   10,   11,   11,
-       11,   11,   11,   11,   11,   11,   11,    1,    1,    1,
-        1,    1,    1,    1,   12,   13,   13,   14,   15,   16,
-       17,   17,   17,   17,   17,   18,   17,   19,   17,   17,
-       20,   21,   22,   23,   24,   17,   17,   17,   17,   17,
-       25,    1,   26,   17,   17,    1,   27,   28,   29,   30,
+        1,    1,    6,    7,    8,    9,    1,   10,   11,   12,
+       13,   11,   11,   11,   11,   11,   11,    1,    1,    1,
+        1,    1,    1,    1,   14,   15,   15,   16,   17,   18,
+       19,   19,   19,   19,   19,   20,   19,   21,   19,   22,
+       23,   24,   25,   26,   27,   19,   19,   19,   19,   19,
+       28,    1,   29,   19,   19,    1,   30,   31,   32,   33,
 
-       31,   32,   33,   34,   35,   17,   36,   37,   38,   39,
-       40,   41,   42,   43,   44,   45,   46,   47,   48,   49,
-       50,   51,   52,   17,   53,    1,    1,    1,    1,    1,
+       34,   35,   36,   37,   38,   39,   40,   41,   42,   43,
+       44,   45,   46,   47,   48,   49,   50,   51,   52,   53,
+       54,   55,   56,   19,   57,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
@@ -469,203 +714,297 @@ static yyconst flex_int32_t yy_ec[256] =
         1,    1,    1,    1,    1
     } ;
 
-static yyconst flex_int32_t yy_meta[54] =
+static const YY_CHAR yy_meta[58] =
     {   0,
         1,    2,    2,    1,    1,    1,    1,    1,    3,    4,
-        4,    4,    4,    4,    4,    4,    3,    3,    3,    3,
-        3,    3,    3,    3,    1,    1,    4,    4,    4,    4,
-        4,    4,    3,    3,    3,    3,    3,    3,    3,    3,
+        4,    4,    4,    4,    4,    4,    4,    4,    3,    3,
+        3,    3,    3,    3,    3,    3,    3,    1,    1,    4,
+        4,    4,    4,    4,    4,    3,    3,    3,    3,    3,
         3,    3,    3,    3,    3,    3,    3,    3,    3,    3,
-        3,    1,    1
+        3,    3,    3,    3,    3,    1,    1
     } ;
 
-static yyconst flex_int16_t yy_base[304] =
+static const flex_int16_t yy_base[503] =
     {   0,
-        0,    0,   53,  106,   60,   62,  393,  394,  390,  394,
-      387,  387,  394,   57,   59,   66,   89,  374,   74,  376,
-      355,  365,  394,  394,   47,  358,   49,  353,  111,   81,
-      338,  351,   96,   56,  338,   98,   65,  353,   79,  340,
-      351,  333,  332,  344,  394,  394,  370,    0,    0,  371,
-      368,  394,  368,  394,  124,  131,  137,  139,  331,    0,
-      353,  141,  146,  350,  340,  342,  338,  319,  324,  335,
-      323,  317,  330,  317,  124,  326,  325,  316,  128,  120,
-      123,   99,  316,  323,  128,  315,  306,  138,  303,  394,
-      308,  313,  300,  317,  316,  301,  339,  394,    0,    0,
+        0,    0,   57,  114,   64,   66,  616,  617,  613,  617,
+      610,  610,  617,   61,   70,  114,  123,  595,   86,  597,
+      575,  585,  617,  617,   34,  578,  100,  573,  166,   41,
+      559,   60,  575,  557,   56,  111,   41,  109,  116,   76,
+      150,  138,  560,  572,  109,   63,  553,  566,  617,  617,
+      595,    0,    0,  596,  593,  617,  593,  617,  186,  205,
+      215,  195,  552,    0,  576,  220,  224,  573,  562,  564,
+      560,  540,  545,  557,  539,  543,   58,  121,  550,  536,
+      537,  117,  547,  550,  545,  534,  532,  543,  541,  542,
+      519,  529,  133,  200,   80,  528,  128,  117,  528,  528,
 
-      313,    0,  394,  319,  311,  324,  394,  298,  307,  297,
-      294,  287,  293,  394,  287,  287,  288,  286,  295,  288,
-      285,  294,  290,  289,  291,  394,  291,  272,  394,  288,
-       46,  274,  286,  281,  269,  274,  282,  271,  265,  279,
-      278,  263,  276,  279,  278,  264,  266,  287,  256,  394,
-      262,  394,  266,  258,  266,  258,  264,  249,  394,  255,
-      247,  279,  102,  247,  394,  249,  251,  256,  246,  242,
-      246,  394,  394,  394,  243,  253,  254,  236,  239,  235,
-      394,  394,  394,  240,  239,  238,  230,  227,  394,  232,
-      244,  239,  230,  394,  227,  224,  394,  239,  231,  220,
+      519,  534,  517,  136,  146,  531,  515,  209,  518,  511,
+      523,  510,  517,  513,  210,  514,  617,  511,  517,  507,
+      502,  509,  519,  506,  517,  501,  543,  617,    0,    0,
+      514,    0,  617,  520,  512,  526,  617,  498,  508,  497,
+      507,  493,  486,  492,  491,  496,  486,  488,  617,  482,
+      482,  483,  495,  497,  478,  491,  474,  476,  478,  480,
+      484,  489,  470,  474,  471,  481,  617,  477,  476,  617,
+      478,  617,  478,  458,  617,  455,  470,  473,  475,  194,
+      457,  470,  454,  469,  463,  456,  449,  460,  453,  462,
+      450,  444,  475,  458,  448,  443,  447,  444,  444,  438,
 
-      233,  223,  226,  230,  224,  228,  214,  394,  225,  394,
-      210,  224,  219,  213,  212,  219,  218,  217,  394,  217,
-      203,  200,  214,  212,  202,  394,  192,  394,  196,  394,
-      206,  211,  394,  186,  394,  200,  190,  199,  394,  394,
-      189,  195,  192,  394,  394,  199,  394,  194,  394,  189,
-      183,  394,  207,  394,  188,  197,  394,  192,  182,  190,
-      180,  186,  394,  189,  172,  181,  188,  394,  169,  170,
-      173,  394,  167,  165,  394,  394,  162,  143,  145,  394,
-      394,  135,  144,  142,  143,   86,  394,  394,   78,  394,
-       64,   62,  394,  394,  394,  183,  187,  191,  195,  199,
+      447,  450,  151,  465,  448,  448,  450,  438,  448,  433,
+      435,  458,  425,  617,  431,  617,  436,  430,  426,  435,
+      433,  425,  430,  429,  417,  429,  413,  617,  428,  419,
+      411,  425,  425,  414,  424,  410,  404,  411,  397,  436,
+      214,  402,  410,  403,  405,  411,  400,  617,  401,  395,
+      411,  398,  617,  617,  617,  617,  401,  394,  395,  404,
+      392,  404,  385,  388,  384,  392,  617,  617,  397,  394,
+      386,  378,  376,  381,  617,  379,  617,  384,  380,  376,
+      378,  617,  377,  369,  366,  617,  371,  384,  379,  378,
+      368,  617,  375,  364,  365,  353,  617,  359,  617,  352,
 
-      201,  205,   67
+      617,  359,  373,  353,  371,  362,  348,  361,  617,  617,
+      349,  363,  352,  356,  350,  359,  353,  357,  342,  350,
+      617,  344,  352,  337,  617,  339,  334,  348,  348,  343,
+      336,  335,  336,  342,  326,  330,  322,  177,  336,  324,
+      329,  335,  316,  333,  332,  617,  332,  317,  314,  329,
+      617,  327,  617,  316,  617,  617,  617,  617,  314,  315,
+      319,  303,  325,  617,  617,  306,  617,  317,  322,  315,
+      617,  295,  617,  309,  293,  314,  297,  296,  294,  305,
+      617,  617,  617,  294,  300,  306,  617,  292,  302,  303,
+      617,  617,  617,  294,  301,  291,  617,  617,  617,  299,
+
+      617,  294,  617,  288,  282,  617,  297,  277,  617,  284,
+      305,  617,  284,  311,  293,  617,  288,  617,  287,  276,
+      270,  274,  283,  272,  293,  276,  259,  265,  617,  289,
+      274,  617,  277,  259,  269,  272,  271,  617,  274,  617,
+      270,  253,  617,  254,  253,  265,  255,  617,  249,  266,
+      263,  617,  246,  263,  243,  617,  617,  242,  617,  617,
+      248,  617,  251,  617,  239,  617,  617,  239,  235,  617,
+      225,  207,  218,  216,  213,  202,  177,  617,  165,  156,
+      152,  617,  129,  617,  125,   97,  617,  617,  617,   46,
+      617,  617,  617,  617,  260,  264,  268,  272,  276,  278,
+
+      282,   72
     } ;
 
-static yyconst flex_int16_t yy_def[304] =
+static const flex_int16_t yy_def[503] =
     {   0,
-      295,    1,  296,  296,  297,  297,  295,  295,  295,  295,
-      298,  299,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  300,  301,  302,  295,
-      298,  295,  299,  295,  295,  295,  295,  295,  295,  303,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  300,  295,  301,  302,
+      494,    1,  495,  495,  496,  496,  494,  494,  494,  494,
+      497,  498,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      499,  500,  501,  494,  497,  494,  498,  494,  494,  494,
+      494,  494,  494,  502,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
 
-      295,  303,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  499,  494,  500,  501,
+      494,  502,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
 
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,    0,  295,  295,  295,  295,  295,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
 
-      295,  295,  295
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,    0,  494,  494,  494,  494,  494,  494,
+
+      494,  494
     } ;
 
-static yyconst flex_int16_t yy_nxt[448] =
+static const flex_int16_t yy_nxt[675] =
     {   0,
         8,    9,   10,   11,   12,    8,   13,   14,   15,   16,
-       17,    8,    8,   18,   19,   20,    8,    8,    8,   21,
-        8,    8,   22,    8,   23,   24,   25,   26,   27,   28,
-       29,   30,    8,    8,   31,    8,   32,   33,   34,   35,
-       36,    8,   37,   38,   39,   40,    8,   41,   42,   43,
-       44,   45,   46,    8,    9,    8,   47,    8,    8,    8,
-        8,    9,    8,    9,    8,   55,   56,   56,   58,   58,
-      102,   57,  171,   57,   55,   56,   56,    8,    8,   62,
-       57,   62,   70,   63,   63,   67,   82,   57,   71,   57,
-      172,   87,   68,   59,   72,   88,   57,   55,   56,   56,
+       17,   17,   17,    8,    8,   18,   19,   20,    8,    8,
+        8,    8,   21,    8,    8,   22,    8,   23,   24,   25,
+       26,   27,   28,   29,   30,   31,    8,   32,   33,   34,
+       35,   36,   37,   38,   39,    8,   40,   41,   42,   43,
+       44,   45,   46,   47,   48,   49,   50,    8,    9,    8,
+       51,    8,    8,    8,    8,    9,    8,    9,    8,   59,
+       60,   60,   60,   60,   98,  132,   71,   61,   82,   62,
+       62,   62,   62,   72,    8,    8,   61,   83,  493,   92,
+       99,   66,   85,   66,   61,   67,   67,   67,   67,   93,
 
-      294,   83,  293,   57,    8,    8,    8,    9,    8,   47,
-        8,    8,    8,    8,   60,   75,   62,  292,   62,   57,
-       63,   63,   79,   76,   85,  291,   80,   90,   91,  127,
-        8,    8,  201,   58,   58,   81,  202,   86,   57,   55,
-       56,   56,   62,  128,   62,   57,   63,   63,   58,   58,
-       63,   63,  125,   57,   57,   63,   63,    8,    8,   74,
-      115,   57,  120,  123,  124,  126,  116,  135,  121,   57,
-      131,  132,  122,  290,  136,  137,  289,  288,  287,  286,
-      285,  138,  139,   48,   48,   48,   48,   49,   49,   49,
-       49,   51,   51,   51,   51,   53,   53,   53,   53,   97,
+       86,   87,   88,   61,  143,  107,  144,   63,   89,  108,
+      123,  124,    8,    8,    8,    9,    8,   51,    8,    8,
+        8,    8,   59,   60,   60,   60,   60,  168,  169,  492,
+       61,   59,   60,   60,   60,   60,   74,   75,  121,   61,
+       94,    8,    8,   76,   95,  104,  122,   61,   96,   77,
+      173,  100,  145,  101,   97,  102,   61,  150,  103,  105,
+      171,  109,  106,  151,  162,  174,   64,  491,  146,    8,
+        8,   66,  490,   66,  172,   67,   67,   67,   67,  110,
+      163,  114,  180,  181,  115,  276,  182,  116,  489,  111,
+      117,  118,  183,  112,  488,   62,   62,   62,   62,  277,
 
-       97,   97,   97,   99,   99,  100,  284,  100,  100,  283,
-      282,  281,  280,  279,  278,  277,  276,  275,  274,  273,
-      272,  271,  270,  269,  268,  267,  266,  265,  264,  263,
-      262,  261,  260,  259,  258,  257,  256,  255,  254,  253,
-      252,  251,  250,  249,  248,  247,  246,  245,  244,  243,
-      242,  241,  240,  239,  238,  237,  236,  235,  234,  233,
-      232,  231,  230,  229,  228,  227,  226,  225,  224,  223,
-      222,  221,  220,  219,  218,  217,  216,  215,  214,  213,
-      212,  211,  210,  209,  208,  207,  206,  205,  204,  203,
-      200,  199,  198,  197,  196,  195,  194,  193,  192,  191,
+      391,  487,   61,  113,   62,   62,   62,   62,   79,  392,
+      486,   61,   80,   59,   60,   60,   60,   60,   81,   61,
+       66,   61,   66,  252,   67,   67,   67,   67,   61,   67,
+       67,   67,   67,   67,   67,   67,   67,  164,   61,  199,
+      186,  187,  253,  188,  165,  485,  484,  312,  166,  189,
+      190,  313,  167,  483,  482,  481,  191,  192,  480,  200,
+       52,   52,   52,   52,   53,   53,   53,   53,   55,   55,
+       55,   55,   57,   57,   57,   57,  127,  127,  127,  127,
+      129,  129,  130,  479,  130,  130,  478,  477,  476,  475,
+      474,  473,  472,  471,  470,  469,  468,  467,  466,  465,
 
-      190,  189,  188,  187,  186,  185,  184,  183,  182,  181,
-      180,  179,  178,  177,  176,  175,  174,  173,  170,  169,
-      168,  167,  166,  165,  164,  163,  162,  161,  160,  159,
-      158,  157,  156,  155,  154,  153,  152,  151,  150,  149,
-      148,  147,   98,  146,  145,  144,  143,  142,  141,  140,
-      134,  133,  130,  129,  119,  118,  117,  114,  113,  112,
-      111,  110,  109,  108,  107,  106,  105,  104,  103,  101,
-       54,   52,   50,   98,   96,   95,   94,   93,   92,   89,
-       84,   78,   77,   73,   69,   66,   65,   64,   61,   54,
-       52,   50,  295,    7,  295,  295,  295,  295,  295,  295,
+      464,  463,  462,  461,  460,  459,  458,  457,  456,  455,
+      454,  453,  452,  451,  450,  449,  448,  447,  446,  445,
+      444,  443,  442,  441,  440,  439,  438,  437,  436,  435,
+      434,  433,  432,  431,  430,  429,  428,  427,  426,  425,
+      424,  423,  422,  421,  420,  419,  418,  417,  416,  415,
+      414,  413,  412,  411,  410,  409,  408,  407,  406,  405,
+      404,  403,  402,  401,  400,  399,  398,  397,  396,  395,
+      394,  393,  390,  389,  388,  387,  386,  385,  384,  383,
+      382,  381,  380,  379,  378,  377,  376,  375,  374,  373,
+      372,  371,  370,  369,  368,  367,  366,  365,  364,  363,
 
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295
+      362,  361,  360,  359,  358,  357,  356,  355,  354,  353,
+      352,  351,  350,  349,  348,  347,  346,  345,  344,  343,
+      342,  341,  340,  339,  338,  337,  336,  335,  334,  333,
+      332,  331,  330,  329,  328,  327,  326,  325,  324,  323,
+      322,  321,  320,  319,  318,  317,  316,  315,  314,  311,
+      310,  309,  308,  307,  306,  305,  304,  303,  302,  301,
+      300,  299,  298,  297,  296,  295,  294,  293,  292,  291,
+      290,  289,  288,  287,  286,  285,  284,  283,  282,  281,
+      280,  279,  278,  275,  274,  273,  272,  271,  270,  269,
+      268,  267,  266,  265,  264,  263,  262,  261,  260,  259,
+
+      258,  257,  256,  255,  254,  251,  250,  249,  248,  247,
+      246,  245,  244,  243,  242,  241,  240,  239,  238,  237,
+      236,  235,  234,  233,  232,  231,  230,  229,  228,  227,
+      226,  225,  224,  223,  222,  221,  220,  219,  218,  217,
+      216,  215,  214,  213,  212,  211,  128,  210,  209,  208,
+      207,  206,  205,  204,  203,  202,  201,  198,  197,  196,
+      195,  194,  193,  185,  184,  179,  178,  177,  176,  175,
+      170,  161,  160,  159,  158,  157,  156,  155,  154,  153,
+      152,  149,  148,  147,  142,  141,  140,  139,  138,  137,
+      136,  135,  134,  133,  131,   58,   56,   54,  128,  126,
+
+      125,  120,  119,   91,   90,   84,   78,   73,   70,   69,
+       68,   65,   58,   56,   54,  494,    7,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494
     } ;
 
-static yyconst flex_int16_t yy_chk[448] =
+static const flex_int16_t yy_chk[675] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    3,    3,    3,    3,    3,    3,    3,
-        3,    5,    5,    6,    6,   14,   14,   14,   15,   15,
-      303,   14,  131,   15,   16,   16,   16,    3,    3,   19,
-       16,   19,   27,   19,   19,   25,   34,   14,   27,   15,
-      131,   37,   25,   15,   27,   37,   16,   17,   17,   17,
+        1,    1,    1,    1,    1,    1,    1,    3,    3,    3,
+        3,    3,    3,    3,    3,    5,    5,    6,    6,   14,
+       14,   14,   14,   14,   37,  502,   25,   14,   30,   15,
+       15,   15,   15,   25,    3,    3,   15,   30,  490,   35,
+       37,   19,   32,   19,   14,   19,   19,   19,   19,   35,
 
-      292,   34,  291,   17,    3,    3,    4,    4,    4,    4,
-        4,    4,    4,    4,   16,   30,   29,  289,   29,   17,
-       29,   29,   33,   30,   36,  286,   33,   39,   39,   82,
-        4,    4,  163,   55,   55,   33,  163,   36,   55,   56,
-       56,   56,   57,   82,   57,   56,   57,   57,   58,   58,
-       62,   62,   81,   58,   55,   63,   63,    4,    4,   29,
-       75,   56,   79,   80,   80,   81,   75,   88,   79,   58,
-       85,   85,   79,  285,   88,   88,  284,  283,  282,  279,
-      278,   88,   88,  296,  296,  296,  296,  297,  297,  297,
-      297,  298,  298,  298,  298,  299,  299,  299,  299,  300,
+       32,   32,   32,   15,   77,   40,   77,   15,   32,   40,
+       46,   46,    3,    3,    4,    4,    4,    4,    4,    4,
+        4,    4,   16,   16,   16,   16,   16,   95,   95,  486,
+       16,   17,   17,   17,   17,   17,   27,   27,   45,   17,
+       36,    4,    4,   27,   36,   39,   45,   16,   36,   27,
+       98,   38,   78,   38,   36,   38,   17,   82,   38,   39,
+       97,   41,   39,   82,   93,   98,   16,  485,   78,    4,
+        4,   29,  483,   29,   97,   29,   29,   29,   29,   41,
+       93,   42,  104,  104,   42,  203,  105,   42,  481,   41,
+       42,   42,  105,   41,  480,   59,   59,   59,   59,  203,
 
-      300,  300,  300,  301,  301,  302,  277,  302,  302,  274,
-      273,  271,  270,  269,  267,  266,  265,  264,  262,  261,
-      260,  259,  258,  256,  255,  253,  251,  250,  248,  246,
-      243,  242,  241,  238,  237,  236,  234,  232,  231,  229,
-      227,  225,  224,  223,  222,  221,  220,  218,  217,  216,
-      215,  214,  213,  212,  211,  209,  207,  206,  205,  204,
-      203,  202,  201,  200,  199,  198,  196,  195,  193,  192,
-      191,  190,  188,  187,  186,  185,  184,  180,  179,  178,
-      177,  176,  175,  171,  170,  169,  168,  167,  166,  164,
-      162,  161,  160,  158,  157,  156,  155,  154,  153,  151,
+      338,  479,   59,   41,   62,   62,   62,   62,   29,  338,
+      477,   62,   29,   60,   60,   60,   60,   60,   29,   59,
+       61,   60,   61,  180,   61,   61,   61,   61,   62,   66,
+       66,   66,   66,   67,   67,   67,   67,   94,   60,  115,
+      108,  108,  180,  108,   94,  476,  475,  241,   94,  108,
+      108,  241,   94,  474,  473,  472,  108,  108,  471,  115,
+      495,  495,  495,  495,  496,  496,  496,  496,  497,  497,
+      497,  497,  498,  498,  498,  498,  499,  499,  499,  499,
+      500,  500,  501,  469,  501,  501,  468,  465,  463,  461,
+      458,  455,  454,  453,  451,  450,  449,  447,  446,  445,
 
-      149,  148,  147,  146,  145,  144,  143,  142,  141,  140,
-      139,  138,  137,  136,  135,  134,  133,  132,  130,  128,
-      127,  125,  124,  123,  122,  121,  120,  119,  118,  117,
-      116,  115,  113,  112,  111,  110,  109,  108,  106,  105,
-      104,  101,   97,   96,   95,   94,   93,   92,   91,   89,
-       87,   86,   84,   83,   78,   77,   76,   74,   73,   72,
-       71,   70,   69,   68,   67,   66,   65,   64,   61,   59,
-       53,   51,   50,   47,   44,   43,   42,   41,   40,   38,
-       35,   32,   31,   28,   26,   22,   21,   20,   18,   12,
-       11,    9,    7,  295,  295,  295,  295,  295,  295,  295,
+      444,  442,  441,  439,  437,  436,  435,  434,  433,  431,
+      430,  428,  427,  426,  425,  424,  423,  422,  421,  420,
+      419,  417,  415,  414,  413,  411,  410,  408,  407,  405,
+      404,  402,  400,  396,  395,  394,  390,  389,  388,  386,
+      385,  384,  380,  379,  378,  377,  376,  375,  374,  372,
+      370,  369,  368,  366,  363,  362,  361,  360,  359,  354,
+      352,  350,  349,  348,  347,  345,  344,  343,  342,  341,
+      340,  339,  337,  336,  335,  334,  333,  332,  331,  330,
+      329,  328,  327,  326,  324,  323,  322,  320,  319,  318,
+      317,  316,  315,  314,  313,  312,  311,  308,  307,  306,
 
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295,  295,  295,  295,
-      295,  295,  295,  295,  295,  295,  295
+      305,  304,  303,  302,  300,  298,  296,  295,  294,  293,
+      291,  290,  289,  288,  287,  285,  284,  283,  281,  280,
+      279,  278,  276,  274,  273,  272,  271,  270,  269,  266,
+      265,  264,  263,  262,  261,  260,  259,  258,  257,  252,
+      251,  250,  249,  247,  246,  245,  244,  243,  242,  240,
+      239,  238,  237,  236,  235,  234,  233,  232,  231,  230,
+      229,  227,  226,  225,  224,  223,  222,  221,  220,  219,
+      218,  217,  215,  213,  212,  211,  210,  209,  208,  207,
+      206,  205,  204,  202,  201,  200,  199,  198,  197,  196,
+      195,  194,  193,  192,  191,  190,  189,  188,  187,  186,
+
+      185,  184,  183,  182,  181,  179,  178,  177,  176,  174,
+      173,  171,  169,  168,  166,  165,  164,  163,  162,  161,
+      160,  159,  158,  157,  156,  155,  154,  153,  152,  151,
+      150,  148,  147,  146,  145,  144,  143,  142,  141,  140,
+      139,  138,  136,  135,  134,  131,  127,  126,  125,  124,
+      123,  122,  121,  120,  119,  118,  116,  114,  113,  112,
+      111,  110,  109,  107,  106,  103,  102,  101,  100,   99,
+       96,   92,   91,   90,   89,   88,   87,   86,   85,   84,
+       83,   81,   80,   79,   76,   75,   74,   73,   72,   71,
+       70,   69,   68,   65,   63,   57,   55,   54,   51,   48,
+
+       47,   44,   43,   34,   33,   31,   28,   26,   22,   21,
+       20,   18,   12,   11,    9,    7,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494,  494,  494,  494,  494,  494,  494,
+      494,  494,  494,  494
     } ;
 
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
 
-extern int projectData_flex_debug;
-int projectData_flex_debug = 0;
+extern int yy_flex_debug;
+int yy_flex_debug = 0;
 
 /* The intent behind this definition is that it'll catch
  * any uses of REJECT which flex missed.
@@ -674,13 +1013,13 @@ int projectData_flex_debug = 0;
 #define yymore() yymore_used_but_not_detected
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
-char *projectDatatext;
-#line 1 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+char *yytext;
+#line 1 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 /*
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -695,7 +1034,7 @@ char *projectDatatext;
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#line 23 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 23 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
  
 #include <stdio.h>
 #include <string.h>
@@ -745,13 +1084,14 @@ FileStack projectData_fStack;
 
 
 
+#line 1088 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
 
-
-#line 81 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 81 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE projectData_include_stack[MAX_INCLUDE_DEPTH];
 int projectData_include_stack_ptr = 0;
-#line 755 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_lexer.cpp"
+#line 1094 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
+#line 1095 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
 
 #define INITIAL 0
 #define expectID 1
@@ -769,36 +1109,36 @@ int projectData_include_stack_ptr = 0;
 #define YY_EXTRA_TYPE void *
 #endif
 
-static int yy_init_globals (void );
+static int yy_init_globals ( void );
 
 /* Accessor methods to globals.
    These are made visible to non-reentrant scanners for convenience. */
 
-int projectDatalex_destroy (void );
+int yylex_destroy ( void );
 
-int projectDataget_debug (void );
+int yyget_debug ( void );
 
-void projectDataset_debug (int debug_flag  );
+void yyset_debug ( int debug_flag  );
 
-YY_EXTRA_TYPE projectDataget_extra (void );
+YY_EXTRA_TYPE yyget_extra ( void );
 
-void projectDataset_extra (YY_EXTRA_TYPE user_defined  );
+void yyset_extra ( YY_EXTRA_TYPE user_defined  );
 
-FILE *projectDataget_in (void );
+FILE *yyget_in ( void );
 
-void projectDataset_in  (FILE * in_str  );
+void yyset_in  ( FILE * _in_str  );
 
-FILE *projectDataget_out (void );
+FILE *yyget_out ( void );
 
-void projectDataset_out  (FILE * out_str  );
+void yyset_out  ( FILE * _out_str  );
 
-int projectDataget_leng (void );
+			int yyget_leng ( void );
 
-char *projectDataget_text (void );
+char *yyget_text ( void );
 
-int projectDataget_lineno (void );
+int yyget_lineno ( void );
 
-void projectDataset_lineno (int line_number  );
+void yyset_lineno ( int _line_number  );
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -806,28 +1146,31 @@ void projectDataset_lineno (int line_number  );
 
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
-extern "C" int projectDatawrap (void );
+extern "C" int yywrap ( void );
 #else
-extern int projectDatawrap (void );
+extern int yywrap ( void );
 #endif
 #endif
 
-    static void yyunput (int c,char *buf_ptr  );
+#ifndef YY_NO_UNPUT
     
+    static void yyunput ( int c, char *buf_ptr  );
+    
+#endif
+
 #ifndef yytext_ptr
-static void yy_flex_strncpy (char *,yyconst char *,int );
+static void yy_flex_strncpy ( char *, const char *, int );
 #endif
 
 #ifdef YY_NEED_STRLEN
-static int yy_flex_strlen (yyconst char * );
+static int yy_flex_strlen ( const char * );
 #endif
 
 #ifndef YY_NO_INPUT
-
 #ifdef __cplusplus
-static int yyinput (void );
+static int yyinput ( void );
 #else
-static int input (void );
+static int input ( void );
 #endif
 
 #endif
@@ -847,7 +1190,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO do { if (fwrite( projectDatatext, projectDataleng, 1, projectDataout )) {} } while (0)
+#define ECHO do { if (fwrite( yytext, (size_t) yyleng, 1, yyout )) {} } while (0)
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -858,20 +1201,20 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		size_t n; \
+		int n; \
 		for ( n = 0; n < max_size && \
-			     (c = getc( projectDatain )) != EOF && c != '\n'; ++n ) \
+			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
 		if ( c == '\n' ) \
 			buf[n++] = (char) c; \
-		if ( c == EOF && ferror( projectDatain ) ) \
+		if ( c == EOF && ferror( yyin ) ) \
 			YY_FATAL_ERROR( "input in flex scanner failed" ); \
 		result = n; \
 		} \
 	else \
 		{ \
 		errno=0; \
-		while ( (result = fread(buf, 1, max_size, projectDatain))==0 && ferror(projectDatain)) \
+		while ( (result = (int) fread(buf, 1, (yy_size_t) max_size, yyin)) == 0 && ferror(yyin)) \
 			{ \
 			if( errno != EINTR) \
 				{ \
@@ -879,7 +1222,7 @@ static int input (void );
 				break; \
 				} \
 			errno=0; \
-			clearerr(projectDatain); \
+			clearerr(yyin); \
 			} \
 		}\
 \
@@ -912,12 +1255,12 @@ static int input (void );
 #ifndef YY_DECL
 #define YY_DECL_IS_OURS 1
 
-extern int projectDatalex (void);
+extern int yylex (void);
 
-#define YY_DECL int projectDatalex (void)
+#define YY_DECL int yylex (void)
 #endif /* !YY_DECL */
 
-/* Code executed at the beginning of each rule, after projectDatatext and projectDataleng
+/* Code executed at the beginning of each rule, after yytext and yyleng
  * have been set up.
  */
 #ifndef YY_USER_ACTION
@@ -926,7 +1269,7 @@ extern int projectDatalex (void);
 
 /* Code executed at the end of each rule. */
 #ifndef YY_BREAK
-#define YY_BREAK break;
+#define YY_BREAK /*LINTED*/break;
 #endif
 
 #define YY_RULE_SETUP \
@@ -936,15 +1279,10 @@ extern int projectDatalex (void);
  */
 YY_DECL
 {
-	register yy_state_type yy_current_state;
-	register char *yy_cp, *yy_bp;
-	register int yy_act;
+	yy_state_type yy_current_state;
+	char *yy_cp, *yy_bp;
+	int yy_act;
     
-#line 90 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-
-
-#line 947 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_lexer.cpp"
-
 	if ( !(yy_init) )
 		{
 		(yy_init) = 1;
@@ -956,26 +1294,32 @@ YY_DECL
 		if ( ! (yy_start) )
 			(yy_start) = 1;	/* first start state */
 
-		if ( ! projectDatain )
-			projectDatain = stdin;
+		if ( ! yyin )
+			yyin = stdin;
 
-		if ( ! projectDataout )
-			projectDataout = stdout;
+		if ( ! yyout )
+			yyout = stdout;
 
 		if ( ! YY_CURRENT_BUFFER ) {
-			projectDataensure_buffer_stack ();
+			yyensure_buffer_stack ();
 			YY_CURRENT_BUFFER_LVALUE =
-				projectData_create_buffer(projectDatain,YY_BUF_SIZE );
+				yy_create_buffer( yyin, YY_BUF_SIZE );
 		}
 
-		projectData_load_buffer_state( );
+		yy_load_buffer_state(  );
 		}
 
-	while ( 1 )		/* loops until end-of-file is reached */
+	{
+#line 90 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+
+
+#line 1317 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
+
+	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
 		yy_cp = (yy_c_buf_p);
 
-		/* Support of projectDatatext. */
+		/* Support of yytext. */
 		*yy_cp = (yy_hold_char);
 
 		/* yy_bp points to the position in yy_ch_buf of the start of
@@ -987,7 +1331,7 @@ YY_DECL
 yy_match:
 		do
 			{
-			register YY_CHAR yy_c = yy_ec[YY_SC_TO_UI(*yy_cp)];
+			YY_CHAR yy_c = yy_ec[YY_SC_TO_UI(*yy_cp)] ;
 			if ( yy_accept[yy_current_state] )
 				{
 				(yy_last_accepting_state) = yy_current_state;
@@ -996,13 +1340,13 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 296 )
-					yy_c = yy_meta[(unsigned int) yy_c];
+				if ( yy_current_state >= 495 )
+					yy_c = yy_meta[yy_c];
 				}
-			yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
+			yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 			++yy_cp;
 			}
-		while ( yy_current_state != 295 );
+		while ( yy_current_state != 494 );
 		yy_cp = (yy_last_accepting_cpos);
 		yy_current_state = (yy_last_accepting_state);
 
@@ -1024,82 +1368,82 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 92 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ projectDatalval.ival = atoi(projectDatatext); return INTEGER;}
+#line 92 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ projectDatalval.ival = atoi(yytext); return INTEGER;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 93 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ projectDatalval.fval = (double)atof(projectDatatext); return FLOATING;}
+#line 93 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ projectDatalval.fval = (double)atof(yytext); return FLOATING;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 94 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ sscanf(projectDatatext, "0x%x", &projectDatalval.ival); return INTEGER; }
+#line 94 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ sscanf(yytext, "0x%x", &projectDatalval.ival); return INTEGER; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 96 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 96 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return ','; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 97 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 97 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return '}'; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 98 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 98 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return '{'; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 99 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 99 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return '['; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 100 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 100 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return ']'; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 104 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 104 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 105 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 105 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { }
 	YY_BREAK
 case 11:
 /* rule 11 can match eol */
 YY_RULE_SETUP
-#line 106 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 106 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { projectDataLineNum++;}
 	YY_BREAK
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 107 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 107 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { projectDataLineNum++;}
 	YY_BREAK
 case 13:
 /* rule 13 can match eol */
 YY_RULE_SETUP
-#line 109 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ projectDatatext[projectDataleng-1] = '\0'; projectDatalval.sval = &projectDatatext[1]; return STRING; }
+#line 109 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ yytext[yyleng-1] = '\0'; projectDatalval.sval = &yytext[1]; return STRING; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 110 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 110 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { /*puts back ID onto the input stream as a string enclosed in '"' */
-          			  /* projectDatatext is copied because unput() trashes projectDatatext */
+          			  /* yytext is copied because unput() trashes yytext */
 					int i; 
-                                        char *yycopy = new char [ strlen(projectDatatext) + 1 ];
-                                        strcpy(yycopy, projectDatatext);
+                                        char *yycopy = new char [ strlen(yytext) + 1 ];
+                                        strcpy(yycopy, yytext);
           				unput( '"' );
-          				for ( i = projectDataleng - 1; i >= 0; --i ) unput( yycopy[i] );
+          				for ( i = yyleng - 1; i >= 0; --i ) unput( yycopy[i] );
           				unput( '"' );
           				delete [] yycopy ;
 				}
@@ -1107,13 +1451,13 @@ YY_RULE_SETUP
 case 15:
 /* rule 15 can match eol */
 YY_RULE_SETUP
-#line 120 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ projectDatatext[projectDataleng-1] = '\0'; projectDatalval.sval = &projectDatatext[1];
+#line 120 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ yytext[yyleng-1] = '\0'; projectDatalval.sval = &yytext[1];
                                   BEGIN(INITIAL); return NAME;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 123 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 123 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { /* got the include file name */
         if ( projectData_include_stack_ptr >= MAX_INCLUDE_DEPTH )
             {
@@ -1125,17 +1469,18 @@ YY_RULE_SETUP
             YY_CURRENT_BUFFER;
 
         projectData_fStack.push(projectDataFileName,projectDataLineNum);
-        strcpy(projectDataFileName, projectDatatext);
+        strcpy(projectDataFileName, yytext);
         projectDataLineNum =1;
 
-        projectDatain = fopen( projectDatatext, "r" );
+        yyin = fopen( yytext, "r" );
 
-        if(!projectDatain){
-         DB::Msg(ERROR, "Cannot open file %s\n", projectDatatext);
+        if(!yyin){
+         DB::Msg(ERROR, "Cannot open file %s\n", yytext);
 	 return 0;
         }
 
-        projectData_switch_to_buffer(projectData_create_buffer(projectDatain,YY_BUF_SIZE ) );
+        yy_switch_to_buffer(
+            yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
         BEGIN(INITIAL);
         }
@@ -1143,7 +1488,7 @@ YY_RULE_SETUP
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(expectID):
 case YY_STATE_EOF(incl):
-#line 150 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 150 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 {
         if ( --projectData_include_stack_ptr < 0 )
             {
@@ -1154,267 +1499,458 @@ case YY_STATE_EOF(incl):
             {
              projectData_fStack.pop(projectDataFileName,projectDataLineNum);
 
-             projectData_delete_buffer(YY_CURRENT_BUFFER );
-             projectData_switch_to_buffer(projectData_include_stack[projectData_include_stack_ptr] );
+             yy_delete_buffer( YY_CURRENT_BUFFER );
+             yy_switch_to_buffer(
+                 projectData_include_stack[projectData_include_stack_ptr] );
             }
         }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 168 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 168 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 {BEGIN(incl);}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 171 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 171 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { projectDatalval.ival = 1; return INTEGER; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 172 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 172 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { projectDatalval.ival = 0; return INTEGER; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 174 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 174 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { BEGIN(expectID); return DEF;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 175 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 175 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 { return MAINASSNAME; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 176 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return NETWORK; }
+#line 176 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return VARFILEPATH; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 177 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return UNIT; }
+#line 177 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return S2PFILEPATH; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 178 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return LENGTH; }
+#line 178 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return NETWORK; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 179 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MOR; }
+#line 179 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return UNIT; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 180 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return ANA; }
+#line 180 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return LENGTH; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 181 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return RESPONSE; }
+#line 181 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MOR; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 182 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return ZERO; }
+#line 182 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ANA; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 183 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return POLE; }
+#line 183 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return SYMMETRIC; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 184 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return CURVE; }
+#line 184 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RESPONSE; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 185 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return XSCALE; }
+#line 185 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return PORT; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 186 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return YSCALE; }
+#line 186 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return IMPEDANCE; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 187 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return AUTO; }
+#line 187 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ZERO; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 188 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return TYPE; }
+#line 188 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return POLE; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 189 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return PART; }
+#line 189 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return WINDOW; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 190 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return PARAMETER; }
+#line 190 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return CIRCLE; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 191 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return FREQ; }
+#line 191 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return CURVE; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 192 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return NUM; }
+#line 192 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return XSCALE; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 193 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return FILTER; }
+#line 193 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return YSCALE; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 194 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return ORDER; }
+#line 194 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return AUTO; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 195 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return RETURNLOSS; }
+#line 195 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return IDEAL; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 196 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return QFACTOR; }
+#line 196 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TYPE; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 197 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return TX; }
+#line 197 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TOPOLOGY; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 198 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return ZEROS; }
+#line 198 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return PART; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 199 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return PASS; }
+#line 199 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return PARAMETER; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 200 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return AUTOMATIC; }
+#line 200 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return FREQ; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 201 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MAPPING; }
+#line 201 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return NUM; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 202 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return METHOD; }
+#line 202 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return FILTER; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 203 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MAPPED; }
+#line 203 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return KRYLOV; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 204 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return ITERMAX; }
+#line 204 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ORDER; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 205 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return BAND; }
+#line 205 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return CUTOFF; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 206 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return EXP; }
+#line 206 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return tMIN; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 207 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MESH; }
+#line 207 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return tMAX; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 208 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return WAVELENGTH; }
+#line 208 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RATIO; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 209 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return RATIO; }
+#line 209 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RETURNLOSS; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 210 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return DECOMPOSITION; }
+#line 210 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return OUTBAND; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 211 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return FIRST; }
+#line 211 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return QFACTOR; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 212 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MATERIAL; }
+#line 212 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return UNIFORM; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 213 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return REMESH; }
+#line 213 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return INDUCTIVE; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 214 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return MODELIZATION; }
+#line 214 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return SKIN; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 215 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return COMPONENT; }
+#line 215 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return LOSSY; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 216 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return SAVE; }
+#line 216 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return PREDISTORTED; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 217 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return REDUCTION; }
+#line 217 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return OPTIMIZE; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 218 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return RELOAD; }
+#line 218 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ILOSSPP; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 219 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return NEEDED; }
+#line 219 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TRUSTR; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 220 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-{ return CHANGED; }
+#line 220 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TX; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 224 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
+#line 221 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ZEROS; }
+	YY_BREAK
+case 68:
+YY_RULE_SETUP
+#line 222 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return PASS; }
+	YY_BREAK
+case 69:
+YY_RULE_SETUP
+#line 223 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return AUTOMATIC; }
+	YY_BREAK
+case 70:
+YY_RULE_SETUP
+#line 224 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return DESIGN; }
+	YY_BREAK
+case 71:
+YY_RULE_SETUP
+#line 225 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MAPPING; }
+	YY_BREAK
+case 72:
+YY_RULE_SETUP
+#line 226 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TUNING; }
+	YY_BREAK
+case 73:
+YY_RULE_SETUP
+#line 227 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ONLY; }
+	YY_BREAK
+case 74:
+YY_RULE_SETUP
+#line 228 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TRANSVERSEJ; }
+	YY_BREAK
+case 75:
+YY_RULE_SETUP
+#line 229 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return METHOD; }
+	YY_BREAK
+case 76:
+YY_RULE_SETUP
+#line 230 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return SOURCE; }
+	YY_BREAK
+case 77:
+YY_RULE_SETUP
+#line 231 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RECOMPUTE;}
+	YY_BREAK
+case 78:
+YY_RULE_SETUP
+#line 232 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ERRORT;}
+	YY_BREAK
+case 79:
+YY_RULE_SETUP
+#line 233 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return XTOL;}
+	YY_BREAK
+case 80:
+YY_RULE_SETUP
+#line 234 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return TRUSTR;}
+	YY_BREAK
+case 81:
+YY_RULE_SETUP
+#line 235 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return GRADDX;}
+	YY_BREAK
+case 82:
+YY_RULE_SETUP
+#line 236 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return JACOBIAN;}
+	YY_BREAK
+case 83:
+YY_RULE_SETUP
+#line 237 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MAPPED; }
+	YY_BREAK
+case 84:
+YY_RULE_SETUP
+#line 238 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ITERMAX; }
+	YY_BREAK
+case 85:
+YY_RULE_SETUP
+#line 239 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return BAND; }
+	YY_BREAK
+case 86:
+YY_RULE_SETUP
+#line 240 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return EXP; }
+	YY_BREAK
+case 87:
+YY_RULE_SETUP
+#line 241 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MESH; }
+	YY_BREAK
+case 88:
+YY_RULE_SETUP
+#line 242 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return REFINE; }
+	YY_BREAK
+case 89:
+YY_RULE_SETUP
+#line 243 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return ENERGY; }
+	YY_BREAK
+case 90:
+YY_RULE_SETUP
+#line 244 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MESHING3D; }
+	YY_BREAK
+case 91:
+YY_RULE_SETUP
+#line 245 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return LOCAL; }
+	YY_BREAK
+case 92:
+YY_RULE_SETUP
+#line 246 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return WAVELENGTH; }
+	YY_BREAK
+case 93:
+YY_RULE_SETUP
+#line 247 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RATIO; }
+	YY_BREAK
+case 94:
+YY_RULE_SETUP
+#line 248 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return DECOMPOSITION; }
+	YY_BREAK
+case 95:
+YY_RULE_SETUP
+#line 249 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return FIRST; }
+	YY_BREAK
+case 96:
+YY_RULE_SETUP
+#line 250 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MATERIAL; }
+	YY_BREAK
+case 97:
+YY_RULE_SETUP
+#line 251 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return REMESH; }
+	YY_BREAK
+case 98:
+YY_RULE_SETUP
+#line 252 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return MODELIZATION; }
+	YY_BREAK
+case 99:
+YY_RULE_SETUP
+#line 253 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return COMPONENT; }
+	YY_BREAK
+case 100:
+YY_RULE_SETUP
+#line 254 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return SAVE; }
+	YY_BREAK
+case 101:
+YY_RULE_SETUP
+#line 255 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return REDUCTION; }
+	YY_BREAK
+case 102:
+YY_RULE_SETUP
+#line 256 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return RELOAD; }
+	YY_BREAK
+case 103:
+YY_RULE_SETUP
+#line 257 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return NEEDED; }
+	YY_BREAK
+case 104:
+YY_RULE_SETUP
+#line 258 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
+{ return CHANGED; }
+	YY_BREAK
+case 105:
+YY_RULE_SETUP
+#line 262 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 ECHO;
 	YY_BREAK
-#line 1418 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_lexer.cpp"
+#line 1954 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_lexer.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1429,15 +1965,15 @@ ECHO;
 			{
 			/* We're scanning a new file or input source.  It's
 			 * possible that this happened because the user
-			 * just pointed projectDatain at a new source and called
-			 * projectDatalex().  If so, then we have to assure
+			 * just pointed yyin at a new source and called
+			 * yylex().  If so, then we have to assure
 			 * consistency between YY_CURRENT_BUFFER and our
 			 * globals.  Here is the right place to do so, because
 			 * this is the first action (other than possibly a
 			 * back-up) that will match for the new input source.
 			 */
 			(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
-			YY_CURRENT_BUFFER_LVALUE->yy_input_file = projectDatain;
+			YY_CURRENT_BUFFER_LVALUE->yy_input_file = yyin;
 			YY_CURRENT_BUFFER_LVALUE->yy_buffer_status = YY_BUFFER_NORMAL;
 			}
 
@@ -1491,11 +2027,11 @@ ECHO;
 				{
 				(yy_did_buffer_switch_on_eof) = 0;
 
-				if ( projectDatawrap( ) )
+				if ( yywrap(  ) )
 					{
 					/* Note: because we've taken care in
 					 * yy_get_next_buffer() to have set up
-					 * projectDatatext, we can now set up
+					 * yytext, we can now set up
 					 * yy_c_buf_p so that if some total
 					 * hoser (like flex itself) wants to
 					 * call the scanner after we return the
@@ -1544,7 +2080,8 @@ ECHO;
 			"fatal flex scanner internal error--no action found" );
 	} /* end of action switch */
 		} /* end of scanning one token */
-} /* end of projectDatalex */
+	} /* end of user's declarations */
+} /* end of yylex */
 
 /* yy_get_next_buffer - try to read in a new buffer
  *
@@ -1555,9 +2092,9 @@ ECHO;
  */
 static int yy_get_next_buffer (void)
 {
-    	register char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
-	register char *source = (yytext_ptr);
-	register int number_to_move, i;
+    	char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
+	char *source = (yytext_ptr);
+	int number_to_move, i;
 	int ret_val;
 
 	if ( (yy_c_buf_p) > &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars) + 1] )
@@ -1586,7 +2123,7 @@ static int yy_get_next_buffer (void)
 	/* Try to read more data. */
 
 	/* First move last chars to start of buffer. */
-	number_to_move = (int) ((yy_c_buf_p) - (yytext_ptr)) - 1;
+	number_to_move = (int) ((yy_c_buf_p) - (yytext_ptr) - 1);
 
 	for ( i = 0; i < number_to_move; ++i )
 		*(dest++) = *(source++);
@@ -1606,7 +2143,7 @@ static int yy_get_next_buffer (void)
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
 
 			int yy_c_buf_p_offset =
 				(int) ((yy_c_buf_p) - b->yy_ch_buf);
@@ -1622,11 +2159,12 @@ static int yy_get_next_buffer (void)
 
 				b->yy_ch_buf = (char *)
 					/* Include room in for 2 EOB chars. */
-					projectDatarealloc((void *) b->yy_ch_buf,b->yy_buf_size + 2  );
+					yyrealloc( (void *) b->yy_ch_buf,
+							 (yy_size_t) (b->yy_buf_size + 2)  );
 				}
 			else
 				/* Can't grow it, we don't own it. */
-				b->yy_ch_buf = 0;
+				b->yy_ch_buf = NULL;
 
 			if ( ! b->yy_ch_buf )
 				YY_FATAL_ERROR(
@@ -1644,7 +2182,7 @@ static int yy_get_next_buffer (void)
 
 		/* Read in more data. */
 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), (size_t) num_to_read );
+			(yy_n_chars), num_to_read );
 
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
 		}
@@ -1654,7 +2192,7 @@ static int yy_get_next_buffer (void)
 		if ( number_to_move == YY_MORE_ADJ )
 			{
 			ret_val = EOB_ACT_END_OF_FILE;
-			projectDatarestart(projectDatain  );
+			yyrestart( yyin  );
 			}
 
 		else
@@ -1668,12 +2206,15 @@ static int yy_get_next_buffer (void)
 	else
 		ret_val = EOB_ACT_CONTINUE_SCAN;
 
-	if ((yy_size_t) ((yy_n_chars) + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
+	if (((yy_n_chars) + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
 		/* Extend the array by 50%, plus the number we really need. */
-		yy_size_t new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
-		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) projectDatarealloc((void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf,new_size  );
+		int new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
+		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) yyrealloc(
+			(void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, (yy_size_t) new_size  );
 		if ( ! YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
 			YY_FATAL_ERROR( "out of dynamic memory in yy_get_next_buffer()" );
+		/* "- 2" to take care of EOB's */
+		YY_CURRENT_BUFFER_LVALUE->yy_buf_size = (int) (new_size - 2);
 	}
 
 	(yy_n_chars) += number_to_move;
@@ -1689,14 +2230,14 @@ static int yy_get_next_buffer (void)
 
     static yy_state_type yy_get_previous_state (void)
 {
-	register yy_state_type yy_current_state;
-	register char *yy_cp;
+	yy_state_type yy_current_state;
+	char *yy_cp;
     
 	yy_current_state = (yy_start);
 
 	for ( yy_cp = (yytext_ptr) + YY_MORE_ADJ; yy_cp < (yy_c_buf_p); ++yy_cp )
 		{
-		register YY_CHAR yy_c = (*yy_cp ? yy_ec[YY_SC_TO_UI(*yy_cp)] : 1);
+		YY_CHAR yy_c = (*yy_cp ? yy_ec[YY_SC_TO_UI(*yy_cp)] : 1);
 		if ( yy_accept[yy_current_state] )
 			{
 			(yy_last_accepting_state) = yy_current_state;
@@ -1705,10 +2246,10 @@ static int yy_get_next_buffer (void)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 296 )
-				yy_c = yy_meta[(unsigned int) yy_c];
+			if ( yy_current_state >= 495 )
+				yy_c = yy_meta[yy_c];
 			}
-		yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
+		yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 		}
 
 	return yy_current_state;
@@ -1721,10 +2262,10 @@ static int yy_get_next_buffer (void)
  */
     static yy_state_type yy_try_NUL_trans  (yy_state_type yy_current_state )
 {
-	register int yy_is_jam;
-    	register char *yy_cp = (yy_c_buf_p);
+	int yy_is_jam;
+    	char *yy_cp = (yy_c_buf_p);
 
-	register YY_CHAR yy_c = 1;
+	YY_CHAR yy_c = 1;
 	if ( yy_accept[yy_current_state] )
 		{
 		(yy_last_accepting_state) = yy_current_state;
@@ -1733,31 +2274,33 @@ static int yy_get_next_buffer (void)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 296 )
-			yy_c = yy_meta[(unsigned int) yy_c];
+		if ( yy_current_state >= 495 )
+			yy_c = yy_meta[yy_c];
 		}
-	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-	yy_is_jam = (yy_current_state == 295);
+	yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
+	yy_is_jam = (yy_current_state == 494);
 
-	return yy_is_jam ? 0 : yy_current_state;
+		return yy_is_jam ? 0 : yy_current_state;
 }
 
-    static void yyunput (int c, register char * yy_bp )
+#ifndef YY_NO_UNPUT
+
+    static void yyunput (int c, char * yy_bp )
 {
-	register char *yy_cp;
+	char *yy_cp;
     
     yy_cp = (yy_c_buf_p);
 
-	/* undo effects of setting up projectDatatext */
+	/* undo effects of setting up yytext */
 	*yy_cp = (yy_hold_char);
 
 	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 		{ /* need to shift things up to make room */
 		/* +2 for EOB chars. */
-		register int number_to_move = (yy_n_chars) + 2;
-		register char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
+		int number_to_move = (yy_n_chars) + 2;
+		char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
 					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
-		register char *source =
+		char *source =
 				&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move];
 
 		while ( source > YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
@@ -1766,7 +2309,7 @@ static int yy_get_next_buffer (void)
 		yy_cp += (int) (dest - source);
 		yy_bp += (int) (dest - source);
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars =
-			(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_buf_size;
+			(yy_n_chars) = (int) YY_CURRENT_BUFFER_LVALUE->yy_buf_size;
 
 		if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 			YY_FATAL_ERROR( "flex scanner push-back overflow" );
@@ -1778,6 +2321,8 @@ static int yy_get_next_buffer (void)
 	(yy_hold_char) = *yy_cp;
 	(yy_c_buf_p) = yy_cp;
 }
+
+#endif
 
 #ifndef YY_NO_INPUT
 #ifdef __cplusplus
@@ -1803,7 +2348,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (yy_c_buf_p) - (yytext_ptr);
+			int offset = (int) ((yy_c_buf_p) - (yytext_ptr));
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -1820,14 +2365,14 @@ static int yy_get_next_buffer (void)
 					 */
 
 					/* Reset buffer status. */
-					projectDatarestart(projectDatain );
+					yyrestart( yyin );
 
 					/*FALLTHROUGH*/
 
 				case EOB_ACT_END_OF_FILE:
 					{
-					if ( projectDatawrap( ) )
-						return EOF;
+					if ( yywrap(  ) )
+						return 0;
 
 					if ( ! (yy_did_buffer_switch_on_eof) )
 						YY_NEW_FILE;
@@ -1846,7 +2391,7 @@ static int yy_get_next_buffer (void)
 		}
 
 	c = *(unsigned char *) (yy_c_buf_p);	/* cast for 8-bit char's */
-	*(yy_c_buf_p) = '\0';	/* preserve projectDatatext */
+	*(yy_c_buf_p) = '\0';	/* preserve yytext */
 	(yy_hold_char) = *++(yy_c_buf_p);
 
 	return c;
@@ -1858,32 +2403,32 @@ static int yy_get_next_buffer (void)
  * 
  * @note This function does not reset the start condition to @c INITIAL .
  */
-    void projectDatarestart  (FILE * input_file )
+    void yyrestart  (FILE * input_file )
 {
     
 	if ( ! YY_CURRENT_BUFFER ){
-        projectDataensure_buffer_stack ();
+        yyensure_buffer_stack ();
 		YY_CURRENT_BUFFER_LVALUE =
-            projectData_create_buffer(projectDatain,YY_BUF_SIZE );
+            yy_create_buffer( yyin, YY_BUF_SIZE );
 	}
 
-	projectData_init_buffer(YY_CURRENT_BUFFER,input_file );
-	projectData_load_buffer_state( );
+	yy_init_buffer( YY_CURRENT_BUFFER, input_file );
+	yy_load_buffer_state(  );
 }
 
 /** Switch to a different input buffer.
  * @param new_buffer The new input buffer.
  * 
  */
-    void projectData_switch_to_buffer  (YY_BUFFER_STATE  new_buffer )
+    void yy_switch_to_buffer  (YY_BUFFER_STATE  new_buffer )
 {
     
 	/* TODO. We should be able to replace this entire function body
 	 * with
-	 *		projectDatapop_buffer_state();
-	 *		projectDatapush_buffer_state(new_buffer);
+	 *		yypop_buffer_state();
+	 *		yypush_buffer_state(new_buffer);
      */
-	projectDataensure_buffer_stack ();
+	yyensure_buffer_stack ();
 	if ( YY_CURRENT_BUFFER == new_buffer )
 		return;
 
@@ -1896,21 +2441,21 @@ static int yy_get_next_buffer (void)
 		}
 
 	YY_CURRENT_BUFFER_LVALUE = new_buffer;
-	projectData_load_buffer_state( );
+	yy_load_buffer_state(  );
 
 	/* We don't actually know whether we did this switch during
-	 * EOF (projectDatawrap()) processing, but the only time this flag
-	 * is looked at is after projectDatawrap() is called, so it's safe
+	 * EOF (yywrap()) processing, but the only time this flag
+	 * is looked at is after yywrap() is called, so it's safe
 	 * to go ahead and always set it.
 	 */
 	(yy_did_buffer_switch_on_eof) = 1;
 }
 
-static void projectData_load_buffer_state  (void)
+static void yy_load_buffer_state  (void)
 {
     	(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
 	(yytext_ptr) = (yy_c_buf_p) = YY_CURRENT_BUFFER_LVALUE->yy_buf_pos;
-	projectDatain = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
+	yyin = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
 	(yy_hold_char) = *(yy_c_buf_p);
 }
 
@@ -1920,35 +2465,35 @@ static void projectData_load_buffer_state  (void)
  * 
  * @return the allocated buffer state.
  */
-    YY_BUFFER_STATE projectData_create_buffer  (FILE * file, int  size )
+    YY_BUFFER_STATE yy_create_buffer  (FILE * file, int  size )
 {
 	YY_BUFFER_STATE b;
     
-	b = (YY_BUFFER_STATE) projectDataalloc(sizeof( struct yy_buffer_state )  );
+	b = (YY_BUFFER_STATE) yyalloc( sizeof( struct yy_buffer_state )  );
 	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in projectData_create_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in yy_create_buffer()" );
 
 	b->yy_buf_size = size;
 
 	/* yy_ch_buf has to be 2 characters longer than the size given because
 	 * we need to put in 2 end-of-buffer characters.
 	 */
-	b->yy_ch_buf = (char *) projectDataalloc(b->yy_buf_size + 2  );
+	b->yy_ch_buf = (char *) yyalloc( (yy_size_t) (b->yy_buf_size + 2)  );
 	if ( ! b->yy_ch_buf )
-		YY_FATAL_ERROR( "out of dynamic memory in projectData_create_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in yy_create_buffer()" );
 
 	b->yy_is_our_buffer = 1;
 
-	projectData_init_buffer(b,file );
+	yy_init_buffer( b, file );
 
 	return b;
 }
 
 /** Destroy the buffer.
- * @param b a buffer created with projectData_create_buffer()
+ * @param b a buffer created with yy_create_buffer()
  * 
  */
-    void projectData_delete_buffer (YY_BUFFER_STATE  b )
+    void yy_delete_buffer (YY_BUFFER_STATE  b )
 {
     
 	if ( ! b )
@@ -1958,27 +2503,27 @@ static void projectData_load_buffer_state  (void)
 		YY_CURRENT_BUFFER_LVALUE = (YY_BUFFER_STATE) 0;
 
 	if ( b->yy_is_our_buffer )
-		projectDatafree((void *) b->yy_ch_buf  );
+		yyfree( (void *) b->yy_ch_buf  );
 
-	projectDatafree((void *) b  );
+	yyfree( (void *) b  );
 }
 
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
- * such as during a projectDatarestart() or at EOF.
+ * such as during a yyrestart() or at EOF.
  */
-    static void projectData_init_buffer  (YY_BUFFER_STATE  b, FILE * file )
+    static void yy_init_buffer  (YY_BUFFER_STATE  b, FILE * file )
 
 {
 	int oerrno = errno;
     
-	projectData_flush_buffer(b );
+	yy_flush_buffer( b );
 
 	b->yy_input_file = file;
 	b->yy_fill_buffer = 1;
 
-    /* If b is the current buffer, then projectData_init_buffer was _probably_
-     * called from projectDatarestart() or through yy_get_next_buffer.
+    /* If b is the current buffer, then yy_init_buffer was _probably_
+     * called from yyrestart() or through yy_get_next_buffer.
      * In that case, we don't want to reset the lineno or column.
      */
     if (b != YY_CURRENT_BUFFER){
@@ -1995,7 +2540,7 @@ static void projectData_load_buffer_state  (void)
  * @param b the buffer state to be flushed, usually @c YY_CURRENT_BUFFER.
  * 
  */
-    void projectData_flush_buffer (YY_BUFFER_STATE  b )
+    void yy_flush_buffer (YY_BUFFER_STATE  b )
 {
     	if ( ! b )
 		return;
@@ -2015,7 +2560,7 @@ static void projectData_load_buffer_state  (void)
 	b->yy_buffer_status = YY_BUFFER_NEW;
 
 	if ( b == YY_CURRENT_BUFFER )
-		projectData_load_buffer_state( );
+		yy_load_buffer_state(  );
 }
 
 /** Pushes the new state onto the stack. The new state becomes
@@ -2024,14 +2569,14 @@ static void projectData_load_buffer_state  (void)
  *  @param new_buffer The new state.
  *  
  */
-void projectDatapush_buffer_state (YY_BUFFER_STATE new_buffer )
+void yypush_buffer_state (YY_BUFFER_STATE new_buffer )
 {
     	if (new_buffer == NULL)
 		return;
 
-	projectDataensure_buffer_stack();
+	yyensure_buffer_stack();
 
-	/* This block is copied from projectData_switch_to_buffer. */
+	/* This block is copied from yy_switch_to_buffer. */
 	if ( YY_CURRENT_BUFFER )
 		{
 		/* Flush out information for old buffer. */
@@ -2045,8 +2590,8 @@ void projectDatapush_buffer_state (YY_BUFFER_STATE new_buffer )
 		(yy_buffer_stack_top)++;
 	YY_CURRENT_BUFFER_LVALUE = new_buffer;
 
-	/* copied from projectData_switch_to_buffer. */
-	projectData_load_buffer_state( );
+	/* copied from yy_switch_to_buffer. */
+	yy_load_buffer_state(  );
 	(yy_did_buffer_switch_on_eof) = 1;
 }
 
@@ -2054,18 +2599,18 @@ void projectDatapush_buffer_state (YY_BUFFER_STATE new_buffer )
  *  The next element becomes the new top.
  *  
  */
-void projectDatapop_buffer_state (void)
+void yypop_buffer_state (void)
 {
     	if (!YY_CURRENT_BUFFER)
 		return;
 
-	projectData_delete_buffer(YY_CURRENT_BUFFER );
+	yy_delete_buffer(YY_CURRENT_BUFFER );
 	YY_CURRENT_BUFFER_LVALUE = NULL;
 	if ((yy_buffer_stack_top) > 0)
 		--(yy_buffer_stack_top);
 
 	if (YY_CURRENT_BUFFER) {
-		projectData_load_buffer_state( );
+		yy_load_buffer_state(  );
 		(yy_did_buffer_switch_on_eof) = 1;
 	}
 }
@@ -2073,9 +2618,9 @@ void projectDatapop_buffer_state (void)
 /* Allocates the stack if it does not exist.
  *  Guarantees space for at least one push.
  */
-static void projectDataensure_buffer_stack (void)
+static void yyensure_buffer_stack (void)
 {
-	int num_to_alloc;
+	yy_size_t num_to_alloc;
     
 	if (!(yy_buffer_stack)) {
 
@@ -2083,15 +2628,15 @@ static void projectDataensure_buffer_stack (void)
 		 * scanner will even need a stack. We use 2 instead of 1 to avoid an
 		 * immediate realloc on the next call.
          */
-		num_to_alloc = 1;
-		(yy_buffer_stack) = (struct yy_buffer_state**)projectDataalloc
+      num_to_alloc = 1; /* After all that talk, this was set to 1 anyways... */
+		(yy_buffer_stack) = (struct yy_buffer_state**)yyalloc
 								(num_to_alloc * sizeof(struct yy_buffer_state*)
 								);
 		if ( ! (yy_buffer_stack) )
-			YY_FATAL_ERROR( "out of dynamic memory in projectDataensure_buffer_stack()" );
-								  
+			YY_FATAL_ERROR( "out of dynamic memory in yyensure_buffer_stack()" );
+
 		memset((yy_buffer_stack), 0, num_to_alloc * sizeof(struct yy_buffer_state*));
-				
+
 		(yy_buffer_stack_max) = num_to_alloc;
 		(yy_buffer_stack_top) = 0;
 		return;
@@ -2100,15 +2645,15 @@ static void projectDataensure_buffer_stack (void)
 	if ((yy_buffer_stack_top) >= ((yy_buffer_stack_max)) - 1){
 
 		/* Increase the buffer to prepare for a possible push. */
-		int grow_size = 8 /* arbitrary grow size */;
+		yy_size_t grow_size = 8 /* arbitrary grow size */;
 
 		num_to_alloc = (yy_buffer_stack_max) + grow_size;
-		(yy_buffer_stack) = (struct yy_buffer_state**)projectDatarealloc
+		(yy_buffer_stack) = (struct yy_buffer_state**)yyrealloc
 								((yy_buffer_stack),
 								num_to_alloc * sizeof(struct yy_buffer_state*)
 								);
 		if ( ! (yy_buffer_stack) )
-			YY_FATAL_ERROR( "out of dynamic memory in projectDataensure_buffer_stack()" );
+			YY_FATAL_ERROR( "out of dynamic memory in yyensure_buffer_stack()" );
 
 		/* zero only the new slots.*/
 		memset((yy_buffer_stack) + (yy_buffer_stack_max), 0, grow_size * sizeof(struct yy_buffer_state*));
@@ -2120,9 +2665,9 @@ static void projectDataensure_buffer_stack (void)
  * @param base the character buffer
  * @param size the size in bytes of the character buffer
  * 
- * @return the newly allocated buffer state object. 
+ * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE projectData_scan_buffer  (char * base, yy_size_t  size )
+YY_BUFFER_STATE yy_scan_buffer  (char * base, yy_size_t  size )
 {
 	YY_BUFFER_STATE b;
     
@@ -2130,49 +2675,49 @@ YY_BUFFER_STATE projectData_scan_buffer  (char * base, yy_size_t  size )
 	     base[size-2] != YY_END_OF_BUFFER_CHAR ||
 	     base[size-1] != YY_END_OF_BUFFER_CHAR )
 		/* They forgot to leave room for the EOB's. */
-		return 0;
+		return NULL;
 
-	b = (YY_BUFFER_STATE) projectDataalloc(sizeof( struct yy_buffer_state )  );
+	b = (YY_BUFFER_STATE) yyalloc( sizeof( struct yy_buffer_state )  );
 	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in projectData_scan_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in yy_scan_buffer()" );
 
-	b->yy_buf_size = size - 2;	/* "- 2" to take care of EOB's */
+	b->yy_buf_size = (int) (size - 2);	/* "- 2" to take care of EOB's */
 	b->yy_buf_pos = b->yy_ch_buf = base;
 	b->yy_is_our_buffer = 0;
-	b->yy_input_file = 0;
+	b->yy_input_file = NULL;
 	b->yy_n_chars = b->yy_buf_size;
 	b->yy_is_interactive = 0;
 	b->yy_at_bol = 1;
 	b->yy_fill_buffer = 0;
 	b->yy_buffer_status = YY_BUFFER_NEW;
 
-	projectData_switch_to_buffer(b  );
+	yy_switch_to_buffer( b  );
 
 	return b;
 }
 
-/** Setup the input buffer state to scan a string. The next call to projectDatalex() will
+/** Setup the input buffer state to scan a string. The next call to yylex() will
  * scan from a @e copy of @a str.
  * @param yystr a NUL-terminated string to scan
  * 
  * @return the newly allocated buffer state object.
  * @note If you want to scan bytes that may contain NUL values, then use
- *       projectData_scan_bytes() instead.
+ *       yy_scan_bytes() instead.
  */
-YY_BUFFER_STATE projectData_scan_string (yyconst char * yystr )
+YY_BUFFER_STATE yy_scan_string (const char * yystr )
 {
     
-	return projectData_scan_bytes(yystr,strlen(yystr) );
+	return yy_scan_bytes( yystr, (int) strlen(yystr) );
 }
 
-/** Setup the input buffer state to scan the given bytes. The next call to projectDatalex() will
+/** Setup the input buffer state to scan the given bytes. The next call to yylex() will
  * scan from a @e copy of @a bytes.
  * @param yybytes the byte buffer to scan
  * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE projectData_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE yy_scan_bytes  (const char * yybytes, int  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
@@ -2180,19 +2725,19 @@ YY_BUFFER_STATE projectData_scan_bytes  (yyconst char * yybytes, int  _yybytes_l
 	int i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
-	n = _yybytes_len + 2;
-	buf = (char *) projectDataalloc(n  );
+	n = (yy_size_t) (_yybytes_len + 2);
+	buf = (char *) yyalloc( n  );
 	if ( ! buf )
-		YY_FATAL_ERROR( "out of dynamic memory in projectData_scan_bytes()" );
+		YY_FATAL_ERROR( "out of dynamic memory in yy_scan_bytes()" );
 
 	for ( i = 0; i < _yybytes_len; ++i )
 		buf[i] = yybytes[i];
 
 	buf[_yybytes_len] = buf[_yybytes_len+1] = YY_END_OF_BUFFER_CHAR;
 
-	b = projectData_scan_buffer(buf,n );
+	b = yy_scan_buffer( buf, n );
 	if ( ! b )
-		YY_FATAL_ERROR( "bad buffer in projectData_scan_bytes()" );
+		YY_FATAL_ERROR( "bad buffer in yy_scan_bytes()" );
 
 	/* It's okay to grow etc. this buffer, and we should throw it
 	 * away when we're done.
@@ -2206,9 +2751,9 @@ YY_BUFFER_STATE projectData_scan_bytes  (yyconst char * yybytes, int  _yybytes_l
 #define YY_EXIT_FAILURE 2
 #endif
 
-static void yy_fatal_error (yyconst char* msg )
+static void yynoreturn yy_fatal_error (const char* msg )
 {
-    	(void) fprintf( stderr, "%s\n", msg );
+			fprintf( stderr, "%s\n", msg );
 	exit( YY_EXIT_FAILURE );
 }
 
@@ -2218,14 +2763,14 @@ static void yy_fatal_error (yyconst char* msg )
 #define yyless(n) \
 	do \
 		{ \
-		/* Undo effects of setting up projectDatatext. */ \
+		/* Undo effects of setting up yytext. */ \
         int yyless_macro_arg = (n); \
         YY_LESS_LINENO(yyless_macro_arg);\
-		projectDatatext[projectDataleng] = (yy_hold_char); \
-		(yy_c_buf_p) = projectDatatext + yyless_macro_arg; \
+		yytext[yyleng] = (yy_hold_char); \
+		(yy_c_buf_p) = yytext + yyless_macro_arg; \
 		(yy_hold_char) = *(yy_c_buf_p); \
 		*(yy_c_buf_p) = '\0'; \
-		projectDataleng = yyless_macro_arg; \
+		yyleng = yyless_macro_arg; \
 		} \
 	while ( 0 )
 
@@ -2234,126 +2779,126 @@ static void yy_fatal_error (yyconst char* msg )
 /** Get the current line number.
  * 
  */
-int projectDataget_lineno  (void)
+int yyget_lineno  (void)
 {
-        
-    return projectDatalineno;
+    
+    return yylineno;
 }
 
 /** Get the input stream.
  * 
  */
-FILE *projectDataget_in  (void)
+FILE *yyget_in  (void)
 {
-        return projectDatain;
+        return yyin;
 }
 
 /** Get the output stream.
  * 
  */
-FILE *projectDataget_out  (void)
+FILE *yyget_out  (void)
 {
-        return projectDataout;
+        return yyout;
 }
 
 /** Get the length of the current token.
  * 
  */
-int projectDataget_leng  (void)
+int yyget_leng  (void)
 {
-        return projectDataleng;
+        return yyleng;
 }
 
 /** Get the current token.
  * 
  */
 
-char *projectDataget_text  (void)
+char *yyget_text  (void)
 {
-        return projectDatatext;
+        return yytext;
 }
 
 /** Set the current line number.
- * @param line_number
+ * @param _line_number line number
  * 
  */
-void projectDataset_lineno (int  line_number )
+void yyset_lineno (int  _line_number )
 {
     
-    projectDatalineno = line_number;
+    yylineno = _line_number;
 }
 
 /** Set the input stream. This does not discard the current
  * input buffer.
- * @param in_str A readable stream.
+ * @param _in_str A readable stream.
  * 
- * @see projectData_switch_to_buffer
+ * @see yy_switch_to_buffer
  */
-void projectDataset_in (FILE *  in_str )
+void yyset_in (FILE *  _in_str )
 {
-        projectDatain = in_str ;
+        yyin = _in_str ;
 }
 
-void projectDataset_out (FILE *  out_str )
+void yyset_out (FILE *  _out_str )
 {
-        projectDataout = out_str ;
+        yyout = _out_str ;
 }
 
-int projectDataget_debug  (void)
+int yyget_debug  (void)
 {
-        return projectData_flex_debug;
+        return yy_flex_debug;
 }
 
-void projectDataset_debug (int  bdebug )
+void yyset_debug (int  _bdebug )
 {
-        projectData_flex_debug = bdebug ;
+        yy_flex_debug = _bdebug ;
 }
 
 static int yy_init_globals (void)
 {
         /* Initialization is the same as for the non-reentrant scanner.
-     * This function is called from projectDatalex_destroy(), so don't allocate here.
+     * This function is called from yylex_destroy(), so don't allocate here.
      */
 
-    (yy_buffer_stack) = 0;
+    (yy_buffer_stack) = NULL;
     (yy_buffer_stack_top) = 0;
     (yy_buffer_stack_max) = 0;
-    (yy_c_buf_p) = (char *) 0;
+    (yy_c_buf_p) = NULL;
     (yy_init) = 0;
     (yy_start) = 0;
 
 /* Defined in main.c */
 #ifdef YY_STDINIT
-    projectDatain = stdin;
-    projectDataout = stdout;
+    yyin = stdin;
+    yyout = stdout;
 #else
-    projectDatain = (FILE *) 0;
-    projectDataout = (FILE *) 0;
+    yyin = NULL;
+    yyout = NULL;
 #endif
 
     /* For future reference: Set errno on error, since we are called by
-     * projectDatalex_init()
+     * yylex_init()
      */
     return 0;
 }
 
-/* projectDatalex_destroy is for both reentrant and non-reentrant scanners. */
-int projectDatalex_destroy  (void)
+/* yylex_destroy is for both reentrant and non-reentrant scanners. */
+int yylex_destroy  (void)
 {
     
     /* Pop the buffer stack, destroying each element. */
 	while(YY_CURRENT_BUFFER){
-		projectData_delete_buffer(YY_CURRENT_BUFFER  );
+		yy_delete_buffer( YY_CURRENT_BUFFER  );
 		YY_CURRENT_BUFFER_LVALUE = NULL;
-		projectDatapop_buffer_state();
+		yypop_buffer_state();
 	}
 
 	/* Destroy the stack itself. */
-	projectDatafree((yy_buffer_stack) );
+	yyfree((yy_buffer_stack) );
 	(yy_buffer_stack) = NULL;
 
     /* Reset the globals. This is important in a non-reentrant scanner so the next time
-     * projectDatalex() is called, initialization will occur. */
+     * yylex() is called, initialization will occur. */
     yy_init_globals( );
 
     return 0;
@@ -2364,18 +2909,19 @@ int projectDatalex_destroy  (void)
  */
 
 #ifndef yytext_ptr
-static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
+static void yy_flex_strncpy (char* s1, const char * s2, int n )
 {
-	register int i;
+		
+	int i;
 	for ( i = 0; i < n; ++i )
 		s1[i] = s2[i];
 }
 #endif
 
 #ifdef YY_NEED_STRLEN
-static int yy_flex_strlen (yyconst char * s )
+static int yy_flex_strlen (const char * s )
 {
-	register int n;
+	int n;
 	for ( n = 0; s[n]; ++n )
 		;
 
@@ -2383,13 +2929,14 @@ static int yy_flex_strlen (yyconst char * s )
 }
 #endif
 
-void *projectDataalloc (yy_size_t  size )
+void *yyalloc (yy_size_t  size )
 {
-	return (void *) malloc( size );
+			return malloc(size);
 }
 
-void *projectDatarealloc  (void * ptr, yy_size_t  size )
+void *yyrealloc  (void * ptr, yy_size_t  size )
 {
+		
 	/* The cast to (char *) in the following accommodates both
 	 * implementations that use char* generic pointers, and those
 	 * that use void* generic pointers.  It works with the latter
@@ -2397,25 +2944,24 @@ void *projectDatarealloc  (void * ptr, yy_size_t  size )
 	 * any pointer type to void*, and deal with argument conversions
 	 * as though doing an assignment.
 	 */
-	return (void *) realloc( (char *) ptr, size );
+	return realloc(ptr, size);
 }
 
-void projectDatafree (void * ptr )
+void yyfree (void * ptr )
 {
-	free( (char *) ptr );	/* see projectDatarealloc() for (char *) cast */
+			free( (char *) ptr );	/* see yyrealloc() for (char *) cast */
 }
 
 #define YYTABLES_NAME "yytables"
 
-#line 224 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.l"
-
+#line 262 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.l"
 
 
 
 void projectDataSetInputFile(FILE *fp)
 {
   projectDataLineNum = 1;
-  projectDatarestart(fp);
+  yyrestart(fp);
 }
 
 

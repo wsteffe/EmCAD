@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <touchstone_parser.hpp>
+#include <limits>
+#include <math.h>
 #include <Message.h>
 
 
@@ -64,12 +66,17 @@ string	\"[^\"]*\"
 <options_state>\n             BEGIN(INITIAL);
 
 
-<options_state,INITIAL>-?[0-9]+					{ touchstonelval.ival = atoi(yytext); return INTEGER;}
-<options_state,INITIAL>-?[0-9]*\.?[0-9]*([eE][+-]?[0-9]+)?		{ touchstonelval.fval = (double)atof(yytext); return FLOATING;}
+<options_state,INITIAL>-?[0-9]+					{double d=(double)atof(yytext); 
+                                                                  if(fabs(d)< std::numeric_limits<int>::max()){
+                                                                    touchstonelval.ival =atoi(yytext); return INTEGER;
+                                                                  } else {touchstonelval.fval =d; return FLOATING;}
+                                                                }
+<options_state,INITIAL>-?[0-9]*\.?[0-9]*([eE][+-]?[0-9]+)?	{ touchstonelval.fval = (double)atof(yytext); return FLOATING;}
 
 
 
 <*>[ \t]+			{ }
+\r                              { }
 \n				{ touchstoneLineNum++;}
 
 {string}			{ yytext[yyleng-1] = '\0'; touchstonelval.sval = &yytext[1]; return STRING; }
@@ -91,9 +98,14 @@ string	\"[^\"]*\"
 21_12                           { return ORDER_21_12; }
 12_21                           { return ORDER_12_21; }
 <options_state>Hz                     { return HZ; }
+<options_state>HZ                     { return HZ; }
 <options_state>KHz                    { return KHZ; }
+<options_state>KHZ                    { return KHZ; }
 <options_state>MHz                    { return MHZ; }
+<options_state>MHZ                    { return MHZ; }
 <options_state>GHz                    { return GHZ; }
+<options_state>GHZ                    { return GHZ; }
+<options_state>dB                     { return tDB; }
 <options_state>DB                     { return tDB; }
 <options_state>MA                     { return tMA; }
 <options_state>RI                     { return tRI; }

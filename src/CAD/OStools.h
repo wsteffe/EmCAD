@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,11 +34,12 @@ bool removeAllFilesInDir(const char *dirname);
 void createLink(const char* to, const char* link);
 std::string nativePath(const char *name);
 std::string nativePath(std::string name);
+std::string cleanWindowsPath(std::string name);
 bool file1NewerThanFile2(const char *file1, const char *file2);
 bool createdir(const char *dir);
 
-FILE * fopenWithLock(const char *filename, const char * mode);
-void fcloseWithLock(FILE *fp);
+int setLock(FILE * fh, const char *mode);
+int releaseLock(FILE * fh);
 
 //void removedir(const char *dir);
 

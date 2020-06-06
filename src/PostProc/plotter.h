@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@ struct ScaleEdit{
 
 #ifndef _SELECTEDCIRCUIT_H_
 #define _SELECTEDCIRCUIT_H_
-enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2};
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IMPORTEDRESPONSE=3, IDEALCIRCUITMAPPEDTZ=4};
 #endif
 
 enum PlotType {FREQRESP_PLOT=0, ZEROPOLE_PLOT=1};

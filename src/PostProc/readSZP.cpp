@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 #include <Message.h>
 #include <string.h>
 #include "plotData.h"
-
+#include <stdio.h>
 
 extern PlotData plotData;
 
@@ -55,9 +55,9 @@ int readSZP(const char* fName){
       }
     }
     if(c=='!'){
-      std::array<int, 2> ports;
+      std::pair<int, int> ports;
       char funit[5];
-      fscanf(fid,"%d %d %d %s",&ports[0],&ports[1],&nz,funit);
+      fscanf(fid,"%d %d %d %s",&ports.first,&ports.second,&nz,funit);
       if(plotData.setFrequnit(funit)){
              fprintf(stderr, "invalid frequency unit in %s \n", fName);
              return 1;
@@ -65,9 +65,9 @@ int readSZP(const char* fName){
       for(int i=0; i<nz; i++) {
        double freq[2];
        fscanf(fid,"%lf %lf",&freq[0],&freq[1]);
-       plotData.curveMap[ports][0].push_back(freq[0]);
-       plotData.curveMap[ports][1].push_back(freq[1]);
-       if(ports[0]>0) for(int j=0; j<Nloads; j++) {
+       plotData.curveMap[ports].first.push_back(freq[0]);
+       plotData.curveMap[ports].second.push_back(freq[1]);
+       if(ports.first>0) for(int j=0; j<Nloads; j++) {
          double Yld[2];
          fscanf(fid,"%lf %lf",&Yld[0], &Yld[1]);
          zeroloads.push_back(Yld[0]);  

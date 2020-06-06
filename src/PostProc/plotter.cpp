@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,6 +49,7 @@
 
 #include "projectData.h"
 #include "plotData.h"
+#include <math.h>
 
 #ifndef min
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -68,6 +69,27 @@ void MwPlot::updateScale(int autoscale, double yscale[3])
  if(autoscale)  plot->setAxisAutoScale(QwtPlot::yLeft, true);
  else           plot->setAxisScale(QwtPlot::yLeft, yscale[0], yscale[1], yscale[2]);
  plot->replot();
+}
+
+
+
+void convert2db(char format[5], double val[2], double oval[2])
+{
+   if(!strcmp(format,"RI")){
+	oval[0]=20*log10(val[0]*val[0]+val[1]*val[1]);
+        oval[1]=atan2(val[1],val[0])*180/M_PI;
+	return;
+   }
+   if(!strcmp(format,"MA")){
+        oval[0]=20*log10(val[0]);
+        oval[1]=val[1];
+	return;
+   } 
+   if(!strcmp(format,"DB")){
+        oval[0]=val[0];
+        oval[1]=val[1];
+	return;
+   } 
 }
 
 
@@ -169,11 +191,9 @@ void MwPlot::setScaleDialog()
 
      switch(plotType){
        case FREQRESP_PLOT:  
-               updateScale(prjData.freqRespYscaleAuto, prjData.freqRespYscale);
                yscaleEdit.autoscale->setCheckState(prjData.freqRespYscaleAuto ? Qt::Checked : Qt::Unchecked);
 	       break;
        case ZEROPOLE_PLOT:  
-               updateScale(prjData.zeropoleYscaleAuto, prjData.zeropoleYscale);
                yscaleEdit.autoscale->setCheckState(prjData.zeropoleYscaleAuto ? Qt::Checked : Qt::Unchecked);
 	       break;
      }
@@ -216,6 +236,7 @@ MwPlot::MwPlot(PlotType type) : QMainWindow()
   mainLayout= new QVBoxLayout(mainWidget);
   plot=new QwtPlot();
   plot->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
+  plot->setCanvasBackground(QColor(255,255,255));
 
   mainLayout->addWidget(plot);
   if(plotType==FREQRESP_PLOT){
@@ -285,7 +306,8 @@ void MwPlot::createMenus(){
      editMenu->addAction( setScaleAction );
      editMenu->addAction( updateAction );
      setAmpPhMenu = editMenu->addMenu( tr("&Par type") );
-           if(!strcmp(plotData.format,"DB")){
+//           if(!strcmp(plotData.format,"DB")){
+           if(plotData.param=='S'){
 		    setAmpPhMenu->addAction( setAmp_Action );
 		    setAmpPhMenu->addAction( setPh_Action );
 	   } else {
@@ -301,11 +323,19 @@ int readSZP(const char* fName);
 void MwPlot::loadFile(){
   QString fname;
   switch(plottedCircuit){
-      case ELECROMAGNETICDEVICE: fname=prjData.mainAssName+"_RM"; break;
-      case MAPPEDCIRCUIT:        fname=prjData.mainAssName+"_RM_mapped"; break;
-      case IDEALCIRCUIT:         fname=prjData.mainAssName+"_ideal"; break;
+      case ELECROMAGNETICDEVICE:   fname=prjData.mainAssName+"_RM"; break;
+      case MAPPEDCIRCUIT:
+	  if(prjData.filtermapSource==ZEROPOLES) fname=prjData.mainAssName+"_RM_mapped";
+	  if(prjData.filtermapSource==IMPORTED_RESPONSE)  fname="imported_response_mapped";
+	  break;
+      case IDEALCIRCUIT:           fname="ideal_filter"; break;
+      case IDEALCIRCUITMAPPEDTZ:   fname="ideal_filter_mappedTZ"; break;
+      case IMPORTEDRESPONSE:       fname="imported_response.s2p"; break;
   }
-  switch(plotType){
+  if(plottedCircuit==IMPORTEDRESPONSE){
+       plotData.param='S';
+       plotData.numberOfPorts=2;
+  } else  switch(plotType){
        case FREQRESP_PLOT:  fname=fname+".ts"; break;
        case ZEROPOLE_PLOT:  fname=fname+".SZP"; break;
   }
@@ -318,14 +348,20 @@ void MwPlot::loadFile(){
   QwtScaleDiv xScaleDiv,yScaleDiv;
   switch(plotType){
        case FREQRESP_PLOT: 
-	     readTouchstone(nativePath(fpath.toLatin1().data()).c_str() ); 
-             xScaleDiv=xscaleeng->divideScale(prjData.anaFreqBand[0], prjData.anaFreqBand[1], 10,10);
+	     readTouchstone(nativePath(fpath.toLatin1().data()).c_str() );
+	     if(plottedCircuit==IMPORTEDRESPONSE)
+	      {
+               int Nf=plotData.numberOfFreq;
+               xScaleDiv=xscaleeng->divideScale(plotData.frequencies[0], plotData.frequencies[Nf-1], 20,10);
+	      }
+	     else
+               xScaleDiv=xscaleeng->divideScale(prjData.anaFreqBand[0], prjData.anaFreqBand[1], 20,10);
              plot->setAxisScaleDiv(QwtPlot::xBottom, xScaleDiv);
 	     break;
        case ZEROPOLE_PLOT:
-	     readSZP       (nativePath(fpath.toLatin1().data()).c_str() ); 
+	     readSZP(nativePath(fpath.toLatin1().data()).c_str() ); 
              plot->setAxisAutoScale(QwtPlot::yLeft, false);
-             xScaleDiv=xscaleeng->divideScale(prjData.zpFreqBand[0], prjData.zpFreqBand[1], 10,10);
+             xScaleDiv=xscaleeng->divideScale(prjData.zpFreqBand[0], prjData.zpFreqBand[1], 20,10);
              plot->setAxisScaleDiv(QwtPlot::xBottom, xScaleDiv);
              const QwtScaleEngine *yscaleeng=plot->axisScaleEngine(QwtPlot::xBottom);
              yScaleDiv=yscaleeng->divideScale(prjData.zeropoleYscale[0], prjData.zeropoleYscale[1], 10,10);
@@ -334,6 +370,7 @@ void MwPlot::loadFile(){
 //       plot->setAxisAutoScale(QwtPlot::xBottom, false);
   }
   createMenus();
+
 }
 
 void MwPlot::update(){
@@ -383,20 +420,20 @@ void MwPlot::plotZeroPole(int initial){
   int Nc=plotData.numberOfCurves;
   mycurves = (QwtPlotCurve**) malloc(Nc*sizeof(QwtPlotCurve*));
   for (int i=0; i< Nc; i++) mycurves[i]=new QwtPlotCurve;
-  int QtColours[]= { 2,7,13,8,14,9, 15, 10, 16, 11, 17, 12, 18, 5, 4, 6, 19, 0, 1 };
+  int QtColours[]= { Qt::black,Qt::red,Qt::blue,Qt::green,Qt::yellow,Qt::darkMagenta,Qt::darkCyan};
 
   int ic=0;
   for ( PlotDataCurveMapIterator it=plotData.curveMap.begin(); it!= plotData.curveMap.end(); it++){
-     int port1=(*it).first[0];
-     int port2=(*it).first[1];
+     int port1=(*it).first.first;
+     int port2=(*it).first.second;
      QString tag;
      if(port1==0) tag="S_poles";
      else         tag="S("+tr("%1").arg(port1)+","+tr("%1").arg(port2)+")_zeros";
      mycurves[ic]->setTitle(tag);
      QColor color=Qt::GlobalColor(QtColours[ic%sizeof(QtColours)]);
      QwtSymbol *scatter_symbol = new QwtSymbol(QwtSymbol::Ellipse, QBrush(color), QPen(color), QSize(3, 3));
-     int Np=(*it).second[0].size();
-     mycurves[ic]->setSamples(&(*it).second[1][0],&(*it).second[0][0], Np);
+     int Np=(*it).second.first.size();
+     mycurves[ic]->setSamples(&(*it).second.second[0],&(*it).second.first[0], Np);
      mycurves[ic]->attach(plot);
      mycurves[ic]->setStyle(QwtPlotCurve::NoCurve);
      mycurves[ic]->setPen(color, 1.0, Qt::SolidLine);
@@ -443,6 +480,7 @@ void MwPlot::plotFreqResponse(int initial)
   }
   if(plottedCircuit==MAPPEDCIRCUIT){QString tag="Mapped Filter "; title=tag+title;}
   if(plottedCircuit==IDEALCIRCUIT){QString tag="Ideal Filter "; title=tag+title;}
+  if(plottedCircuit==IDEALCIRCUITMAPPEDTZ){QString tag="Ideal Filter with Mapped Tx Zeros "; title=tag+title;}
   plot->setTitle(title);
   plot->updateAxes();
 
@@ -475,6 +513,7 @@ void MwPlot::plotFreqResponse(int initial)
   curveTable->resizeColumnToContents(0);
 
 
+  double x[Nf];
   for (int i=0; i< Np; i++) for (int j=0; j< Np; j++)
   {
     int ij=i+Np*j;
@@ -484,10 +523,11 @@ void MwPlot::plotFreqResponse(int initial)
     QString tag=param;
     tag=tag+"("+tr("%1").arg((i+1))+","+tr("%1").arg((j+1))+")";
     mycurves[ij]->setTitle(tag);
-    if(coli == sizeof(QtColours)) coli = 0;
+    if(coli == sizeof(QtColours)/4) coli = 0;
     QColor color=Qt::GlobalColor(QtColours[coli]);
     mycurves[ij]->setPen(color, 1.0, Qt::SolidLine);
-    mycurves[ij]->setSamples(&plotData.frequencies[0],&plotData.curveArray[(2*Nf)*ij+Nf*prjData.freqRespParPart],plotData.numberOfFreq);
+    plotData.getCurveData(i,j,prjData.freqRespParPart,x);
+    mycurves[ij]->setSamples(&plotData.frequencies[0],x,plotData.numberOfFreq);
     mycurves[ij]->attach(plot);
 //    if(initial) mycurves[ij]->hide();
     mycurves[ij]->hide();

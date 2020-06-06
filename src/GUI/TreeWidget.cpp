@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,6 +33,8 @@
 #include "ocaf.h"
 //#include "Tools.h"
 
+#include <OStools.h>
+#include <complex>
 
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -52,12 +54,21 @@
 
 #include <QFocusEvent>
 
+
+#ifndef min
+#define min(a,b)  (((a) < (b)) ? (a) : (b))
+#endif
+#ifndef max
+#define max(a,b)  (((a) > (b)) ? (a) : (b))
+#endif
+
+
 extern ViewWidget*   mainOCC;
 extern MwOCAF*       mainOCAF;
 extern MainWindow *mainWindow;
 extern ProjectData prjData;
+extern Documentation documentation;
 extern QString    mainWorkPath;
-
 
 /*
 void TreeWidgetItem::setExpanded ( bool expand ) 
@@ -75,6 +86,7 @@ TreeWidget::TreeWidget(){
       lastClicked=NULL;
       lastPressed=NULL;
       lastEntered=NULL;
+      currentSubComp=0;
 
 //      setFocusPolicy(Qt::StrongFocus);
 
@@ -88,8 +100,8 @@ TreeWidget::TreeWidget(){
       connect(aboutAction, SIGNAL(triggered()), this, SLOT(about()));
 //      connect(aboutAction, SIGNAL(triggered()), this, SIGNAL(buttonClicked()));
 
-      openSubAssAction = new QAction(tr("&Open subassembly"), this);
-      connect(openSubAssAction, SIGNAL(triggered()), this, SLOT(openSubAssembly()));
+      openCompAction = new QAction(tr("&Open Component"), this);
+      connect(openCompAction, SIGNAL(triggered()), this, SLOT(openComp()));
 
       assignLayerAction = new QAction(tr("&Set Layer"), this);
       assignLayerAction->setStatusTip(tr("Assign a Layer to the Selected Part "));
@@ -99,12 +111,12 @@ TreeWidget::TreeWidget(){
       assignMaterialAction->setStatusTip(tr("Assign a Material to the Selected Part "));
       connect(assignMaterialAction, SIGNAL(triggered()), this, SLOT(assignMaterialDialog()));
 
-      importPartPropertiesAction = new QAction(tr("&Import part properties"), this);
-      importPartPropertiesAction->setStatusTip(tr("Import properties of the Selected Part "));
-      connect(importPartPropertiesAction, SIGNAL(triggered()), this, SLOT(importPartPropertiesDialog()));
+      importCompPropertiesAction = new QAction(tr("&Import Component Properties"), this);
+      importCompPropertiesAction->setStatusTip(tr("Import properties of the Selected Component "));
+      connect(importCompPropertiesAction, SIGNAL(triggered()), this, SLOT(importCompPropertiesDialog()));
 
-      setCompPropertiesAction = new QAction(tr("&Set part properties"), this);
-      setCompPropertiesAction->setStatusTip(tr("Set properties of the Selected Part "));
+      setCompPropertiesAction = new QAction(tr("&Set Object properties"), this);
+      setCompPropertiesAction->setStatusTip(tr("Set properties of the Selected Object "));
       connect(setCompPropertiesAction, SIGNAL(triggered()), this, SLOT(setCompPropertiesDialog()));
 
       showWgModesAction = new QAction(tr("&Show Port Modes"), this);
@@ -167,12 +179,14 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
      TDF_Label label;
      DB::Material* mat;
      bool isSolid=false;
+     bool isShell=false;
      bool isShape=false;
      bool isGeomPart=false;
      bool isLayer=false;
      bool isLayers=false;
      bool isFace=false;
      bool isEdge=false;
+     bool isVertex=false;
      bool isMaterial=false;
      bool TBD=false;
      DB::Volume *vol;
@@ -180,10 +194,12 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
        getLabelName(label, qtext);
        const char* txt=qtext.toLatin1().data();
        isSolid=mainOCAF->isSolid(label);
+       isShell=mainOCAF->isShell(label);
        isLayer=mainOCAF->isLayer(label);
        isLayers=mainOCAF->isLayers(label);
        isFace =mainOCAF->isFace(label);
        isEdge =mainOCAF->isEdge(label);
+       isVertex =mainOCAF->isVertex(label);
        isShape =mainOCAF->isShape(label);
        isGeomPart=mainOCAF->isPart(label);
        if(isGeomPart) vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
@@ -199,7 +215,7 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
          bool shouldHaveLayers=false;
          bool hasLayers=mainOCAF->getLabelLayers(label, layers);
 	 QBrush redbrush=QBrush(QColor(255, 0, 0, 127));
-	 if(vol->type==DIELECTRIC || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND){
+	 if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND){
            qtext.append(" [ ");
 	   if(strcmp(vol->material,"?")) qtext.append(vol->material);
            qtext.append(" ]");
@@ -360,6 +376,8 @@ void TreeWidget::makeSubTree(TreeWidgetItem * troot, TDF_Label root)
 //       bool skip=mainOCAF->hasAssembly()&&mainOCAF->isTopLevel(label)&&(!mainOCAF->isFree(label) ||mainOCAF->isFree(label) && mainOCAF->isSimpleShape(label));
        bool skip= mainOCAF->isShape(label) && mainOCAF->isTopLevel(label) && !mainOCAF->isFree(label);
        skip=skip || mainOCAF->isMaterial(label) || mainOCAF->isDGTs(label) || mainOCAF->isParts(label) || mainOCAF->isDisabled(label);
+       QString qtext; getLabelName(label, qtext);
+       skip = skip || (qtext.length()==0);
        if (!skip) {
          TreeWidgetItem *item =new TreeWidgetItem(troot);
          setItemLink(item,label);
@@ -443,6 +461,27 @@ void TreeWidget::assignLayer(){
   setItemText(currentPart);
 }
 
+extern DB::Material theDefaultMaterial;
+
+void TreeWidget::setDefaultBC(){
+  if(currentMaterialName.isEmpty()) return;
+  if(!strcmp(theDefaultMaterial.name,currentMaterialName.toLatin1().data())) return;
+  DB::Material* mat = mainOCAF->EmP.FindMaterial(currentMaterialName.toLatin1().data());
+  if(!mat) return;
+  if( !strcmp(currentMaterialName.toLatin1().data(),"PEC") || 
+        !strcmp(currentMaterialName.toLatin1().data(),"PMC") ||
+	mat->Sresistance >0 ||
+	mat->Sinductance >0
+     ){
+     theDefaultMaterial=*mat;
+     strcpy(theDefaultMaterial.name,mat->name);
+     strcpy(mainOCAF->EmP.defaultBC,currentMaterialName.toLatin1().data());
+     prjData.workStatus.decompositionNeeded=true;
+     mainWindow->recursiveAssignDefaultMaterial();
+   }else
+     mainWindow->temporaryMessage(currentMaterialName + tr(" can not be assigned as Default BC"));
+}
+
 void TreeWidget::assignMaterial(){
   DB::Volume *vol=mainOCAF->EmP.FindVolume(currentPartName.toLatin1().data());
   if(!vol) return; 
@@ -459,7 +498,6 @@ void TreeWidget::assignMaterial(){
   if(strcmp(vol->material,currentMaterialName.toLatin1().data())){
     strcpy(vol->material,currentMaterialName.toLatin1().data());
     mainOCAF->worksaveNeeded=true;
-    mainOCAF->partitionVolSaveNeeded=true;
     prjData.workStatus.materialChanged=true;
     mainOCAF->setPartsStatus();
     mainWindow->setProjectTitle();
@@ -497,10 +535,33 @@ AssignDialog::AssignDialog(TreeWidget *parent) : QDialog(parent)
      setFocusPolicy(Qt::StrongFocus);
 }
 
+
+SetDefaultBCDialog::SetDefaultBCDialog(TreeWidget *parent) : QDialog(parent)
+{
+     setModal(0);
+     label2= new QLabel();
+     lineEdit2 = new QLineEdit();
+     lineEdit2->setReadOnly(true);
+     assignButton = new QPushButton(tr("Assign"));
+     assignButton->setShortcut(tr("Enter"));
+     closeButton = new QPushButton(tr("Close"));
+     layout = new QHBoxLayout(this);
+     layout->addWidget(label2);
+     layout->addWidget(lineEdit2);
+     layout->addWidget(assignButton);
+     layout->addWidget(closeButton);
+     connect(assignButton, SIGNAL(clicked()), this, SLOT(assign()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(assign()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
+//     connect(this,  SIGNAL(accepted()), parent, SLOT(regainFocus()));
+     setFocusPolicy(Qt::StrongFocus);
+}
+
+
 SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(parent)
 {
      setModal(0);
-     setWindowTitle(tr("Part Properties"));
+     setWindowTitle(tr("Object Properties"));
 /*
      QSizePolicy sizep;
      sizep.setVerticalPolicy(QSizePolicy::Maximum);
@@ -533,7 +594,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      if(mainOCAF->EmP.assemblyType==NET){
        typeChooser->addItem(tr("Component"));       typeChooserMap[tI++]=ASSEMBLY;
      }
-     else if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==PARTITION || mainOCAF->EmP.assemblyType==INTERFACE){
+     else if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->isPartition() || mainOCAF->EmP.assemblyType==INTERFACE){
        typeChooser->addItem(tr("Dielectric"));      typeChooserMap[tI++]=DIELECTRIC;
        typeChooser->addItem(tr("Hole"));            typeChooserMap[tI++]=HOLE;
        typeChooser->addItem(tr("Waveguide"));       typeChooserMap[tI++]=WAVEGUIDE;
@@ -819,7 +880,6 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
 #endif
   }
   if(changed){
-         mainOCAF->partitionVolSaveNeeded=true;
       	 mainOCAF->worksaveNeeded=true;
          mainWindow->checkActions();
   }
@@ -836,7 +896,7 @@ void SetCompPropertiesDialog::set(){
 
 void SetCompPropertiesDialog::help()
 {
-    mainWindow->showDocumentation(QLatin1String("#2.4.1"));
+    documentation.showDocumentation(QLatin1String("#2.4.1"));
 }
 
 
@@ -858,12 +918,32 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      nameLineEdit->setReadOnly(false);
      w=400; h=300;
      window()->resize(w,h);
+
      QHBoxLayout *nameLayout = new QHBoxLayout();
      nameLayout->addWidget(nameLabel);
      nameLayout->addWidget(nameLineEdit);
-     nameGroupBox=new QGroupBox(tr(""));
+     QGroupBox *nameGroupBox=new QGroupBox(tr(""));
      nameGroupBox->setLayout(nameLayout);
 
+
+     dispersive=new QCheckBox("Dispersive Model", this);
+     dispersive->setCheckState(Qt::Unchecked);
+
+     roughSurfModel=new QCheckBox("Rough Surface", this);
+     roughSurfModel->setCheckState(Qt::Unchecked);
+
+     boundaryModel=new QCheckBox("Surf Impedance Model", this);
+     boundaryModel->setCheckState(Qt::Unchecked);
+
+     QHBoxLayout *typeLayout = new QHBoxLayout();
+     typeLayout->addWidget(dispersive);
+     typeLayout->addWidget(roughSurfModel);
+     typeLayout->addWidget(boundaryModel);
+
+     QGroupBox *typeGroupBox=new QGroupBox(tr(""));
+     typeGroupBox->setLayout(typeLayout);
+
+//----------------
      dvalidator = new QDoubleValidator(this);
      dvalidator->setDecimals(1000); // (standard anyway)
      dvalidator->setNotation(QDoubleValidator::ScientificNotation);
@@ -872,15 +952,9 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 //   main properties
 //   electric:
 
-     QString EPSR=tr("<font face='symbol'>e<font face='arial'>");
+     QString EPSR=QString::fromUtf8("\u03B5");
+//     QString EPSR=tr("<font face='symbol'>e<font face='arial'>");
      EPSR.append(tr("<sub>r</sub>"));
-/*
-     EPSR.append(tr("(f="));
-     EPSR.append(tr("<font face='symbol'>"));
-     EPSR.append(QChar(0x0221E));
-     EPSR.append(tr("<font face='arial'>"));
-     EPSR.append(tr(")"));
-*/
      QLabel *epsLabel= new QLabel(); 
      epsLabel->setText(EPSR);
      epsLineEdit = new QLineEdit();
@@ -888,7 +962,9 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      epsLineEdit->setValidator(dvalidator);		
      epsLineEdit->resize(1,5);
 
-     QString SIGMA=tr("<font face='symbol'>s </font><font face='arial'> [S/m]");
+     QString SIGMA=QString::fromUtf8("\u03C3");
+     SIGMA.append(tr("<font face='arial'> [S/m]"));
+//     QString SIGMA=tr("<font face='symbol'>s </font><font face='arial'> [S/m]");
      QLabel *sigmaLabel= new QLabel(); sigmaLabel->setAlignment( Qt::AlignRight);
      sigmaLabel->setText(SIGMA);
      sigmaLineEdit = new QLineEdit();
@@ -899,51 +975,32 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 //----------------------
 //   magnetic:
 
-     QString MUSR=tr("<font face='symbol'>m</font><font face='arial'>");
-     MUSR.append(tr("<sub>r</sub>"));
-/*     
-     MUSR.append(tr("(f="));
-     MUSR.append(tr("<font face='symbol'>"));
-     MUSR.append(QChar(0x0221E));
-     MUSR.append(tr("<font face='arial'>"));
-     MUSR.append(tr(")"));
-*/
+     QString MUR=QString::fromUtf8("\u03BC");
+     MUR.append(tr("<sub>r</sub>"));
      QLabel *muLabel= new QLabel(); 
-     muLabel->setText(MUSR);
+     muLabel->setText(MUR);
      muLineEdit = new QLineEdit();
      muLineEdit->setText(QString("%1").arg(1.0, 0, 'f', 5));
      muLineEdit->setValidator(dvalidator);		
      muLineEdit->resize(1,5);
 
-     QString SIGMAM =tr("<font face='symbol'>s</font><font face='arial'><sub>m</sub>[");
+     QString SIGMAM=QString::fromUtf8("\u03C3");
+     SIGMAM.append(tr("<font face='arial'><sub>m</sub>["));
      SIGMAM.append(  tr("<font face='symbol'>") );
-     SIGMAM.append( QChar(0x2126));
+     SIGMAM.append( QString::fromUtf8("\u03A9"));
      SIGMAM.append(  tr("</font><font face='arial'>/m]") );
      QLabel *sigmamLabel= new QLabel(); 
      sigmamLabel->setText(SIGMAM); sigmamLabel->setAlignment( Qt::AlignRight);
      sigmamLineEdit = new QLineEdit();
-     sigmamLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 5));
+     sigmamLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
      sigmamLineEdit->setValidator(dvalidator);		
      sigmamLineEdit->resize(1,5);
-
-     dispersive=new QCheckBox("Dispersive Model", this);
-     dispersive->setCheckState(Qt::Unchecked);
 
      QString freqBandStr=QString("Frequency band [");
      freqBandStr+=QString(prjData.freqUnitName());
      freqBandStr+=QString("] :");
      QLabel *freqBandLabel= new QLabel();
      freqBandLabel->setText(freqBandStr);
-     f1LineEdit = new QLineEdit();
-     f1LineEdit->setValidator(dvalidator);		
-     f2LineEdit = new QLineEdit();
-     f2LineEdit->setValidator(dvalidator);
-
-
-     boundaryCond=new QCheckBox("Boundary", this);
-     boundaryCond->setCheckState(Qt::Unchecked);
-     connect(boundaryCond, SIGNAL(  stateChanged (int) ), this, SLOT(updateBoundaryCond(int)) );
-
 
      QGridLayout *emLayout = new QGridLayout();
      emLayout->setColumnMinimumWidth(2,30);
@@ -957,14 +1014,6 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      emLayout->addWidget(sigmamLabel, 1, 2);
      emLayout->addWidget(sigmamLineEdit,1, 3);
 
-     emLayout->addWidget(dispersive,2, 1);
-     emLayout->addWidget(boundaryCond,2, 2);
-
-     QLabel *bandSepLabel= new QLabel();
-     emLayout->addWidget(freqBandLabel, 3, 1);
-     emLayout->addWidget(f1LineEdit,3, 2);
-     emLayout->addWidget(f2LineEdit,3, 3);
-
      emGroupBox=new QGroupBox();
      emGroupBox->setLayout(emLayout);
 
@@ -975,30 +1024,25 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      eTanDelta=new QCheckBox("Loss Tangent", this);
      eTanDelta->setCheckState(Qt::Unchecked);
      eTanDeltaLineEdit = new QLineEdit();
-     eTanDeltaLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 5));
+     eTanDeltaLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
      eTanDeltaLineEdit->setValidator(dvalidator);
      eTanDeltaLineEdit->setReadOnly(true);
 
      hTanDelta=new QCheckBox("Loss Tangent", this);
      hTanDelta->setCheckState(Qt::Unchecked);
      hTanDeltaLineEdit = new QLineEdit();
-     hTanDeltaLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 5));
+     hTanDeltaLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
      hTanDeltaLineEdit->setValidator(dvalidator);
      hTanDeltaLineEdit->setReadOnly(true);
 
-     connect(dispersive, SIGNAL(  stateChanged (int) ), this, SLOT(updateDisp(int)) );
+     connect(dispersive, SIGNAL( stateChanged (int) ), this, SLOT(updateDisp(int)) );
+     connect(boundaryModel, SIGNAL( stateChanged (int) ), this, SLOT(updateDisp(int)) );
+     connect(roughSurfModel, SIGNAL( stateChanged (int) ), this, SLOT(updateDisp(int)) );
      connect(eTanDelta, SIGNAL(  stateChanged (int) ), this, SLOT(updateETanDelta(int)) );
      connect(hTanDelta, SIGNAL(  stateChanged (int) ), this, SLOT(updateHTanDelta(int)) );
-     connect(f1LineEdit, SIGNAL( textEdited (const QString & ) ), this, SLOT(updateTanDelta(const QString & )) );
-     connect(f2LineEdit, SIGNAL( textEdited (const QString & ) ), this, SLOT(updateTanDelta(const QString & )) );
-     connect(eTanDeltaLineEdit, SIGNAL( textEdited (const QString & ) ), this, SLOT(updateETanDelta(const QString & )) );
-     connect(hTanDeltaLineEdit, SIGNAL( textEdited (const QString & ) ), this, SLOT(updateHTanDelta(const QString & )) );
-     connect(epsLineEdit, SIGNAL( textEdited (const QString & ) ), this, SLOT(updateETanDelta(const QString & )) );
-     connect(muLineEdit,  SIGNAL( textEdited (const QString & ) ), this, SLOT(updateHTanDelta(const QString & )) );
-
 
      QLabel *epsTermsNumLabel= new QLabel(); 
-     epsTermsNumLabel->setText(tr("Terms Number:"));
+     epsTermsNumLabel->setText(tr("Lorentz Number of Terms:"));
      epsTermsNumSB = new QSpinBox();
      epsTermsNumSB->setValue(0);
      epsTermsNumSB->setMinimum(0);
@@ -1011,17 +1055,14 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
       epsLorentz->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
      #endif
 
-/*
      epsLorentz->setColumnWidth(0, 150);
      epsLorentz->setColumnWidth(1, 150);
      epsLorentz->setColumnWidth(2, 150);
-*/
-     QTableWidgetItem *eheader1 = new QTableWidgetItem(tr("De"));
+
+     QTableWidgetItem *eheader1 = new QTableWidgetItem(tr("eps_r(freq=0)"));
      QTableWidgetItem *eheader2 = new QTableWidgetItem(tr("relax freq [Hz]"));
      QTableWidgetItem *eheader3 = new QTableWidgetItem(tr("reson freq [Hz]"));
-     QFont symb("Symbol", 10);
 //     header1->setTextFormat(Qt::RichText);
-     eheader1->setFont(symb);
      epsLorentz->setHorizontalHeaderItem(0, eheader1);
      epsLorentz->setHorizontalHeaderItem(1, eheader2);
      epsLorentz->setHorizontalHeaderItem(2, eheader3);
@@ -1033,7 +1074,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      eDispLayout->addWidget(epsTermsNumSB, 1, 1);
      eDispLayout->addWidget(epsLorentz, 2, 0, 1, 3);
 
-     eDispGroupBox=new QGroupBox(tr("Electric Dispersion"));
+     eDispGroupBox=new QGroupBox(tr("Electric Model "));
      eDispGroupBox->setLayout(eDispLayout);
      eDispGroupBox->hide();
 
@@ -1052,7 +1093,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 //   magnetic dispersion
 //
      QLabel *muTermsNumLabel= new QLabel(); 
-     muTermsNumLabel->setText(tr("Terms Number:"));
+     muTermsNumLabel->setText(tr("Lorentz Number of Terms:"));
      muTermsNumSB = new QSpinBox();
      muTermsNumSB->setValue(0);
      muTermsNumSB->setMinimum(0);
@@ -1063,15 +1104,13 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      #elif defined(QT4)
       muLorentz->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
      #endif
-/*
+
      muLorentz->setColumnWidth(0, 150);
      muLorentz->setColumnWidth(1, 150);
      muLorentz->setColumnWidth(2, 150);
-*/
-     QTableWidgetItem *mheader1 = new QTableWidgetItem(tr("Dm"));
+     QTableWidgetItem *mheader1 = new QTableWidgetItem(tr("mu_r(freq=0)"));
      QTableWidgetItem *mheader2 = new QTableWidgetItem(tr("relax freq [Hz]"));
      QTableWidgetItem *mheader3 = new QTableWidgetItem(tr("reson freq [Hz]"));
-     mheader1->setFont(symb);
      muLorentz->setHorizontalHeaderItem(0, mheader1);
      muLorentz->setHorizontalHeaderItem(1, mheader2);
      muLorentz->setHorizontalHeaderItem(2, mheader3);
@@ -1083,27 +1122,123 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      mDispLayout->addWidget(muTermsNumSB, 1, 1);
      mDispLayout->addWidget(muLorentz, 2, 0, 1, 3);
 
-     mDispGroupBox=new QGroupBox(tr("Magnetic Dispersion"));
+     mDispGroupBox=new QGroupBox(tr("Magnetic Model "));
      mDispGroupBox->setLayout(mDispLayout);
      mDispGroupBox->hide();
 
 
 //****************************************
-//   Surface Resistence
+//   Surface Properties
 
-     QLabel *SresLabel= new QLabel(); 
-     SresLabel->setText(tr("Resistance [ohm]"));
+     QString roughFreqStr=QString("Frequency [");
+     roughFreqStr+=QString(prjData.freqUnitName());
+     roughFreqStr+=QString("] :");
+     QLabel *roughFreqLabel= new QLabel();
+     roughFreqLabel->setText(roughFreqStr);
+
+     roughFreqLineEdit = new QLineEdit();
+     roughFreqLineEdit->setValidator(dvalidator);		
+
+     QLabel *roughLossFactorLabel= new QLabel(); 
+     roughLossFactorLabel->setText(tr("Loss Factor"));
+
+     roughLossFactorLineEdit = new QLineEdit();
+     roughLossFactorLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 8));
+     roughLossFactorLineEdit->setValidator(dvalidator);		
+
+     QLabel *roughFitPolesNumLabel= new QLabel(); 
+     roughFitPolesNumLabel->setText(tr("Number of Fitting Poles:"));
+     roughFitPolesNumSB = new QSpinBox();
+     roughFitPolesNumSB->setValue(1);
+     roughFitPolesNumSB->setMinimum(1);
+
+//----------------
+     roughQvalidator = new QDoubleValidator(this);
+     roughQvalidator->setDecimals(1000); // (standard anyway)
+     roughQvalidator->setNotation(QDoubleValidator::ScientificNotation);
+     roughQvalidator->setBottom(1.0);
+
+     QLabel *roughImpedanceQLabel= new QLabel(); 
+     roughImpedanceQLabel->setText(tr("Q Factor"));
+
+     roughImpedanceQLineEdit = new QLineEdit();
+     roughImpedanceQLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 8));
+     roughImpedanceQLineEdit->setValidator(roughQvalidator);		
+
+     QGridLayout *roughSurfLayout = new QGridLayout();
+     roughSurfLayout->addWidget(roughFreqLabel,0, 0);
+     roughSurfLayout->addWidget(roughFreqLineEdit,0, 1);
+     roughSurfLayout->addWidget(roughFitPolesNumLabel,0, 2);
+     roughSurfLayout->addWidget(roughFitPolesNumSB,0, 3);
+
+     roughSurfLayout->addWidget(roughLossFactorLabel,1, 0);
+     roughSurfLayout->addWidget(roughLossFactorLineEdit,1, 1);
+     roughSurfLayout->addWidget(roughImpedanceQLabel,1, 2);
+     roughSurfLayout->addWidget(roughImpedanceQLineEdit,1, 3);
+
+     sRoughGroupBox=new QGroupBox(tr("Rough Surface Model"));
+     sRoughGroupBox->setLayout(roughSurfLayout);
+     sRoughGroupBox->hide();
+
+//****************************************
+//   Surface Impedance Pole expansion
+
+     QString SRES=tr("<font face='arial'> Surf Resist (f=");
+     SRES.append(QString::fromUtf8("\u221E"));
+     SRES.append(tr("<font face='arial'>) [ohm]"));
+     QLabel *SresLabel= new QLabel();
+     SresLabel->setText(SRES);
      SresLineEdit = new QLineEdit();
-     SresLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 5));
+     SresLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
      SresLineEdit->setValidator(dvalidator);		
      SresLineEdit->resize(1,5);
+     QLabel *SindLabel= new QLabel(); 
+     QString SIND=tr("<font face='arial'> Surf Induct (f=");
+     SIND.append(QString::fromUtf8("\u221E"));
+     SIND.append(tr("<font face='arial'>) [ohm]"));
+     SindLabel->setText(SIND);
+     SindLineEdit = new QLineEdit();
+     SindLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
+     SindLineEdit->setValidator(dvalidator);		
+     SindLineEdit->resize(1,5);
 
-     QHBoxLayout *SresLayout = new QHBoxLayout();
-     SresLayout->addWidget(SresLabel);
-     SresLayout->addSpacing(20);
-     SresLayout->addWidget(SresLineEdit);
-     SresGroupBox=new QGroupBox();
-     SresGroupBox->setLayout(SresLayout);
+     QLabel *surfTermsNumLabel= new QLabel(); 
+     surfTermsNumLabel->setText(tr("Number of Terms:"));
+     surfTermsNumSB = new QSpinBox();
+     surfTermsNumSB->setValue(0);
+     surfTermsNumSB->setMinimum(0);
+
+     surfPolesRes = new QTableWidget(0, 4, this);
+     #if defined(QT5)
+      surfPolesRes->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+     #elif defined(QT4)
+      surfPolesRes->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+     #endif
+     surfPolesRes->setColumnWidth(0, 150);
+     surfPolesRes->setColumnWidth(1, 150);
+     surfPolesRes->setColumnWidth(2, 150);
+     surfPolesRes->setColumnWidth(3, 150);
+     QTableWidgetItem *sheader1 = new QTableWidgetItem(tr("Rs_i [ohm]"));
+     QTableWidgetItem *sheader2 = new QTableWidgetItem(tr("Ls_i [H]"));
+     QTableWidgetItem *sheader3 = new QTableWidgetItem(tr("Relax time [s]"));
+     QTableWidgetItem *sheader4 = new QTableWidgetItem(tr("Reson time [s]"));
+     surfPolesRes->setHorizontalHeaderItem(0, sheader1);
+     surfPolesRes->setHorizontalHeaderItem(1, sheader2);
+     surfPolesRes->setHorizontalHeaderItem(2, sheader3);
+     surfPolesRes->setHorizontalHeaderItem(3, sheader4);
+
+     QGridLayout *surfDispLayout = new QGridLayout();
+     surfDispLayout->addWidget(SresLabel,0, 0);
+     surfDispLayout->addWidget(SresLineEdit,0, 1);
+     surfDispLayout->addWidget(SindLabel,0, 2);
+     surfDispLayout->addWidget(SindLineEdit,0, 3);
+     surfDispLayout->addWidget(surfTermsNumLabel,1, 0);
+     surfDispLayout->addWidget(surfTermsNumSB, 1, 1);
+     surfDispLayout->addWidget(surfPolesRes, 2, 0, 1, 4);
+
+     sPolesGroupBox=new QGroupBox(tr("Surf Impedance Poles Expansion"));
+     sPolesGroupBox->setLayout(surfDispLayout);
+     sPolesGroupBox->hide();
 
 
 /*
@@ -1160,19 +1295,31 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
      connect(epsTermsNumSB, SIGNAL( valueChanged (int) ), this, SLOT(setEpsTermsNum(int)) );
      connect(muTermsNumSB,  SIGNAL( valueChanged (int) ), this, SLOT(setMuTermsNum(int)) );
+     connect(surfTermsNumSB,  SIGNAL( valueChanged (int) ), this, SLOT(setSurfTermsNum(int)) );
 
      setFocusPolicy(Qt::StrongFocus);
 
-     SresGroupBox->hide();
 //--------------------------------
      mainLayout = new QVBoxLayout(this);
      mainLayout->addWidget(nameGroupBox);
+     mainLayout->addWidget(typeGroupBox);
      mainLayout->addWidget(emGroupBox);
      mainLayout->addWidget(eDispGroupBox);
      mainLayout->addWidget(mDispGroupBox);
-     mainLayout->addWidget(SresGroupBox);
+     mainLayout->addWidget(sRoughGroupBox);
+     mainLayout->addWidget(sPolesGroupBox);
      mainLayout->addWidget(colorGroupBox);
      mainLayout->addWidget(buttonGroupBox);
+}
+
+void DefineMaterialDialog::updateETanDelta(int state)
+{
+   eTanDeltaLineEdit->setReadOnly(state!=Qt::Checked);
+}
+
+void DefineMaterialDialog::updateHTanDelta(int state)
+{
+   hTanDeltaLineEdit->setReadOnly(state!=Qt::Checked);
 }
 
 
@@ -1189,70 +1336,39 @@ colorFrame->setPalette(colorpal);
 
 void DefineMaterialDialog::updateDisp(int state)
 {
-     if(state==Qt::Checked){
-  	   eDispGroupBox->show();
-  	   mDispGroupBox->show();
-	   w=550; h=800;
-     }else if(state==Qt::Unchecked){
-	   eDispGroupBox->hide();
-	   mDispGroupBox->hide();
-           w=400; h=300;
+     w=400; h=300;
+     int sPolesShow=0;
+     int eDispShow=0;
+     int mDispShow=0;
+     int roughShow=0;
+     if(boundaryModel->checkState()==Qt::Checked){
+	   sPolesShow=1;
+	   w=600; h+=200;
      }
+     if(dispersive->checkState()==Qt::Checked){
+  	   eDispShow=1;
+  	   mDispShow=1;
+	   w=600; h+=400;
+     }
+     if(roughSurfModel->checkState()==Qt::Checked){
+	   roughShow=1;
+	   w=600; h+=100;
+     }
+
+     sPolesShow? sPolesGroupBox->show():sPolesGroupBox->hide();
+     eDispShow?  eDispGroupBox->show() :eDispGroupBox->hide();
+     mDispShow?  mDispGroupBox->show() :mDispGroupBox->hide();
+     roughShow?  sRoughGroupBox->show():sRoughGroupBox->hide();
+
      QApplication::processEvents();
      window()->resize(w,h);
 }
 
-void DefineMaterialDialog::updateTanDelta(const QString & text)
-{
- updateETanDelta(text);
- updateHTanDelta(text);
-}
-void DefineMaterialDialog::updateETanDelta(const QString & text)
-{
- if(eTanDelta->checkState()==Qt::Checked) setConsTanDeltaLorentz('e');
-}
-void DefineMaterialDialog::updateHTanDelta(const QString & text)
-{
- if(hTanDelta->checkState()==Qt::Checked) setConsTanDeltaLorentz('h');
-}
-
-void DefineMaterialDialog::updateETanDelta(int state)
-{
-   eTanDeltaLineEdit->setReadOnly(state!=Qt::Checked);
-   for (int i = 0; i <epsTermsNumSB->value(); ++i) for (int j = 0; j <3; ++j){
-       QLineEdit* le = (QLineEdit*) epsLorentz->cellWidget(i,j);
-       le->setReadOnly(state==Qt::Checked);
-   }
-   if(state==Qt::Checked) setConsTanDeltaLorentz('e');
-}
-
-void DefineMaterialDialog::updateHTanDelta(int state)
-{
-   hTanDeltaLineEdit->setReadOnly(state!=Qt::Checked);
-   for (int i = 0; i <muTermsNumSB->value(); ++i) for (int j = 0; j <3; ++j){
-       QLineEdit* le = (QLineEdit*) muLorentz->cellWidget(i,j);
-       le->setReadOnly(state==Qt::Checked);
-   }
-   if(state==Qt::Checked) setConsTanDeltaLorentz('h');
-}
-
-
-
-void DefineMaterialDialog::updateBoundaryCond(int state)
-{
-     if(state==Qt::Checked){
-           SresGroupBox->show();
-     }else if(state==Qt::Unchecked){
-           SresGroupBox->hide();
-     }
-     QApplication::processEvents();
-     window()->resize(w,h);
-}
 
 
 void DefineMaterialDialog::help()
 {
-    mainWindow->showDocumentation(QLatin1String("#2.3"));
+    documentation.showDocumentation(QLatin1String("#2.3"));
 /*
     QMessageBox msgBox;
     msgBox.setTextFormat(Qt::RichText);
@@ -1277,29 +1393,45 @@ void DefineMaterialDialog::getMaterialData(QString matname){
   if(!mat) return;
   nameLineEdit->setText(matname);
   epsLineEdit->setText(QString("%1").arg(mat->epsr, 0, 'f', 5));
-  sigmaLineEdit->setText(QString("%1").arg(mat->econductivity, 0, 'e', 5));
+  sigmaLineEdit->setText(QString("%1").arg(mat->econductivity, 0, 'e', 8));
   muLineEdit->setText(QString("%1").arg(mat->mur, 0, 'f', 5));
-  sigmamLineEdit->setText(QString("%1").arg(mat->hconductivity, 0, 'e', 5));
+  sigmamLineEdit->setText(QString("%1").arg(mat->hconductivity, 0, 'e', 8));
   epsTermsNumSB->setValue(mat->epsLorentz.n);
   muTermsNumSB->setValue(mat->muLorentz.n);
-  eTanDeltaLineEdit->setText(QString("%1").arg(mat->etandelta, 0, 'f', 5));
-  hTanDeltaLineEdit->setText(QString("%1").arg(mat->htandelta, 0, 'f', 5));
+  surfTermsNumSB->setValue(mat->surfPolesRes.n);
+  eTanDeltaLineEdit->setText(QString("%1").arg(mat->etandelta, 0, 'e', 8));
+  hTanDeltaLineEdit->setText(QString("%1").arg(mat->htandelta, 0, 'e', 8));
   eTanDelta->setCheckState(mat->etandelta>0 ? Qt::Checked : Qt::Unchecked);
   hTanDelta->setCheckState(mat->htandelta>0 ? Qt::Checked : Qt::Unchecked);
-  f1LineEdit->setText(QString("%1").arg(mat->freqBand[0]/prjData.freqUnit(), 0, 'f', 5));
-  f2LineEdit->setText(QString("%1").arg(mat->freqBand[1]/prjData.freqUnit(), 0, 'f', 5));
+  roughFreqLineEdit->setText(QString("%1").arg(mat->roughSurfFreq/prjData.freqUnit(), 0, 'f', 5));
+  dispersive->setCheckState(Qt::Unchecked);
   if(mat->epsLorentz.n>0 || mat->muLorentz.n>0){
      dispersive->setCheckState(Qt::Checked);
      for (int i = 0; i <mat->epsLorentz.n; ++i) for (int j = 0; j <3; ++j){
          QLineEdit* le = (QLineEdit*) epsLorentz->cellWidget(i,j);
-         le->setText(QString("%1").arg((&mat->epsLorentz[i])[j], 0, 'e', 5));
+         le->setText(QString("%1").arg((&mat->epsLorentz[i])[j], 0, 'e', 8));
      }
      for (int i = 0; i <mat->muLorentz.n; ++i) for (int j = 0; j <3; ++j){
          QLineEdit* le = (QLineEdit*) muLorentz->cellWidget(i,j);
-         le->setText(QString("%1").arg((&mat->epsLorentz[i])[j], 0, 'e', 5));
+         le->setText(QString("%1").arg((&mat->epsLorentz[i])[j], 0, 'e', 8));
      }
-  } else dispersive->setCheckState(Qt::Unchecked);
-  SresLineEdit->setText(QString("%1").arg(mat->Sresistance, 0, 'f', 5));
+  }
+  if(mat->surfPolesRes.n>0 || mat->Sresistance>1.e-30 || mat->Sinductance>1.e-30){
+     boundaryModel->setCheckState(Qt::Checked);
+     SresLineEdit->setText(QString("%1").arg(mat->Sresistance, 0, 'e', 8));
+     SindLineEdit->setText(QString("%1").arg(mat->Sinductance, 0, 'e', 8));
+     for (int i = 0; i <mat->surfPolesRes.n; ++i) for (int j = 0; j <4; ++j){
+         QLineEdit* le = (QLineEdit*) surfPolesRes->cellWidget(i,j);
+         le->setText(QString("%1").arg((&mat->surfPolesRes[i])[j], 0, 'e', 8));
+     }
+  }
+  if(mat->roughSurfFreq>1.e-10){
+     roughSurfModel->setCheckState(Qt::Checked);
+     roughFreqLineEdit->setText(QString("%1").arg(mat->roughSurfFreq/prjData.freqUnit(), 0, 'f', 5));
+     roughLossFactorLineEdit->setText(QString("%1").arg(mat->roughSurfLossFactor, 0, 'f', 8));
+     roughImpedanceQLineEdit->setText(QString("%1").arg(mat->roughSurfImpedanceQ, 0, 'f', 8));
+     roughFitPolesNumSB->setValue(mat->roughSurfFitPolesNum);
+  }
   color.setRgb(mat->color[0],mat->color[1],mat->color[2],mat->color[3] );
   colorpal=colorFrame->palette();
   QBrush brush=QBrush(color);
@@ -1311,12 +1443,142 @@ void DefineMaterialDialog::getMaterialData(QString matname){
 //  muNumLineEdit->setText(QString("%1").arg(mat->muLorentz.n));
 }
 
+extern char emcadPath[256];
+
+QString nativePath(QString path);
+void msleep(unsigned milliseconds);
+
+void DefineMaterialDialog::setSurfHurayLorentz(DB::Material* mat){
+   if(!mat) return;
+   if(mat->roughSurfFreq<1.e-10) return;
+   QString script=QString(emcadPath);
+   #ifdef WNT
+      script.chop(13);
+      QString ext=".exe";
+   #else
+      script.chop(9);
+      QString ext=".py";
+   #endif
+   script+="bin/roughSurfaceFit";
+   script=nativePath(script+ext);
+
+   QString circuitsDir=mainWorkPath+"/Data/Circuits";
+
+   QString sigma; sigma.setNum(mat->econductivity,'f',10);
+   QString mur;   mur.setNum(mat->mur,'f',10);
+   QString freq1; freq1.setNum(prjData.freqBand[0]*prjData.freqUnit(),'f',10);
+   QString freq2; freq2.setNum(prjData.freqBand[1]*prjData.freqUnit(),'f',10);
+   QString matFreq; matFreq.setNum(mat->roughSurfFreq,'f',10);
+   QString lossFactor; lossFactor.setNum(mat->roughSurfLossFactor,'f',5);
+   QString impedanceQ; impedanceQ.setNum(mat->roughSurfImpedanceQ,'f',5);
+   QString npoles;  npoles.setNum(mat->roughSurfFitPolesNum);
+   QString nfreq;   nfreq.setNum(10*mat->roughSurfFitPolesNum);
+
+   QProcess *proc=new QProcess;
+   proc->setWorkingDirectory(nativePath(circuitsDir));
+   QString app=script;
+   QStringList args;
+   args << QString("-sigma");
+   args << sigma;
+   args << QString("-mur");
+   args << mur;
+   args << QString("-freq");
+   args << freq1;
+   args << freq2;
+   args << nfreq;
+   args << QString("-matFreq");
+   args << matFreq;
+   args << QString("-lossFactor");
+   args << lossFactor;
+   args << QString("-impedanceQ");
+   args << impedanceQ;
+   args << QString("-npoles");
+   args << npoles;
+
+   QString Cmd=app+QString("  ")+args.join(QString(" "));
+   char * cmd=Cmd.toLatin1().data();
+   proc->start(app, args);
+   proc->waitForStarted();
+   proc->waitForFinished(-1);
+   msleep(100);
+
+   QString fname=circuitsDir+"/roughSurfaceFit.txt";
+   FILE *fin= fopen(nativePath(fname).toLatin1().data(), "r");
+   double Rinf, Linf;
+   fscanf(fin, "%lf %lf", &Rinf, &Linf);
+   int Npoles,NrealPoles;
+   fscanf(fin, "%d %d", &Npoles,&NrealPoles);
+   std::complex<double> poles[Npoles];
+   for(int i=0; i<Npoles; i++){
+	double d1,d2;
+	fscanf(fin, "%lf %lf", &d1, &d2);
+        poles[i]=std::complex<double>(d1,d2);
+   }
+   std::complex<double> residues[Npoles];
+   for(int i=0; i<Npoles; i++){
+	double d1,d2;
+	fscanf(fin, "%lf %lf", &d1, &d2);
+        residues[i]=std::complex<double>(d1,d2);
+   }
+   fclose(fin);
+
+
+   int NcomplPoles=Npoles-NrealPoles;
+   int Nterms=NrealPoles+(NcomplPoles)/2;
+   mat->surfPolesRes.resize(Nterms);
+   mat->Sresistance=Rinf;
+   mat->Sinductance=Linf;
+   double Ztol=1.e-8;
+   int n=0;
+   double omegaMax=2*M_PI*prjData.freqBand[1]*prjData.freqUnit();
+   for (int i=0; i <NrealPoles; ++i) {
+       int p=i;
+       double R=-std::real(residues[p])/std::real(poles[p]);
+       double L=0;
+       double omegar=-std::real(poles[p]);
+       double taur=2*M_PI/omegar;
+       double tau0=0;
+       if(fabs(R)<Ztol) continue;
+       (&mat->surfPolesRes[n])[0]=R;
+       (&mat->surfPolesRes[n])[1]=L;
+       (&mat->surfPolesRes[n])[2]=taur;
+       (&mat->surfPolesRes[n])[3]=tau0;
+       n++;
+   }
+   for (int i=0; i <NcomplPoles/2; i++) {
+       int p=NrealPoles+2*i;
+       double R=-2*std::real(residues[p]/poles[p]);      
+       double L=2*std::real(residues[p])/std::abs(poles[p]*poles[p]);
+       double omegar=-abs(poles[p]*poles[p])/(2*std::real(poles[p]));
+       double omega0=abs(poles[p]);
+       double taur=2*M_PI/omegar;
+       double tau0=2*M_PI/omega0;
+       if(fabs(R)<Ztol) R=0;
+       if(fabs(L*omegaMax)<Ztol) L=0;
+       if(fabs(R)<Ztol && fabs(L*omegaMax)<Ztol) continue;
+       (&mat->surfPolesRes[n])[0]=R;
+       (&mat->surfPolesRes[n])[1]=L;
+       (&mat->surfPolesRes[n])[2]=taur;
+       (&mat->surfPolesRes[n])[3]=tau0;
+       n++;
+   }
+   Nterms=n;
+   mat->surfPolesRes.resize(Nterms);
+   SresLineEdit->setText(QString("%1").arg(mat->Sresistance, 0, 'e', 8));
+   SindLineEdit->setText(QString("%1").arg(mat->Sinductance, 0, 'e', 8));
+   surfTermsNumSB->setValue(Nterms);
+   for (int i = 0; i <mat->surfPolesRes.n; ++i) for (int j = 0; j <4; ++j){
+       QLineEdit* le = (QLineEdit*) surfPolesRes->cellWidget(i,j);
+       le->setText(QString("%1").arg((&mat->surfPolesRes[i])[j], 0, 'e', 8));
+   }
+   if(!strcmp(theDefaultMaterial.name,mat->name)) mainWindow->recursiveAssignDefaultMaterial();
+}
 
 void DefineMaterialDialog::setConsTanDeltaLorentz(char type){
- int N=epsTermsNumSB->value();
+ int N=(type=='e') ? epsTermsNumSB->value() : muTermsNumSB->value();
  double freqBand[2];
- freqBand[0]=f1LineEdit->text().toDouble()*prjData.freqUnit();
- freqBand[1]=f2LineEdit->text().toDouble()*prjData.freqUnit();
+ freqBand[0]=prjData.freqBand[0]*prjData.freqUnit();
+ freqBand[1]=prjData.freqBand[1]*prjData.freqUnit();
  if(freqBand[1]<=0) return;
  if(freqBand[2]<=0) return;
  double tandelta;
@@ -1335,7 +1597,7 @@ void DefineMaterialDialog::setConsTanDeltaLorentz(char type){
     a+=(pow(k,i*nu-N/2)-tandelta*pow(k,i*(nu-1)))/(1+pow(k,2.0*i-N));
  }
  a=tandelta/a;
- auto lorentz=new double[N][3]();
+ double lorentz[N][3];
  for (int i = 0; i <N; ++i) {
      double term[3];
      lorentz[i][0] =a*r*pow(k,i*(nu-1));                      // depsr/dmur
@@ -1350,19 +1612,26 @@ void DefineMaterialDialog::setConsTanDeltaLorentz(char type){
       le->setText(QString("%1").arg(lorentz[i][j], 0, 'e', 5));
      }
  }
- delete[] lorentz;
 }
 
+
 void DefineMaterialDialog::setMaterialData(DB::Material* mat){
+  int etandeltaChanged=0;
+  int htandeltaChanged=0;
+  int roughModelChanged=0;
   mat->epsr=epsLineEdit->text().toDouble();
   mat->econductivity=sigmaLineEdit->text().toDouble();
   mat->mur=muLineEdit->text().toDouble();
   mat->hconductivity=sigmamLineEdit->text().toDouble();
-  mat->freqBand[0]=f1LineEdit->text().toDouble()*prjData.freqUnit();
-  mat->freqBand[1]=f2LineEdit->text().toDouble()*prjData.freqUnit();
   if(dispersive->checkState()==Qt::Checked){
-     mat->etandelta=eTanDelta->checkState()==Qt::Checked ? eTanDeltaLineEdit->text().toDouble() : 0.0;
-     mat->htandelta=hTanDelta->checkState()==Qt::Checked ? hTanDeltaLineEdit->text().toDouble() : 0.0;
+     double etandelta=eTanDeltaLineEdit->text().toDouble();
+     if(eTanDelta->checkState()==Qt::Checked && fabs(mat->etandelta-etandelta) >1.e-10){
+       mat->etandelta=etandelta; etandeltaChanged=1;
+     }
+     double htandelta=hTanDeltaLineEdit->text().toDouble();
+     if(hTanDelta->checkState()==Qt::Checked && fabs(mat->htandelta-htandelta) >1.e-10){
+       mat->htandelta=htandelta; htandeltaChanged=1;
+     }
      mat->epsLorentz.resize(epsTermsNumSB->value());
      for (int i = 0; i <mat->epsLorentz.n; ++i) for (int j = 0; j <3; ++j){
          QLineEdit* le = (QLineEdit*) epsLorentz->cellWidget(i,j);
@@ -1373,12 +1642,39 @@ void DefineMaterialDialog::setMaterialData(DB::Material* mat){
          QLineEdit* le = (QLineEdit*) muLorentz->cellWidget(i,j);
 	 (&mat->muLorentz[i])[j]=le->text().toDouble();
      }
-  } else{
-    mat->etandelta=0.0;
-    mat->htandelta=0.0;
-  }
-  mat->Sresistance=SresLineEdit->text().toDouble();
+   }
+   if(roughSurfModel->checkState()==Qt::Checked){
+     if(fabs(mat->roughSurfFreq-roughFreqLineEdit->text().toDouble()*prjData.freqUnit()) >1.e-10){
+      mat->roughSurfFreq=roughFreqLineEdit->text().toDouble()*prjData.freqUnit();
+      roughModelChanged=1;
+     }
+     if(fabs(mat->roughSurfLossFactor-roughLossFactorLineEdit->text().toDouble()) > 1.e-10){
+      mat->roughSurfLossFactor=roughLossFactorLineEdit->text().toDouble();
+      roughModelChanged=1;
+     }
+     if(fabs(mat->roughSurfImpedanceQ-roughImpedanceQLineEdit->text().toDouble()) > 1.e-10){
+      mat->roughSurfImpedanceQ=roughImpedanceQLineEdit->text().toDouble();
+      roughModelChanged=1;
+     }
+     if((mat->roughSurfFitPolesNum!=roughFitPolesNumSB->value())){
+      mat->roughSurfFitPolesNum=roughFitPolesNumSB->value();
+      roughModelChanged=1;
+     }
+   } 
+   if(boundaryModel->checkState()==Qt::Checked){
+     mat->Sresistance=SresLineEdit->text().toDouble();
+     mat->Sinductance=SindLineEdit->text().toDouble();
+     mat->surfPolesRes.resize(surfTermsNumSB->value());
+     for (int i = 0; i <mat->surfPolesRes.n; ++i) for (int j = 0; j <4; ++j){
+         QLineEdit* le = (QLineEdit*) surfPolesRes->cellWidget(i,j);
+	 (&mat->surfPolesRes[i])[j]=le->text().toDouble();
+     }
+  } 
   color.getRgb(&mat->color[0],&mat->color[1],&mat->color[2],&mat->color[3]);
+
+  if(eTanDelta->checkState()==Qt::Checked && etandeltaChanged) setConsTanDeltaLorentz('e');
+  if(hTanDelta->checkState()==Qt::Checked && htandeltaChanged) setConsTanDeltaLorentz('h');
+  if(roughSurfModel->checkState()==Qt::Checked) setSurfHurayLorentz(mat);
 }
 
 void DefineMaterialDialog::set(){
@@ -1420,7 +1716,6 @@ void DefineMaterialDialog::setEpsTermsNum(int n){
               le->setReadOnly(eTanDelta->checkState()==Qt::Checked);
               epsLorentz->setCellWidget(i,j,le);
 	}
-	if(eTanDelta->checkState()==Qt::Checked) setConsTanDeltaLorentz('e');
 }
 void DefineMaterialDialog::setMuTermsNum(int n){
 	muLorentz->setRowCount(n);
@@ -1430,7 +1725,15 @@ void DefineMaterialDialog::setMuTermsNum(int n){
               le->setReadOnly(hTanDelta->checkState()==Qt::Checked);
               muLorentz->setCellWidget(i,j,le);
 	}
-	if(hTanDelta->checkState()==Qt::Checked) setConsTanDeltaLorentz('h');
+}
+void DefineMaterialDialog::setSurfTermsNum(int n){
+	surfPolesRes->setRowCount(n);
+        for (int i = 0; i <n; ++i) for (int j = 0; j <4; ++j){
+              QLineEdit* le = new QLineEdit();
+	      le->setValidator(dvalidator);
+              le->setReadOnly(eTanDelta->checkState()==Qt::Checked);
+              surfPolesRes->setCellWidget(i,j,le);
+	}
 }
 
 
@@ -1449,7 +1752,7 @@ void TreeWidget::setCompPropertiesDialog()
 
 QString genericName(QString name);
 
-void ImportPartPropertiesDialog::getVolumeData(QString volname){
+void ImportCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
   DB::Volume* vol = mainOCAF->EmP.FindVolume(volname.toLatin1().data());
   if(!vol) return;
@@ -1460,23 +1763,23 @@ void ImportPartPropertiesDialog::getVolumeData(QString volname){
   fdialog->setNameFilter(filters);
 }
 
-void ImportPartPropertiesDialog::help()
+void ImportCompPropertiesDialog::help()
 {
-    mainWindow->showDocumentation(QLatin1String("#2.5.1"));
+    documentation.showDocumentation(QLatin1String("#2.5.1"));
 }
 
-QSize  ImportPartPropertiesDialog::sizeHint() const
+QSize  ImportCompPropertiesDialog::sizeHint() const
 {
      QSize size = QSize(w,h);
      return size;
 }
 
-ImportPartPropertiesDialog::ImportPartPropertiesDialog(TreeWidget *parent) : QDialog(parent)
+ImportCompPropertiesDialog::ImportCompPropertiesDialog(TreeWidget *parent) : QDialog(parent)
 {
      setModal(0);
-     setWindowTitle(tr("Import Part Properties"));
+     setWindowTitle(tr("Import Component Properties"));
 //
-     QLabel *nameLabel= new QLabel(); nameLabel->setText(tr("Part Name"));
+     QLabel *nameLabel= new QLabel(); nameLabel->setText(tr("Component Name"));
      nameLineEdit = new QLineEdit();
      nameLineEdit->setReadOnly(true);
      w=800; h=800;
@@ -1494,8 +1797,9 @@ ImportPartPropertiesDialog::ImportPartPropertiesDialog(TreeWidget *parent) : QDi
 //   input file:
 
      fdialog= new QFileDialog(this);
+     fdialog->setOption(QFileDialog::DontUseNativeDialog);
      fdialog->setDirectory(QDir::currentPath());
-     fdialog->setNameFilter(tr("EMCAD (*.emc)"));
+     fdialog->setNameFilter("*.emc");
      fdialog->setViewMode(QFileDialog::List);
      QString	fileName;
 /*     if(fdialog->exec()){
@@ -1536,7 +1840,7 @@ ImportPartPropertiesDialog::ImportPartPropertiesDialog(TreeWidget *parent) : QDi
 }
 
 
-void ImportPartPropertiesDialog::importEMC(const QString & fileName){
+void ImportCompPropertiesDialog::importEMC(const QString & fileName){
   QString partName=nameLineEdit->text();
   mainWindow->importEMC(partName, fileName);
   prjData.workStatus.materialChanged=true;
@@ -1552,9 +1856,9 @@ void TreeWidget::atImportedPartProperties()
 }
 
 
-void TreeWidget::importPartPropertiesDialog()
+void TreeWidget::importCompPropertiesDialog()
 {    
-   ImportPartPropertiesDialog *dialog=new ImportPartPropertiesDialog(this);
+   ImportCompPropertiesDialog *dialog=new ImportCompPropertiesDialog(this);
    dialog->treeWidget=this;
    dialog->getVolumeData(currentPartName);
    connect( this, SIGNAL( sendPartName( QString) ),\
@@ -1581,24 +1885,41 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
    DB::Material* mat;
    TDF_Label label;
    item->getLabel(label);
+   currentSubComp=0;
    if(!label.IsNull()) if(mainOCAF->isPart(label)){
        currentPart=item;
        getLabelName(label, currentPartName);
        emit sendPartName(currentPartName);
+       mainWindow->openCompAction->setEnabled(true);
+       mainWindow->openCompAction_->setEnabled(true);
        return;
    } 
    if(!label.IsNull()) if(mainOCAF->isLayer(label)){ 
        currentLayer=item;
        getLabelName(label, currentLayerName);
        emit sendLayerName(currentLayerName);
+       mainWindow->openCompAction->setEnabled(false);
+       mainWindow->openCompAction_->setEnabled(false);
        return;
    }
    if(item->getMaterial(mat)){
       currentMaterial=item;
       currentMaterialName=mat->name;
       emit sendMaterialName(currentMaterialName);
+       mainWindow->openCompAction->setEnabled(false);
+       mainWindow->openCompAction_->setEnabled(false);
       return;
    }
+   if(!label.IsNull())
+    if(mainOCAF->isPartition()){
+      QString labelName;
+      getLabelName(label, labelName);
+      currentSubComp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(labelName.toLatin1().data()) : 0;
+      mainWindow->openCompAction->setEnabled(currentSubComp>0);
+      return;
+   }
+   mainWindow->openCompAction->setEnabled(false);
+   mainWindow->openCompAction_->setEnabled(false);
 }
 
 void TreeWidget::assignLayerDialog()
@@ -1609,7 +1930,7 @@ void TreeWidget::assignLayerDialog()
 //                                          tr(""), &ok);
 //     if(!ok) return;
      AssignDialog *dialog=new AssignDialog(this);
-     dialog->label1->setText(tr("Solid:"));
+     dialog->label1->setText(tr("Object:"));
      dialog->label2->setText(tr("Layer:"));
      connect( this, SIGNAL( sendLayerName( QString) ),\
 	      dialog->lineEdit2, SLOT( setText( QString ) )  );
@@ -1622,7 +1943,7 @@ void TreeWidget::assignLayerDialog()
 void TreeWidget::assignMaterialDialog()
 {    
      AssignDialog *dialog=new AssignDialog(this);
-     dialog->label1->setText(tr("Solid:"));
+     dialog->label1->setText(tr("Object:"));
      dialog->label2->setText(tr("Material:"));
      dialog->lineEdit1->setText(currentPartName);
      connect( this, SIGNAL( sendPartName( QString) ),\
@@ -1634,6 +1955,20 @@ void TreeWidget::assignMaterialDialog()
      dialog->show();
 //     setFocusProxy(dialog);
 }
+
+void TreeWidget::setDefaultBCdialog()
+{    
+     SetDefaultBCDialog *dialog=new SetDefaultBCDialog(this);
+     dialog->label2->setText(tr("BC:"));
+     dialog->lineEdit2->setText(mainOCAF->EmP.defaultBC);
+     connect( this, SIGNAL( sendMaterialName( QString) ),\
+	      dialog->lineEdit2, SLOT( setText( QString ) )  );
+     connect(dialog, SIGNAL(assigned()), this, SLOT(setDefaultBC()));
+     dialog->setWindowTitle(tr("Assign Default Boundary Condition"));
+     dialog->show();
+//     setFocusProxy(dialog);
+}
+
 
 
 ShowWgModesDialog::ShowWgModesDialog(TreeWidget *parent) : QDialog(parent)
@@ -1661,10 +1996,10 @@ void  TreeWidget::showWgModes()
      ShowWgModesDialog *dialog=new ShowWgModesDialog(this);
      QString title="Port Modes of "+currentPartName;
      dialog->setWindowTitle(title);
-     for (int mt = 0; mt<3; ++mt)  {
+     for (int mt = 0; mt<3; ++mt)  while(!feof(in)) {
 	 int Nm;
 	 char tag[5];
-	 fscanf(in, "%d %s", &Nm, tag);
+	 if(fscanf(in, "%d %s", &Nm, tag)<2) break;
 	 bool isTEM=!strcmp(tag,"TEM");
 	 QString line;
 	 if(isTEM)  line="\n"+QString(tag)+" MODES IMPEDANCES:";
@@ -1689,9 +2024,9 @@ void  TreeWidget::showWgModes()
 
 
 
-void TreeWidget::openSubAssembly()
+void TreeWidget::openComp()
 {    
-     mainWindow->openPart();
+     mainWindow->openComp();
 }
 
 void TreeWidget::displaySelectedMesh()
@@ -1752,7 +2087,7 @@ void TreeWidget::clear()
 void TreeWidget::unhighlightCurrentItem (){
   TDF_Label label;
   if(getLabel(currentItem,label)) mainOCAF->highlightLabel(label, false);
-  (mainOCC->getContext())->Select(); //to clear also the Viewer Selection
+  (mainOCC->getContext())->Select(true); //to clear also the Viewer Selection
 }
 
 
@@ -1839,23 +2174,27 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
 //    menu.addAction(aboutAction);
     TDF_Label selectedLabel;
     if(lastClicked)  lastClicked->getLabel(selectedLabel);
-    if(!selectedLabel.IsNull()) if(mainOCAF->EmP.assemblyType!=PARTITION) 
+    if(!selectedLabel.IsNull()) if(!mainOCAF->subComp) 
     { 
-      QString qtext;
-      getLabelName(selectedLabel, qtext);
-      char *ctext=qtext.toLatin1().data();
-      DB::Volume *vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
+      QString selectedLabelName;
+      getLabelName(selectedLabel, selectedLabelName);
+      char *ctext=selectedLabelName.toLatin1().data();
+      DB::Volume *vol=mainOCAF->EmP.FindVolume(selectedLabelName.toLatin1().data());
       if(vol){ 
 	 if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==INTERFACE) {
-	     if (vol->type==DIELECTRIC || vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE) menu.addAction(assignMaterialAction);
+	     if (vol->type==DIELECTRIC || vol->type==BOUNDARYCOND) menu.addAction(assignMaterialAction);
              if (vol->type==WAVEGUIDE) menu.addAction(showWgModesAction);
              menu.addAction(setCompPropertiesAction);
          } else { 
-	     menu.addAction(importPartPropertiesAction);
+	     menu.addAction(importCompPropertiesAction);
 	 }
       }
-      if(showlayers)                        menu.addAction(assignLayerAction);
-      if(mainOCAF->EmP.assemblyType==NET)   menu.addAction(openSubAssAction);
+      if(showlayers)      menu.addAction(assignLayerAction);
+      if(mainOCAF->isPart(selectedLabel)) menu.addAction(openCompAction);
+      else if(mainOCAF->isPartition()){
+       int currentSubCmp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(selectedLabelName.toLatin1().data()) : 0;
+       if(currentSubCmp>0) menu.addAction(openCompAction);
+      }
       menu.exec(event->globalPos());
     }
 //    menu.addAction(showMeshAction);

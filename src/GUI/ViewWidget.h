@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,33 +36,21 @@
 
 #define ValZWMin 1 /** For elastic bean selection */
 
-#if defined(WNT)
- #include <QWidget>
-#elif defined(QT54)
- #include <QOpenGLWidget>
-#elif defined(QT4)
- #include <QGLWidget>
-#endif
-
-
+#include <QWidget>
 #include <QRubberBand>
 
 #include <AIS_InteractiveContext.hxx>
 #include <V3d_View.hxx>
 
 #include <Quantity_Factor.hxx>
+#include <Quantity_Length.hxx>
 #include <Aspect_GridType.hxx>
 #include <V3d_Coordinate.hxx>
 #include <Aspect_GridDrawMode.hxx>
 #include <TDF_Label.hxx>
+#include <QtGlobal>
 
-#if defined(WNT)
- class ViewWidget: public QWidget
-#elif defined(QT54)
- class ViewWidget: public QOpenGLWidget
-#elif defined(QT4)
- class ViewWidget: public QGLWidget
-#endif
+class ViewWidget: public QWidget
 {
 	Q_OBJECT
 
@@ -96,11 +84,11 @@ public:
 */
 public:
 
-	ViewWidget(QWidget *parent = 0, Qt::WindowFlags wflags = 0);
+	ViewWidget(QWidget *parent = 0);
         ~ViewWidget();
 
-	void createViewer();
-	void createView();
+	void InitViewer();
+	void InitView();
 
 	Handle_AIS_InteractiveContext	getContext( void ) { return myContext; }
 	Handle_V3d_View			getView( void )    { return myView; }
@@ -117,7 +105,6 @@ public:
 
 
 signals:
-	void initialized();
 	void selectionChanged();
 	void selectedLabelChanged();
 	void mouseMoved   ( V3d_Coordinate X, V3d_Coordinate Y, V3d_Coordinate Z );
@@ -177,6 +164,7 @@ private: // members
         TDF_Label theSelectedShape;
 
 	Handle_V3d_View                 myView;
+        bool myFirstView; //!< flag to Init view by the first resize/paint call
 	Handle_V3d_Viewer               myViewer;
 	Handle_AIS_InteractiveContext   myContext;
 

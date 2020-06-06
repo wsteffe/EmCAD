@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,15 +24,17 @@
 #include <map>
 #include <set>
 #include <vector>
-#include <array>
 
 
 enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
 #ifndef _SELECTEDCIRCUIT_H_
 #define _SELECTEDCIRCUIT_H_
-enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2};
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IDEALCIRCUITMAPPEDTZ=3, IMPORTEDRESPONSE=4};
 #endif
-enum FilterMapMethod {SYMMETRICFILTER=0, TUNECIRCUIT=1};
+enum FilterMapSource {ZEROPOLES=0, IMPORTED_RESPONSE=1, IMPORTED_CIRCUIT=2};
+enum FilterTuneMethod {FIXEDGRADIENT=0, POWELL=1};
+enum FilterTopology   {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
+enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1};
 
 
 struct StringList
@@ -69,7 +71,7 @@ class WorkStatus
 };
 
 
-typedef std::set< std::array<int, 2> >::iterator ZeroPoleCurvesIterator;
+typedef std::set< std::pair<int, int> >::iterator ZeroPoleCurvesIterator;
 
 struct ProjectData
 {
@@ -77,30 +79,64 @@ struct ProjectData
 // Project Global variables:
     QString  projectName;
     QString  mainAssName;
+    QString  varFilePath;
+    QString  s2pFilePath;
     int    network;
     char   lengthUnitName[5];
     int    freqUnitE;    //10 power of Hz;
     int    meshPerWavelen;
+    int    meshPerCircle;
+    int    meshRefineMaxNum;
+    double meshMinEnergyRatio;
+    int    localMeshing3d;
     double freqBand[2];
+    double refFreqBand[2];
     double anaFreqBand[2];
     double zpFreqBand[2];
-    double zpImFreqBand[2];
-    std::set< std::array<int,2>> zeropoleCurves;
+    double zpWinRatio;
+    double mapFreqBand[2];
+    double cutoffRatio;
+    std::set< std::pair<int,int> > zeropoleCurves;
     int    MORFreqNum;
+    int    KrylovOrder;
     int    anaFreqNum;
     int    anaMORFreqNum;
     int    autoFreqResponse;
     int    autoMappedFreqResponse;
+    int    autoDesignWithMappedTz;
+    int    autoIdealMappedTzFreqResponse;
     int    autoZeropole;
     int    autoMappedZeropole;
     int    autoFilterMapping;
 
     double filterPassBand[2];
     double filterRetLoss;
+    double filterOutbandRetLoss;
     double filterQfactor;
+    int    filterInductiveSkin;
+    double filterPortImpedance;
     int    filterOrder;
-    int    filtermapMethod;
-    int    filtermapItermax;
+    int    symmFilterResponse;
+    int    predistortedFilter;
+    int    predistFilterOptim;
+    double predistFilterOptimRL;
+    double predistFilterOptimILpp;
+    int    predistFilterOptimIterMax;
+    double predistFilterOptimTrustR;
+    int    idealFilterType;
+    int    idealFilterTopology;
+    int    filtermapSymmetric;
+    int    filtermapSource;
+    double filtermapQfactor;
+    int    filterTuneMethod;
+    int    filterTuneItermax;
+    int    filterTuneRecomputeError;
+    int    filterTuneRecomputeJaco;
+    int    filterSymmetricTuning;
+    int    filterTuneOnlyJt;
+    double filterTuneXtol;
+    double filterTuneTrustR;
+    double filterTuneGradDx;
     std::vector<double> filterZeros;
 
     StringList components;

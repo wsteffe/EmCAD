@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -110,15 +110,17 @@ class TreeWidget : public QTreeWidget
       void setLastEntered(QTreeWidgetItem * qitem, int column ) {lastEntered=(TreeWidgetItem*) qitem;}
       void about();
       void setCurrentItem(QTreeWidgetItem * qitem, int column );
-      void openSubAssembly();
+      void openComp();
       void atImportedPartProperties();
       void assignLayer();
       void assignMaterial();
+      void setDefaultBC();
       void assignLayerDialog();
       void setCompPropertiesDialog();
-      void importPartPropertiesDialog();
+      void importCompPropertiesDialog();
       void defineMaterialDialog();
       void assignMaterialDialog();
+      void setDefaultBCdialog();
       void showWgModes();
       void displaySelectedMesh();
       void hideSelectedMesh();
@@ -151,15 +153,16 @@ class TreeWidget : public QTreeWidget
       QString     currentPartName;
       QString     currentMaterialName;
       QString     currentLayerName;
+      int         currentSubComp;
 
    private:
       QAction *aboutAction;
-      QAction *openSubAssAction;
+      QAction *openCompAction;
       QAction *assignLayerAction;
       QAction *assignMaterialAction;
       QAction *showWgModesAction;
       QAction *setCompPropertiesAction;
-      QAction *importPartPropertiesAction;
+      QAction *importCompPropertiesAction;
       QAction *showMeshAction;
       QAction *hideMeshAction;
 
@@ -225,6 +228,30 @@ class AssignDialog : public QDialog
 
 };
 
+
+class SetDefaultBCDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     SetDefaultBCDialog(TreeWidget *parent = 0);
+
+ signals:
+     void assigned();
+
+ public slots:
+//    void accept();
+      void assign(){emit assigned();}
+
+ public:
+      QLabel  *label2;
+      QLineEdit *lineEdit2;
+      QPushButton *assignButton;
+      QPushButton *closeButton;
+      QHBoxLayout *layout;
+
+};
+
 class SetCompPropertiesDialog : public QDialog
 {
  Q_OBJECT
@@ -268,11 +295,11 @@ private:
 
 };
 
-class ImportPartPropertiesDialog : public QDialog
+class ImportCompPropertiesDialog : public QDialog
 {
  Q_OBJECT
  public:
-     ImportPartPropertiesDialog(TreeWidget *parent = 0);
+     ImportCompPropertiesDialog(TreeWidget *parent = 0);
  
  public slots:
      void importEMC(const QString & name);
@@ -309,27 +336,25 @@ class DefineMaterialDialog : public QDialog
       void setMaterialData(DB::Material* mat);
       void setEpsTermsNum(int n);
       void setMuTermsNum(int n);
+      void setSurfTermsNum(int n);
       void setColorDialog();
       void updateETanDelta(int state);
       void updateHTanDelta(int state);
-      void updateTanDelta(const QString & text);
-      void updateETanDelta(const QString & text);
-      void updateHTanDelta(const QString & text);
       void updateDisp(int state);
-      void updateBoundaryCond(int state);
 
  public:
 
       int w,h;
       QDoubleValidator *dvalidator;
+      QDoubleValidator *roughQvalidator;
 
       TreeWidget *treeWidget;
 
-      QGroupBox *nameGroupBox;
       QGroupBox *emGroupBox;
       QGroupBox *eDispGroupBox;
       QGroupBox *mDispGroupBox;
-      QGroupBox *SresGroupBox;
+      QGroupBox *sRoughGroupBox;
+      QGroupBox *sPolesGroupBox;
       QGroupBox *colorGroupBox;
       QGroupBox *buttonGroupBox;
       QVBoxLayout *mainLayout;
@@ -338,14 +363,20 @@ class DefineMaterialDialog : public QDialog
       QLineEdit  *epsLineEdit;
       QSpinBox   *epsTermsNumSB;
       QSpinBox   *muTermsNumSB;
+      QSpinBox   *surfTermsNumSB;
       QLineEdit  *sigmaLineEdit;
       QLineEdit  *muLineEdit;
       QLineEdit  *sigmamLineEdit;
+      QLineEdit  *roughFreqLineEdit;
+      QLineEdit  *roughLossFactorLineEdit;
+      QLineEdit  *roughImpedanceQLineEdit;
+      QSpinBox   *roughFitPolesNumSB;
 
       QCheckBox  *dispersive;
       QCheckBox  *eTanDelta;
       QCheckBox  *hTanDelta;
-      QCheckBox  *boundaryCond;
+      QCheckBox  *boundaryModel;
+      QCheckBox  *roughSurfModel;
       QFrame    *colorFrame;
       QPalette    colorpal;
 //      QLineEdit  *epsNumLineEdit;
@@ -358,18 +389,19 @@ class DefineMaterialDialog : public QDialog
       QLineEdit  *muFrLineEdit;
       QLineEdit  *muF0LineEdit;
 */
-      QLineEdit *f1LineEdit;
-      QLineEdit *f2LineEdit;
       QLineEdit *eTanDeltaLineEdit;
       QLineEdit *hTanDeltaLineEdit;
 
       QTableWidget *epsLorentz;
       QTableWidget *muLorentz;
+      QTableWidget *surfPolesRes;
       QColor color;
 
       QLineEdit  *SresLineEdit;
+      QLineEdit  *SindLineEdit;
 
       void setConsTanDeltaLorentz(char type);
+      void setSurfHurayLorentz(DB::Material* mat);
 
 };
 

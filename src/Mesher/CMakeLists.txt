@@ -1,7 +1,7 @@
 # This file is part of the EmCAD program which constitutes the client
 # side of an electromagnetic modeler delivered as a cloud based service.
 # 
-# Copyright (C) 2015  Walter Steffe`
+# Copyright (C) 2015-2020  Walter Steffe`
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -17,17 +17,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+if(${useGmshTetrahedra} EQUAL 1)
+  add_definitions(-DGMSH3D)
+endif()
+
+
 include_directories (
 	${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
-	${OCC_INCLUDES}
-	${GMSH_INCLUDES}
 	.
 	../DataBase
-	../CAD)
+	../CAD
+	${OCC_INCLUDES}
+	${GMSH_INCLUDES}
+	)
 
 set ( Mesher_HDRS
 	mesher.h
 	ocaf.h
+	tetmesher.h
+	meshutils.h
+	tetgen.h
 	)
 
 
@@ -48,7 +57,7 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   if(MSVC)
      target_link_libraries ( 
 	emcad_mesh
-	Mesher CAD DataBase GEOMAlgo
+	Mesher CAD DataBase
 	optimized ${GMSH_LIBRARY}
 	debug ${GMSH_LIBRARY_DEB}
 	optimized ${LAPACK_LIBRARIES}
@@ -64,7 +73,7 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   elseif(MINGW)
      target_link_libraries ( 
 	emcad_mesh 
-	Mesher CAD DataBase GEOMAlgo
+	Mesher CAD DataBase
 	${GMSH_LIBRARY}
 	${LAPACK_LIBRARIES}
 	${GMSH_DEPS_LIBRARIES}
@@ -73,11 +82,12 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
 	${GMSH_EXTERNAL_LIBRARIES}
 	${MINGW_LIBRARIES}
 	${Boost_LIBRARIES}
+	gmp
       )
   else(MSVC)
      target_link_libraries ( 
 	emcad_mesh 
-	Mesher CAD DataBase GEOMAlgo
+	Mesher CAD DataBase
 	${GMSH_LIBRARY}
 	${LAPACK_LIBRARIES}
 	${GMSH_DEPS_LIBRARIES}

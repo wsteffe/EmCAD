@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,6 +42,12 @@
 
 #include <set>
 
+
+#ifndef _SELECTEDCIRCUIT_H_
+#define _SELECTEDCIRCUIT_H_
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IDEALCIRCUITMAPPEDTZ=3, IMPORTEDRESPONSE=4};
+#endif
+
 class QAction;
 class QLabel;
 class QMenu;
@@ -62,7 +68,7 @@ int ReadFile(std::string fname, std::map<std::string, std::string> *m);
 
 int WriteFile(std::string fname, std::map<std::string, std::string> *m);
 
-enum modelerTask { CIRCUITS, PORTS, FREQANA, ZEROPOLE, FILTERDESIGN, FILTERMAP, UPDATE};
+enum modelerTask { CIRCUITS, PORTS, FREQANA, ZEROPOLE, FILTERDESIGN, FILTERDESIGNMAPPEDTXZ, FILTERMAP, UPDATE};
 
 
 class Modeler : public QThread
@@ -77,8 +83,8 @@ class Modeler : public QThread
     std::map<std::string, int> modeledWgComponent;
     void run();
     void modelize(std::string compNameStr);
-    void aws_getmodel(std::string compNameStr);
-    void aws_getp(std::string compNameStr);
+    void api_get_component_results(modelerTask operation, std::string compNameStr);
+    void server_secrets(int put);
     void analize_ports(std::string compNameStr);
     void initModeledComponent();
     void initModeledComponentWg();
@@ -86,8 +92,9 @@ class Modeler : public QThread
     void freqAna();
     void zeropoleAna();
     void filterMap();
-    void filterDesign();
+    void filterDesign(bool mappedTxZeros=false);
     QObject *receiver;
+  
   signals:
     void modelerEnd();
     void freqAnaEnd();
@@ -108,22 +115,26 @@ class Preprocessor : public QThread
 {
   Q_OBJECT
   public:
-    Preprocessor(){extproc=true; failure=0; }
+    Preprocessor(){extproc=true; decompose_failure=0; mesh_failure=0;}
     bool extproc;
-    bool failure;
+    bool decompose_failure;
+    bool mesh_failure;
+    bool failure(){return decompose_failure || mesh_failure; }
     int requiredOperation;
     QString  currentWorkPath;
     QString  assName;
     void run();
-    void imprintSubass(QString dir, QString assName, bool toplevel, bool upwards);
+    int maxDepth(QString dir, int l=0);
+    void upImprintSubass(QString dir, QString assName, int l=0);
+    void downImprintSubass(QString dir, QString assName, int l=0);
     void splitComponents(QString dir, QString assName);
     void setMaterialData(QString dir);
     void setMaterialData();
     void updateMaterialData();
     void setSuperFaces(QString dir);
     void decompose();
-    void meshModel(QString dir, QString assName, int assType);
-    void mesh(QString dir, QString assName, int level);
+    void meshModel(QString dir, QString assPath, int assType);
+    void mesh(QString dir, QString assPath, int level, int l=0);
     void mesh();
     void worksaveComponents(QString dir);
     void worksaveAllComponents();
@@ -134,15 +145,10 @@ class Preprocessor : public QThread
     void mesherEnd();
     void sendLogMessageSignal(const QString &);
     void sendStatusMessageSignal(const QString);
-  private slots:
-    void setFailure(){failure=1;};
   private:
     void sendLogMessage ( const QString & text) {emit sendLogMessageSignal(text);}
     void sendStatusMessage ( const QString & text) {emit sendStatusMessageSignal(text);}
 };
-
-
-
 
 
 class EMClogger : public QPlainTextEdit
@@ -153,23 +159,97 @@ public:
  QSize sizeHint() const;
 };
 
+class FilterTuner: public QThread
+{
+ Q_OBJECT
+
+ public:
+      FilterTuner();
+      void run();
+      int check();
+      bool failure;
+      QObject *receiver;
+
+  signals:
+    void tunerEnd();
+
+  signals:
+    void sendLogMessageSignal(const QString &);
+    void sendStatusMessageSignal(const QString);
+  private:
+    void sendLogMessage ( const QString & text) {emit sendLogMessageSignal(text);}
+    void sendStatusMessage ( const QString & text) {emit sendStatusMessageSignal(text);}
+
+};
+
+class FilterTunerDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     FilterTunerDialog(FilterTuner *t, QWidget * p=0, Qt::WindowFlags f=0 );
+     void init();
+
+ public slots:
+      void set();
+      void start();
+      void help();
+      void atMethodChanged(int);
+      void atFilterTuneEnd();
+      void varFileChooser();
+//      void updateParType(int i);
+
+ public:
+      FilterTuner *tuner;
+      EMClogger  *logger;
+      QWidget * parent;
+      QComboBox  *tuneMethodChooser;
+      QPushButton *setButton;
+      QPushButton *startButton;
+      QPushButton *closeButton;
+      QLineEdit *varFileLineEdit;
+      QLineEdit *maxIterLineEdit;
+      QLineEdit *xTolLineEdit;
+      QLineEdit *trustRadiusLineEdit;
+      QLineEdit *gradDxLineEdit;
+      QVBoxLayout *mainLayout;
+      QCheckBox *recomputeError;
+      QCheckBox *recomputeJaco;
+      void run();
+      int check();
+      bool failure;
+
+};
+
+
+
+
+
 struct RunningStatus
 {
   bool projectIsOpen;
   bool runningDecomposer;
   bool runningModeler;
   bool runningMesher;
+  bool runningTuner;
+};
+
+class Documentation : public QObject
+{
+    Q_OBJECT
+    public:
+    void showDocumentation(const QString sectionID);
+    public slots:
+    void showDocumentation();
 };
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
     public:
-
     MainWindow();
     ~MainWindow();
 
-    void showDocumentation(const QString sectionID);
     void setProjectTitle();
 //    bool isComponent;
 //    bool isNetwork;
@@ -182,9 +262,9 @@ class MainWindow : public QMainWindow
     void importEMC(QString partName, QString fileName);
 
 public slots:
-    void openPart();
-    void workopen(QString wkprojpath);
-    void updatePartitionVolumes();
+    void openComp();
+    void openComp_();
+    void workopen(QString wkprojpath, int subcomp=0);
     void updateModels();
     void closeDoc();
 
@@ -192,6 +272,7 @@ public slots:
     void statusMessage (const QString aMessage);
     void atDecomposerEnd();
     void atModelerEnd();
+    void atTunerEnd();
     void atMesherEnd();
     void updateAllWidgets();
     void updateAccountCredit();
@@ -201,29 +282,39 @@ private slots:
     void meshView();
     void responsePlot();
     void ideal_responsePlot();
+    void imported_responsePlot();
+    void ideal_mappedTZ_responsePlot();
     void mapped_responsePlot();
     void zeropolePlot();
     void ideal_zeropolePlot();
     void mapped_zeropolePlot();
     void accountStatus();
-    void openParent();
+    void closeComp();
     void closeAll();
     void importGeometry();
     void importMaterial();
-    void importIdealCircuit();
+    void importIdealFilterCircuit();
+    void importIdealFilterPar();
+    void importFilterCircuit();
+    void importFilterPar();
+    void importS2P();
     void exportMaterial();
     void exportSpice();
+    void exportIdealResponse();
+    void exportFreqResponse();
+    void exportMappedResponse();
     void exportMappedJC();
     void exportMappedSpice();
     void exportIdealJC();
     void exportIdealSpice();
+    void exportIdealMappedTzJC();
+    void exportIdealMappedTzSpice();
+    void exportFilterTunePar();
     void importDataDir();
     void importADSprj();
     void saveAs();
     void save();
     void newProject();
-    void setDefaultPECbc();
-    void setDefaultPMCbc();
     void setGlobals();
     void setConfig();
     void print();
@@ -236,12 +327,13 @@ private slots:
     void freqAna();
     void zeropoleAna();
     void filterMap();
+    void filterTune();
     void filterDesign();
+    void filterDesignWithTzMap();
     void aboutQt();
     void xyzPosition (V3d_Coordinate X, 
        	              V3d_Coordinate Y, 
 		      V3d_Coordinate Z);
-    void showDocumentation();
 
 
 
@@ -249,11 +341,15 @@ signals:
     void enterPressed();
 
 
+public:
+    void worksaveAllComponents();
+    void recursiveAssignDefaultMaterial();
+
 private:
     void openAllDoc(QString dir);
     bool worksave();
     void worksaveComponents(QString dir, bool toplevel);
-    void worksaveAllComponents();
+    void recursiveAssignDefaultMaterial(QString dir, bool toplevel);
     void splitComponents(QString dir);
     void meshModel(QString dir, QString assName, int assType);
     void createActions();
@@ -268,7 +364,13 @@ private:
     void setEMC(QString prjDir, QString inDir);
 
     Modeler modeler;
+    FilterTuner tuner;
+    public:
 
+    QAction *openCompAction;
+    QAction *openCompAction_;
+    
+    private:
     QProcess *emhelp;
 //    QProcess *gmshview;
 
@@ -295,27 +397,34 @@ private:
     QMenu *editLayersMenu;
 
     QAction *openAction;
-    QAction *openParentAction;
-    QAction *openSubAssAction;
+    QAction *closeCompAction;
     QAction *closeAction;
     QAction *importGeometryAction;
     QAction *importMaterialAction;
-    QAction *importIdealCircuitAction;
+    QAction *importIdealFilterCircuitAction;
+    QAction *importIdealFilterParAction;
+    QAction *importFilterCircuitAction;
+    QAction *importFilterParAction;
+    QAction *importS2P_Action;
     QAction *importDataDirAction;
     QAction *importADSprjAction;
     QAction *exportMaterialAction;
     QAction *exportSpiceAction;
+    QAction *exportIdealResponseAction;
+    QAction *exportFreqResponseAction;
+    QAction *exportMappedResponseAction;
     QAction *exportMappedJCAction;
     QAction *exportMappedSpiceAction;
     QAction *exportIdealJCAction;
     QAction *exportIdealSpiceAction;
+    QAction *exportJC_IdealMappedTZ_Action;
+    QAction *exportSpice_IdealMappedTZ_Action;
+    QAction *exportFilterTuneParAction;
     QAction *newProjectAction;
     QActionGroup *assemblyTypeActionGroup;
-    QActionGroup *defaultBC_ActionGroup;
     QAction *assemblyTypeAction;
     QAction *componentTypeAction;
-    QAction *defaultPEC_Action;
-    QAction *defaultPMC_Action;
+    QAction *defaultBC_Action;
 
     QAction *saveAsAction;
     QAction *saveAction;
@@ -337,6 +446,8 @@ private:
     QAction *responsePlotAction;
     QAction *mapped_responsePlotAction;
     QAction *ideal_responsePlotAction;
+    QAction *imported_responsePlotAction;
+    QAction *ideal_mappedTZ_responsePlotAction;
     QAction *zeropolePlotAction;
     QAction *mapped_zeropolePlotAction;
     QAction *ideal_zeropolePlotAction;
@@ -345,7 +456,9 @@ private:
     QAction *freqAnaAction;
     QAction *zeropoleAnaAction;
     QAction *filterMapAction;
+    QAction *filterTuneAction;
     QAction *filterDesignAction;
+    QAction *filterDesignWithTzMapAction;
     QAction *updateAction;
 
     QAction *fitAction;
@@ -390,14 +503,13 @@ private:
    QAction *addPointAction;
 	
 
-   Handle(TPrsStd_AISViewer) viewer;
+   Handle(TPrsStd_AISViewer) theAISViewer;
    TreeWidget *treeWidget;
    TreeWidgetItem *treeRoot;
 
 
    // Docking widgets
    QDockWidget *geometry;
-   EMClogger  *logger;
    QDockWidget *logs;
    QLabel *statusLabel;
 
@@ -405,6 +517,7 @@ private:
    //--------------------------------------------    
 
    public:
+   EMClogger  *logger;
    Preprocessor  preproc;
 
    private:
@@ -422,7 +535,12 @@ private:
    MwPlot *mapped_zeroPolePlot;
    MwPlot *ideal_freqRespPlot;
    MwPlot *ideal_zeroPolePlot;
+   MwPlot *ideal_mappedTZ_freqRespPlot;
+   MwPlot *imported_freqRespPlot;
 
+   public:
+
+   private:
    void keyPressEvent(QKeyEvent *event) {
         switch (event->key()) {
         case Qt::Key_Enter:
@@ -471,10 +589,18 @@ class SetGlobalsDialog : public QDialog
       MainWindow * mainw;
       RTextComboBox* lUnitChooser;
       RTextComboBox* fUnitChooser;
+      QCheckBox  *localMeshing3dCB;
       QLineEdit *meshSizeLineEdit;
+      QLineEdit *meshPerCircleLineEdit;
+      QLineEdit *meshRefineMaxNumLineEdit;
+      QLineEdit *meshMinEnergyRatioLineEdit;
       QLineEdit *MORFreqNumLineEdit;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
+      QLineEdit *rf1LineEdit;
+      QLineEdit *rf2LineEdit;
+      QLineEdit *cutoffLineEdit;
+      QLineEdit *krylovLineEdit;
 };
 
 class ConfigDialog : public QDialog
@@ -528,7 +654,7 @@ class FreqAnaDialog : public QDialog
       void start();
       void help();
       void atFreqAnaEnd();
-      void updateAutomatic(int circi);
+      void onCircuitChanged(int circi);
 //      void updateParType(int i);
 
  public:
@@ -544,6 +670,7 @@ class FreqAnaDialog : public QDialog
       QLineEdit *f2LineEdit;
       QVBoxLayout *mainLayout;
       QCheckBox *automatic;
+      SelectedCircuit selectedCircuit;
 };
 
 class ZeroPoleDialog : public QDialog
@@ -561,13 +688,14 @@ class ZeroPoleDialog : public QDialog
       void help();
       void atZeroPoleEnd();
       void setSijCurveNum(int n);
-      void updateAutomatic(int circi);
+      void onCircuitChanged(int circi);
 
  public:
       MainWindow * mainw;
       QVBoxLayout *mainLayout;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
+      QLineEdit *winRatioLineEdit;
       QSpinBox   *SijCurveNumSB;
       QTableWidget *zeroCurvesTW;
       QComboBox  *circuitChooser;
@@ -575,8 +703,8 @@ class ZeroPoleDialog : public QDialog
       QPushButton *startButton;
       QPushButton *closeButton;
       QCheckBox *automatic;
+      SelectedCircuit selectedCircuit;
  private:
-      QDoubleValidator *freqvalidator;
 
 
 };
@@ -593,15 +721,34 @@ class FilterDesignDialog : public QDialog
       void set();
       void start();
       void help();
+      void atFilterOrder(int n);
       void setTxZerosNum(int n);
       void atFilterDesignEnd();
+      void updateSymmResponse(int state);
+      void updatePredistOptim(int state);
+      void updatePredistorted(int state);
 //      void updateParType(int i);
 
  public:
       QDoubleValidator *freqvalidator;
+      QComboBox  *filterTypeChooser;
+      QComboBox  *filterTopologyChooser;
+      QCheckBox *symmResponseCB;
+      QCheckBox *symmFilterCB;
+      QCheckBox *predistortedFilterCB;
+      QCheckBox *predistFilterOptimCB;
+      QCheckBox *symmetricTuningCB;
+      QCheckBox *tuneOnlyJtCB;
       QSpinBox *filterOrderSB;
       QLineEdit *retLossLineEdit;
+      QLineEdit *outRetLossLineEdit;
+      QLineEdit *RLossOptimLineEdit;
+      QLineEdit *ILppOptimLineEdit;
+      QLineEdit *optimIterMaxLineEdit;
+      QLineEdit *optimTrustRLineEdit;
+      QLineEdit *portImpedanceLineEdit;
       QLineEdit *QfactorLineEdit;
+      QCheckBox *inductiveSkinCB;
       QSpinBox   *txZerosNumSB;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
@@ -612,6 +759,8 @@ class FilterDesignDialog : public QDialog
       QPushButton *closeButton;
       QLineEdit *iterNumLineEdit;
       QVBoxLayout *mainLayout;
+      QGroupBox *predistOptimGroupBox;
+      QGroupBox *qfactorGroupBox;
 };
 
 
@@ -627,16 +776,47 @@ class FilterMapDialog : public QDialog
       void start();
       void help();
       void atMethodChanged(int);
+      void atSourceChanged(int);
       void atFilterMapEnd();
 //      void updateParType(int i);
 
  public:
       MainWindow * mainw;
-      QComboBox  *mapMethodChooser;
+      QCheckBox  *symmetricFilter;
+      QComboBox  *mapSourceChooser;
+      QLineEdit *f1LineEdit;
+      QLineEdit *f2LineEdit;
+      QLineEdit *QfactorLineEdit;
+      QGroupBox *freqGroupBox;
+      QGroupBox *qfactorGroupBox;
       QPushButton *setButton;
       QPushButton *startButton;
       QPushButton *closeButton;
-      QLineEdit *iterNumLineEdit;
+      QVBoxLayout *mainLayout;
+      QCheckBox *automatic;
+};
+
+
+
+class FilterDesignWithTzMapDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     FilterDesignWithTzMapDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+
+ public slots:
+      void set();
+      void start();
+      void help();
+      void atFilterDesignWithTzMapEnd();
+//      void updateParType(int i);
+
+ public:
+      MainWindow * mainw;
+      QPushButton *setButton;
+      QPushButton *startButton;
+      QPushButton *closeButton;
       QVBoxLayout *mainLayout;
       QCheckBox *automatic;
 };

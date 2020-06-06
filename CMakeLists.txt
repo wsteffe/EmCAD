@@ -1,7 +1,7 @@
 # This file is part of the EmCAD program which constitutes the client
 # side of an electromagnetic modeler delivered as a cloud based service.
 # 
-# Copyright (C) 2015  Walter Steffe`
+# Copyright (C) 2015-2020  Walter Steffe`
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,42 +20,44 @@
 project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
-set(EmCAD_VERSION_MINOR 3)
-set(EmCAD_VERSION_PATCH 2)
+set(EmCAD_VERSION_MINOR 4)
+set(EmCAD_VERSION_PATCH 0)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
 
-cmake_minimum_required( VERSION 2.6 )
+cmake_minimum_required( VERSION 2.8.11 )
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
+
+
+
 add_definitions ( -Wall )
 
 set(internalPython 0)
 set(useSymbolicLinks 0)
+set(useGmshTetrahedra 1)
 
-if(${useSymbolicLinks} EQUAL 1)
-  add_definitions(-DUSE_SYMBOLIC_LINKS)
-endif()
 
-set(CASROOT $ENV{CASROOT} CACHE type FILEPATH)
+#if(MINGW)
+#  add_definitions(-DUSEBOOSTLOCK)
+#endif()
+
+set(CASROOT $ENV{CASROOT} CACHE STRING FILEPATH)
 if(NOT ${CASROOT} STREQUAL "")
  string(REGEX REPLACE "\\\\" "\\\\\\\\" CASROOT  ${CASROOT})
 endif(NOT ${CASROOT} STREQUAL "")
 
-set(OCE_INST_DIR $ENV{OCE_INST_DIR} CACHE type FILEPATH)
-if(NOT ${OCE_INST_DIR} STREQUAL "")
- string(REGEX REPLACE "\\\\" "\\\\\\\\" OCE_INST_DIR  ${OCE_INST_DIR})
-endif(NOT ${OCE_INST_DIR} STREQUAL "")
 
-set(GMSHLIB $ENV{GMSHLIB} CACHE type FILEPATH)
+set(GMSHLIB $ENV{GMSHLIB} CACHE STRING FILEPATH)
 if(NOT ${GMSHLIB} STREQUAL "")
  string(REGEX REPLACE "\\\\" "\\\\\\\\" GMSHLIB  ${GMSHLIB})
 endif(NOT ${GMSHLIB} STREQUAL "")
 
+set (CMAKE_CXX_STANDARD 11)
 
 if(MSVC)
  SET(CMAKE_CXX_FLAGS  ${CMAKE_CXX_FLAGS} "/openmp")
@@ -63,10 +65,11 @@ if(MSVC)
  add_definitions(-DWIN32)
  add_definitions(-DYY_NO_UNISTD_H)
 else(MSVC)
- SET(CMAKE_CXX_FLAGS           "-std=c++11 -fopenmp")
+ SET(CMAKE_CXX_FLAGS           "-fpermissive  -fopenmp")
  SET(CMAKE_CXX_FLAGS_RELEASE   "-O2")
  SET(CMAKE_CXX_FLAGS_DEBUG     "-O0  -g")
  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+ SET(CMAKE_Fortran_FLAGS "-fcray-pointer")
 endif(MSVC)
 
 if(MSVC)
@@ -106,28 +109,24 @@ if(SIZEOF_VOID_P EQUAL 8)
 endif(SIZEOF_VOID_P EQUAL 8)
 
 
+find_package(PythonLibs 3 REQUIRED)
 if(WIN32)
-if(${internalPython} EQUAL 1)
- find_library(PYTHON_LIBRARIES NAMES python34 PATHS C:/Python34/libs )
- find_file(PYTHON_DLL NAMES python3.dll PATHS C:/Python34/DLLS )
-endif()
- find_path (PYTHON_INCLUDE_PATH Python.h C:/Python34/include)
-else(WIN32)
- if(${internalPython} EQUAL 1)
-  find_library(PYTHON_LIBRARIES python34)
- endif()
+find_file(PYTHON_DLL NAMES libpython3.8.dll)
+endif(WIN32)
+message(STATUS "PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
+message(STATUS "PYTHON_DLL = ${PYTHON_DLL}")
+
+if(LINUX OR MSYS)
  find_package(BISON)
  find_package(FLEX)
 # find_package (PythonLibs 2.7 REQUIRED)
-endif(WIN32)
-
+endif(LINUX OR MSYS)
 
 
 #find Boost
 set(Boost_USE_MULTITHREAD ON)
 set(Boost_USE_STATIC_LIBS ON)
 if(WIN32)
- set(BOOST_ROOT "C:/boost_1_58_0")
  add_definitions( -DBOOST_ALL_NO_LIB )
 endif(WIN32)
 #add_definitions(-DBOOST_FILESYSTEM_VERSION=2)
@@ -149,40 +148,42 @@ if(MSVC)
 	"C:/occ3dparties/gl2ps-1.3.8-vc12-64-deb/lib/gl2ps.dll"
   )
   set(OCC_Resources
-    ${CASROOT}/src/StdResource/XCAF
-    ${CASROOT}/src/StdResource/Plugin
+    ${CASROOT}/src/StdResource
+    ${CASROOT}/src/XSTEPResource
+    ${CASROOT}/src/XmlOcafResource
   )
 endif(MSVC)
 
 if(MINGW)
   set(OCC_3PARTIES_LIBRARIES_REQUIRED
-	"libFreeImage"
-	"libFreeImagePlus"
-        "libfreetype"
+	"FreeImage"
+	"FreeImagePlus"
+        "freetype"
 	"libgl2ps"
   )
   set(OCC_3PARTIES_DLLS)
   set(OCC_3PARTIES_DLLS_DEB)
   foreach(LIB_REQ ${OCC_3PARTIES_LIBRARIES_REQUIRED})
     set(DLL "DLL-NOTFOUND")
-    find_file(DLL ${LIB_REQ}.dll)
-    if(NOT ${DLL} STREQUAL "LIB-NOTFOUND")
+    find_file(DLL ${LIB_REQ}.dll PATH_SUFFIXES bin)
+    if(NOT ${DLL} STREQUAL "DLL-NOTFOUND")
        list(APPEND OCC_3PARTIES_DLLS ${DLL})
-    else(NOT ${DLL} STREQUAL "LIB-NOTFOUND")
+    else(NOT ${DLL} STREQUAL "DLL-NOTFOUND")
        message(SEND_ERROR ${LIB_REQ}.dll " not Found")
-    endif(NOT ${DLL} STREQUAL "LIB-NOTFOUND")
+    endif(NOT ${DLL} STREQUAL "DLL-NOTFOUND")
     find_library(LIB ${LIB_REQ})
-    if(NOT ${LIB} STREQUAL "LIB-NOTFOUND")
+    if(NOT ${LIB} STREQUAL "DLL-NOTFOUND")
        list(APPEND OCC_3PARTIES_LIBRARIES ${LIB})
-    else(NOT ${LIB} STREQUAL "LIB-NOTFOUND")
+    else(NOT ${LIB} STREQUAL "DLL-NOTFOUND")
        message(SEND_ERROR "library ${LIB_REQ} not Found")
-    endif(NOT ${LIB} STREQUAL "LIB-NOTFOUND")
+    endif(NOT ${LIB} STREQUAL "DLL-NOTFOUND")
     unset(DLL CACHE)
     unset(LIB CACHE)
   endforeach(LIB_REQ ${OCC_3PARTIES_LIBRARIES_REQUIRED})
   set(OCC_Resources
-    ${CASROOT}/src/StdResource/XCAF
-    ${CASROOT}/src/StdResource/Plugin
+    ${CASROOT}/src/StdResource
+    ${CASROOT}/src/XSTEPResource
+    ${CASROOT}/src/XmlOcafResource
   )
 endif(MINGW)
 
@@ -198,8 +199,6 @@ if(WIN32 OR MINGW)
     set(OCC_SYS_NAME ${CMAKE_SYSTEM_NAME})
   endif(WIN32 OR MINGW)
   set(OCC_LIBRARIES_REQUIRED
-	   FWOSPlugin
-	   PTKernel
 	   TKBin
 	   TKBinL
 	   TKBinXCAF
@@ -223,15 +222,11 @@ if(WIN32 OR MINGW)
 	   TKMeshVS
 	   TKOffset
 	   TKOpenGl
-	   TKPCAF
-	   TKPLCAF
 	   TKPrim
-	   TKPShape
 	   TKService
-           TKShapeSchema
   	   TKShHealing
-	   TKStdLSchema
-	   TKStdSchema
+  	   TKStd
+	   TKStdL
 	   TKSTEP
            TKSTEP209
 	   TKSTEPAttr
@@ -241,7 +236,7 @@ if(WIN32 OR MINGW)
 	   TKV3d
 	   TKVRML
 	   TKXCAF
-	   TKXCAFSchema
+	   TKVCAF
 	   TKXDEIGES
 	   TKXDESTEP
 	   TKXml
@@ -260,7 +255,7 @@ if(WIN32 OR MINGW)
       find_library(OCC_LIB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/vc12/lib  ${CASROOT}/${OCC_SYS_NAME}/vc10/lib NO_DEFAULT_PATH)
       find_library(OCC_LIB_DEB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/vc12/libd  ${CASROOT}/${OCC_SYS_NAME}/vc10/libd NO_DEFAULT_PATH)
     elseif(MINGW)
-      find_library(OCC_LIB ${OCC} PATHS ${OCE_INST_DIR}/${OCC_SYS_NAME} PATH_SUFFIXES lib bin)
+      find_library(OCC_LIB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/gcc PATH_SUFFIXES lib bin)
     else(MSVC)
       find_library(OCC_LIB ${OCC} PATH_SUFFIXES oce/lib)
       if(${OCC_LIB} STREQUAL "OCC_LIB-NOTFOUND")
@@ -293,7 +288,7 @@ if(WIN32 OR MINGW)
     if(MSVC)
      find_file(OCC_DLL ${OCC}.dll PATHS ${CASROOT}/${OCC_SYS_NAME}/vc12/bin  ${CASROOT}/${OCC_SYS_NAME}/vc10/bin NO_DEFAULT_PATH)
     elseif(MINGW)
-     find_file(OCC_DLL lib${OCC}.dll PATHS ${OCE_INST_DIR}/${OCC_SYS_NAME} PATH_SUFFIXES bin)
+     find_file(OCC_DLL lib${OCC}.dll PATHS ${CASROOT}/${OCC_SYS_NAME}/gcc PATH_SUFFIXES bin)
     endif()
     if(NOT ${OCC_DLL} STREQUAL "OCC_DLL-NOTFOUND")
       list(APPEND OCC_DLLS ${OCC_DLL})
@@ -317,21 +312,18 @@ if(WIN32 OR MINGW)
   set(OCC_INCLUDES)
   if(NUM_OCC_LIBRARIES EQUAL NUM_OCC_LIBRARIES_REQUIRED)
   if(MINGW)
-    find_path(OCC_INC "BRep_Tool.hxx" PATHS ${OCE_INST_DIR} PATH_SUFFIXES include/oce)
+    find_path(OCC_INC "BRep_Tool.hxx" PATHS ${CASROOT} PATH_SUFFIXES include/opencascade)
   elseif(MSVC)
-    find_path(OCC_INC "BRep_Tool.hxx" PATHS ${CASROOT} PATH_SUFFIXES inc)
+    find_path(OCC_INC "BRep_Tool.hxx" PATHS ${CASROOT} PATH_SUFFIXES include/opencascade)
   else(MINGW)
-    find_path(OCC_INC "BRep_Tool.hxx" PATH_SUFFIXES include/oce)
-    if(${OCC_INC} STREQUAL "OCC_INC-NOTFOUND")
-     find_path(OCC_INC "BRep_Tool.hxx" PATHS ${CASROOT} PATH_SUFFIXES inc)
-    endif()
+    find_path(OCC_INC "BRep_Tool.hxx" PATHS ${CASROOT} PATH_SUFFIXES include/opencascade)
   endif(MINGW)
     if(OCC_INC)
       list(APPEND OCC_INCLUDES ${OCC_INC})
       set_config_option(HAVE_OCC "OpenCascade")
-      ADD_DEFINITIONS(-DCSFDB)
+      #      ADD_DEFINITIONS(-DCSFDB)
       if(HAVE_64BIT_SIZE_T)
-        add_definitions(-D_OCC67)
+        add_definitions(-D_OCC72)
       endif(HAVE_64BIT_SIZE_T)
       find_path(OCC_CONFIG_H "config.h" PATHS ${OCC_INC} ${CASROOT} NO_DEFAULT_PATH)
       if(${OCC_CONFIG_H} STREQUAL "OCC_CONFIG_H-NOTFOUND")
@@ -340,12 +332,6 @@ if(WIN32 OR MINGW)
         list(APPEND OCC_INCLUDES ${OCC_CONFIG_H})
 	ADD_DEFINITIONS(-DHAVE_OCC_CONFIG_H)
       endif(${OCC_CONFIG_H} STREQUAL "OCC_CONFIG_H-NOTFOUND")
-      find_path(OCE_CONFIG_H "oce-config.h" PATHS ${OCC_INC})
-      if(${OCE_CONFIG_H} STREQUAL "OCE_CONFIG_H-NOTFOUND")
-	add_definitions(-DHAVE_NO_OCE_CONFIG_H)
-      else(${OCE_CONFIG_H} STREQUAL "OCE_CONFIG_H-NOTFOUND")
-	ADD_DEFINITIONS(-DHAVE_OCE_CONFIG_H)
-      endif(${OCE_CONFIG_H} STREQUAL "OCE_CONFIG_H-NOTFOUND")
     endif(OCC_INC)
   endif(NUM_OCC_LIBRARIES EQUAL NUM_OCC_LIBRARIES_REQUIRED)
 
@@ -356,22 +342,22 @@ if(WIN32 OR MINGW)
   set(GMSH_LIBRARY "GMSH_LIBRARY-NOTFOUND")
   set(GMSH_LIBRARY_DEB "GMSH_LIBRARY_DEB-NOTFOUND")
   if(MSVC)
-    find_library(GMSH_LIBRARY_DEB Gmshd PATHS ${GMSHLIB} PATH_SUFFIXES Debug)
-    find_library(GMSH_LIBRARY Gmsh PATHS ${GMSHLIB} PATH_SUFFIXES Release)
+    find_library(GMSH_LIBRARY_DEB gmshd PATHS ${GMSHLIB} PATH_SUFFIXES Debug)
+    find_library(GMSH_LIBRARY gmsh PATHS ${GMSHLIB} PATH_SUFFIXES Release)
   elseif(MINGW)
-    find_library(GMSH_LIBRARY libGmsh PATHS ${GMSHLIB} )
+    find_library(GMSH_LIBRARY libgmsh PATHS ${GMSHLIB} PATH_SUFFIXES lib)
   else(MSVC)
-    find_library(GMSH_LIBRARY Gmsh PATHS ${GMSHLIB} )
+    find_library(GMSH_LIBRARY gmsh PATHS ${GMSHLIB} )
   endif(MSVC)
   if(${GMSH_LIBRARY} STREQUAL "GMSH_LIBRARY-NOTFOUND")
     message( SEND_ERROR "GMSH_LIBRARY NOTFOUND" )
   else(${GMSH_LIBRARY} STREQUAL "GMSH_LIBRARY-NOTFOUND")
     message(STATUS "Found " ${GMSH_LIBRARY})
-    find_path(GMSH_INCLUDE  NAMES "GmshConfig.h" PATHS $ENV{GMSHINC})
+    find_path(GMSH_INCLUDE  NAMES "gmsh.h" PATHS ${GMSHLIB}/include)
     if(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
-      message( SEND_ERROR " GmshConfig.h NOTFOUND")
+      message( SEND_ERROR " gmsh.h NOTFOUND")
     else(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
-      message(STATUS " Found GmshConfig.h")
+      message(STATUS " Found gmsh.h")
       list(APPEND GMSH_INCLUDES ${GMSH_INCLUDE})
     endif(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
     find_path(GMSH_SOURCES "Geo/GModel.h" PATHS $ENV{GMSHSOURCES})
@@ -396,7 +382,8 @@ if(WIN32 OR MINGW)
     set(MINGW_LINK_FLAGS "-static-libgcc -static-libstdc++")
   endif(CYGWIN OR MINGW)
 
-  if(${GMSH_LIBRARY_DEB} STREQUAL "GMSH_LIBRARY_DEB-NOTFOUND")
+
+  if(MSVC AND ${GMSH_LIBRARY_DEB} STREQUAL "GMSH_LIBRARY_DEB-NOTFOUND")
     message( STATUS "DEBUG VERSION OF GMSH_LIBRARY NOTFOUND" )
     set(GMSH_LIBRARY_DEB ${GMSH_LIBRARY})
   endif()
@@ -404,7 +391,7 @@ if(WIN32 OR MINGW)
 
   if(MINGW)
   set(MINGW_DLLS_REQUIRED
-    libgfortran-3.dll
+    libgfortran-5.dll
     libgomp-1.dll
     libgcc_s_seh-1.dll
     libstdc++-6.dll
@@ -435,28 +422,19 @@ if(WIN32 OR MINGW)
     set(LAPACK_LIBS_REQUIRED_DEB lapackd blasd libf2cd)
     find_all_libraries(LAPACK_LIBRARIES LAPACK_LIBS_REQUIRED "" "")
     find_all_libraries(LAPACK_LIBRARIES_DEB LAPACK_LIBS_REQUIRED_DEB "" "")
-    message(STATUS "Warning: LAPACK_LIBRARIES=" ${LAPACK_LIBRARIES})
-    message(STATUS "Warning: (LAPACK_LIBS_REQUIRED=" ${LAPACK_LIBS_REQUIRED})
     if(LAPACK_LIBRARIES)
        set_config_option(HAVE_BLAS "cblas with libf2c")
        set_config_option(HAVE_LAPACK "clapack with libf2c)")
     endif(LAPACK_LIBRARIES)
+    message(STATUS "LAPACK_LIBRARIES=" ${LAPACK_LIBRARIES})
   elseif(MINGW)
     set(LAPACK_LIBS_REQUIRED lapack blas)
     find_all_libraries(LAPACK_LIBRARIES LAPACK_LIBS_REQUIRED "" "")
-    set(GFORTRAN_LIB "GFORTRAN_LIB-NOTFOUND")
-    find_library(GFORTRAN_LIB "gfortran-3")
-    if(GFORTRAN_LIB STREQUAL "GFORTRAN_LIB-NOTFOUND")
-      message(SEND_ERROR " gfortran library NOT FOUND")
-    else()
-      list(APPEND MINGW_LIBRARIES ${GFORTRAN_LIB})
-    endif()
-    message(STATUS "Warning: LAPACK_LIBRARIES=" ${LAPACK_LIBRARIES})
-    message(STATUS "Warning: (LAPACK_LIBS_REQUIRED=" ${LAPACK_LIBS_REQUIRED})
     if(LAPACK_LIBRARIES)
         set_config_option(HAVE_BLAS "blas")
         set_config_option(HAVE_LAPACK "lapack)")
     endif(LAPACK_LIBRARIES)
+    message(STATUS "LAPACK_LIBRARIES=" ${LAPACK_LIBRARIES})
   elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # on Linux try to find ATLAS without a Fortran compiler,
     # because cmake ships with a buggy FindBLAS e.g. on Ubuntu Lucid
@@ -534,12 +512,14 @@ endif(WIN32)
 if(WIN32)
  set(QT_VERSION 5)
 else()
- set(QT_VERSION 4)
+ set(QT_VERSION 5)
 endif()
 
 if(${QT_VERSION} EQUAL 4)
   find_package (Qt4 COMPONENTS QtCore QtGui QtOpenGL REQUIRED )
-  ADD_DEFINITIONS(-DQT4)
+  message(STATUS "QT_QTCORE_LIBRARY=" ${QT_QTCORE_LIBRARY})
+  message(STATUS "QT_QTGUI_LIBRARY=" ${QT_QTGUI_LIBRARY})
+  message(STATUS "QT_QTOPENGL_LIBRARY=" ${QT_QTOPENGL_LIBRARY})
 endif(${QT_VERSION} EQUAL 4)
 
 if(${QT_VERSION} EQUAL 5) 
@@ -548,28 +528,42 @@ if(${QT_VERSION} EQUAL 5)
  find_package(Qt5Gui REQUIRED)
  find_package(Qt5OpenGL REQUIRED)
  find_package(Qt5PrintSupport REQUIRED)
- get_target_property(QtCore_location_Release Qt5::Core LOCATION_Release)
- get_target_property(QtCore_location_Debug Qt5::Core LOCATION_Debug)
- get_target_property(QtGui_location_Release Qt5::Gui LOCATION_Release)
- get_target_property(QtGui_location_Debug Qt5::Gui LOCATION_Debug)
- get_target_property(QtWidgets_location_Release Qt5::Widgets LOCATION_Release)
- get_target_property(QtWidgets_location_Debug Qt5::Widgets LOCATION_Debug)
+ get_target_property(Qt5Core_location_Release Qt5::Core LOCATION_Release)
+ get_target_property(Qt5Core_location_Debug Qt5::Core LOCATION_Debug)
+ get_target_property(Qt5Gui_location_Release Qt5::Gui LOCATION_Release)
+ get_target_property(Qt5Gui_location_Debug Qt5::Gui LOCATION_Debug)
+ get_target_property(Qt5Widgets_location_Release Qt5::Widgets LOCATION_Release)
+ get_target_property(Qt5Widgets_location_Debug Qt5::Widgets LOCATION_Debug)
  get_target_property(Qt5OpenGL_location_Release Qt5::OpenGL LOCATION_Release)
  get_target_property(Qt5OpenGL_location_Debug Qt5::OpenGL LOCATION_Debug)
- get_target_property(QtPrintSupport_location_Release Qt5::PrintSupport LOCATION_Release)
- get_target_property(QtPrintSupport_location_Debug Qt5::PrintSupport LOCATION_Debug)
+ get_target_property(Qt5PrintSupport_location_Release Qt5::PrintSupport LOCATION_Release)
+ get_target_property(Qt5PrintSupport_location_Debug Qt5::PrintSupport LOCATION_Debug)
+
+ message(STATUS "QWT_LIBRARY=" ${QWT_LIBRARY})
+ message(STATUS "Qt5Core_location_Release=" ${Qt5Core_location_Release})
+ message(STATUS "Qt5Core_location_Debug=" ${Qt5Core_location_Debug})
+ message(STATUS "Qt5Widgets_location_Release=" ${Qt5Widgets_location_Release})
+ message(STATUS "Qt5Widgets_location_Debug=" ${Qt5Widgets_location_Debug})
+ message(STATUS "Qt5Gui_location_Release=" ${Qt5Gui_location_Release})
+ message(STATUS "Qt5Gui_location_Debug=" ${Qt5Gui_location_Debug})
+ message(STATUS "Qt5OpenGL_location_Release=" ${Qt5OpenGL_location_Release})
+ message(STATUS "Qt5OpenGL_location_Debug=" ${Qt5OpenGL_location_Debug})
+
  if(WIN32) 
    set(QT_DLLS_REQUIRED_REL
-	 "icudt54.dll"
-	 "icuin54.dll"
-	 "icuuc54.dll"
+	 # "icudt54.dll"
+	 # "icuin54.dll"
+	 # "icuuc54.dll"
+	 "Qt5Core.dll"
+	 "Qt5Gui.dll"
+	 "Qt5OpenGL.dll"
+	 "Qt5Widgets.dll"
 	 "Qt5Svg.dll"
    )
    set(QT_DLLS_REQUIRED_DEB
-	 "icudt54.dll"
-	 "icuin54.dll"
-	 "icuuc54.dll"
-	 "Qt5Svgd.dll"
+	 # "icudt54.dll"
+	 # "icuin54.dll"
+	 # "icuuc54.dll"
    )
   set(QT_PLATFORMS_PLUGINS_REQUIRED
       Qt5::QWindowsIntegrationPlugin
@@ -624,72 +618,30 @@ if(${QT_VERSION} EQUAL 5)
 endif(${QT_VERSION} EQUAL 5)
 
 message (STATUS "Qt5Widgets_VERSION = ${Qt5Widgets_VERSION_STRING}" )
-if(${QT_VERSION} EQUAL 4)
- ADD_DEFINITIONS(-DQT4)
-elseif(${Qt5Widgets_VERSION_STRING} VERSION_EQUAL "5.0.0" OR ${Qt5Widgets_VERSION_STRING} VERSION_GREATER "5.0.0")
- ADD_DEFINITIONS(-DQT5)
- if(${Qt5Widgets_VERSION_STRING} VERSION_EQUAL "5.4.0" OR ${Qt5Widgets_VERSION_STRING} VERSION_GREATER "5.4.0")
-  ADD_DEFINITIONS(-DQT54)
- endif()
-endif(${QT_VERSION} EQUAL 4)
 
 
-message(STATUS "QT_QTCORE_LIBRARY=" ${QT_QTCORE_LIBRARY})
-message(STATUS "QT_QTGUI_LIBRARY=" ${QT_QTGUI_LIBRARY})
-message(STATUS "QT_QTOPENGL_LIBRARY=" ${QT_QTOPENGL_LIBRARY})
-
-if(COMMAND cmake_policy)
-    # Works around warnings libraries linked against that don't
-    # have absolute paths (e.g. -lpthreads)
-    cmake_policy(SET CMP0003 NEW)
-
-    # Works around warnings about escaped quotes in ADD_DEFINITIONS
-    # statements.
-    cmake_policy(SET CMP0005 NEW)
-
-    # tell CMake to prefer CMake's own CMake modules when available
-    # only available from cmake-2.8.4
-    if(${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} EQUAL 8 AND ${CMAKE_PATCH_VERSION} GREATER 3)
-        cmake_policy(SET CMP0017 NEW)
-    endif()
-
-    # cmake-2.6.1 introduces policy cmp0008 decide how to treat full path libraries that do not appear to be valid library file names
-    # quote from cvslog "Such libraries worked by accident in the VS IDE and Xcode generators in CMake 2.4 and below."
-    if(${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} GREATER 4 AND ${CMAKE_PATCH_VERSION} GREATER 0)
-        cmake_policy(SET CMP0008 OLD)
-    endif()
-    
-    # disable autolinking to qtmain as we have our own main() functions (new in Qt 5.1)
-    cmake_policy(SET CMP0020 OLD)
-endif()
 
 
 #Find Qwt
 if(WIN32)
   find_library (QWT_LIBRARY qwt)
-  find_library (QWT_LIBRARY_DEB qwtd)
-  find_file(QWT_DLL NAMES qwt.dll)
-  find_file(QWT_DLL_DEB NAMES qwtd.dll)
-  find_path (QWT_INCLUDE_DIR qwt_plot.h)
+  find_file (QWT_DLL NAMES qwt.dll)
+  find_path (QWT_INCLUDE_DIR qwt_plot.h PATH_SUFFIXES qwt)
 else(WIN32)
-  if(${QT_VERSION} EQUAL 4) 
-#   find_library (QWT_LIBRARY qwt)
-#   find_path (QWT_INCLUDE_DIR qwt_plot.h PATH_SUFFIXES qwt)
-   set(QWT_DIR "/usr/local/qwt-6.1.2-qt4")
-   find_library (QWT_LIBRARY qwt PATHS ${QWT_DIR}/lib NO_DEFAULT_PATH)
-   find_path (QWT_INCLUDE_DIR qwt_plot.h ${QWT_DIR}/include  NO_DEFAULT_PATH)
-  elseif(${QT_VERSION} EQUAL 5) 
-   set(QWT_DIR "/usr/local/qwt-6.1.2-qt5")
-   find_library (QWT_LIBRARY qwt PATHS ${QWT_DIR}/lib NO_DEFAULT_PATH)
-   find_path (QWT_INCLUDE_DIR qwt_plot.h ${QWT_DIR}/include  NO_DEFAULT_PATH)
-  endif() 
+  find_library(QWT_LIBRARY qwt-qt5 REQUIRED)
+  find_path (QWT_INCLUDE_DIR qwt_plot.h PATHS /usr/include PATH_SUFFIXES qwt)
 endif(WIN32)
 
-message(STATUS "QWT_LIBRARY=" ${QWT_LIBRARY})
-message(STATUS "QtCore_location_Release=" ${QtCore_location_Release})
-message(STATUS "QtWidgets_location_Release=" ${QtWidgets_location_Release})
-message(STATUS "QtGui_location_Release=" ${QtGui_location_Release})
-message(STATUS "Qt5OpenGL_location_Release=" ${Qt5OpenGL_location_Release})
+if(MINGW)
+ set (BUNDLEDLLS)
+ if (EXISTS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt")
+  FILE(STRINGS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt" BUNDLEDLLS)
+  foreach(DLL ${BUNDLEDLLS})
+    message(STATUS ${DLL} "found by mingw-bundledlls")
+  endforeach(DLL ${BUNDLEDLLS})
+ endif (EXISTS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt")
+endif(MINGW)
+
 
 if(${internalPython} EQUAL 1)
  add_definitions(-DINTERNAL_PYTHON)
@@ -746,45 +698,49 @@ if(WIN32)
        INSTALL(FILES ${DLL} CONFIGURATIONS Debug DESTINATION bin/platforms)
     endforeach(DLL)
   elseif(MINGW)
-    if(${QT_VERSION} EQUAL 5) 
-     INSTALL(FILES 
-		    ${QtCore_location_Release} 
-		    ${QtGui_location_Release} 
-		    ${QtWidgets_location_Release}
-		    ${QtPrintSupport_location_Release} 
-	            ${Qt5OpenGL_location_Release} 
-		    ${QWT_DLL} 
-	            DESTINATION bin)
-    endif(${QT_VERSION} EQUAL 5)
-    foreach(DLL ${OCC_DLLS})
-      INSTALL(FILES ${DLL} DESTINATION bin)
-    endforeach()
-    foreach(DLL ${OCC_3PARTIES_DLLS})
-       INSTALL(FILES ${DLL} DESTINATION bin)
-    endforeach()
-    foreach(DLL ${QT_DLLS_REL})
-       INSTALL(FILES ${DLL} DESTINATION bin)
-    endforeach(DLL)
+ #    if(${QT_VERSION} EQUAL 5) 
+ #     INSTALL(FILES 
+ #		 ${QtCore_location_Release} 
+ #		 ${QtGui_location_Release} 
+ #		 ${QtWidgets_location_Release}
+ #		 ${QtPrintSupport_location_Release} 
+ #	         ${Qt5OpenGL_location_Release} 
+ #		 ${QWT_DLL} 
+ #	         DESTINATION bin)
+ #    endif(${QT_VERSION} EQUAL 5)
+ #    foreach(DLL ${OCC_DLLS})
+ #      INSTALL(FILES ${DLL} DESTINATION bin)
+ #    endforeach()
+ #    foreach(DLL ${OCC_3PARTIES_DLLS})
+ #       INSTALL(FILES ${DLL} DESTINATION bin)
+ #    endforeach()
+ #    foreach(DLL ${QT_DLLS_REL})
+ #       INSTALL(FILES ${DLL} DESTINATION bin)
+ #    endforeach(DLL)
+ #    foreach(DLL ${MINGW_DLLS})
+ #       INSTALL(FILES ${DLL} DESTINATION bin)
+ #    endforeach()
     foreach(DLL ${QT_PLATFORMS_PLUGINS_REL})
-       INSTALL(FILES ${DLL} DESTINATION bin/platforms)
+        INSTALL(FILES ${DLL} DESTINATION bin/platforms)
     endforeach()
-    #INSTALL(FILES ${GFORTRAN_LIB} DESTINATION bin)
-    foreach(DLL ${MINGW_DLLS})
-       INSTALL(FILES ${DLL} DESTINATION bin)
+    foreach(DLL ${BUNDLEDLLS})
+       FILE(TO_CMAKE_PATH "${DLL}" DLLCM)
+       INSTALL(FILES ${DLLCM} DESTINATION bin)
     endforeach()
   endif(MSVC)
-  foreach(DLL ${OCC_Resources})
-     INSTALL(FILES ${DLL} DESTINATION Resource)
-  endforeach(DLL)
-    #    foreach(DLL ${GMSH_DEPS_LIBRARIES})
-    #        INSTALL(FILES ${DLL} CONFIGURATIONS Release DESTINATION bin)
-    #    endforeach(DLL)
-    #    foreach(DLL ${GMSH_DEPS_LIBRARIES_DEB})
-    #	    INSTALL(FILES ${DLL} CONFIGURATIONS Debug DESTINATION bin)
-    #    endforeach(DLL)
+#  foreach(DIR ${OCC_Resources})
+#    INSTALL(DIRECTORY ${DIR} DESTINATION Resource)
+#  endforeach(DIR)
+
+#    foreach(DLL ${GMSH_DEPS_LIBRARIES})
+#        INSTALL(FILES ${DLL} CONFIGURATIONS Release DESTINATION bin)
+#    endforeach(DLL)
+#    foreach(DLL ${GMSH_DEPS_LIBRARIES_DEB})
+#	    INSTALL(FILES ${DLL} CONFIGURATIONS Debug DESTINATION bin)
+#    endforeach(DLL)
  
  #***  Removing Administrator level from NSIS.template.in:
- set(CMAKE_NSIS_TEMPLATE "C:/Program Files (x86)/CMake/share/cmake-3.2/Modules/NSIS.template.in")
+ set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake-3.17/Modules/Internal/CPack/NSIS.template.in")
  set(PROJECT_NSIS_TEMPLATE "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}/NSIS.template.in")
  file(READ ${CMAKE_NSIS_TEMPLATE} FILE_CONTENT)
  set (SEARCH_REGEX "Require administrator access")
@@ -837,28 +793,44 @@ endif(UNIX)
 if(WIN32)
  set(CPACK_GENERATOR NSIS)
  set(CPACK_NSIS_INSTALL_ROOT "C:")
- set(CPACK_NSIS_MODIFY_PATH OFF)
+ set(CPACK_NSIS_MODIFY_PATH ON)
  set(CPACK_NSIS_MUI_ICON    "${CMAKE_SOURCE_DIR}\\\\src\\\\GUI\\\\emcad.ico")
  set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}\\\\src\\\\GUI\\\\emcad.ico")
  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
    CreateShortCut \\\"$DESKTOP\\\\EmCAD.lnk\\\" \\\"$INSTDIR\\\\bin\\\\emcad.exe\\\"
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_StandardDefaults \\\"$INSTDIR\\\\Resource\\\" '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_PluginDefaults \\\"$INSTDIR\\\\Resource\\\"  '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\" CSF_XCAFDefaults \\\"$INSTDIR\\\\Resource\\\" '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\" BOTO_CONFIG \\\"%USERPROFILE%\\\\.boto\\\" '
    ")
-#   ExecWait '$INSTDIR\\\\tmp\\\\vcredist_x64.exe'
+
  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS  
    " Delete \\\"$DESKTOP\\\\EmCAD.lnk\\\"
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_StandardDefaults \\\" \\\" '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_PluginDefaults \\\" \\\"  '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\" CSF_XCAFDefaults \\\" \\\" '
-   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\" BOTO_CONFIG \\\" \\\" '
    ")
- set(CPACK_NSIS_CONTACT "steffe@tiscali.it")
-endif(WIN32)
+
+ set(CPACK_NSIS_CONTACT "walter.steffe@hierarchical-electromagnetics.it")
+
+
+# set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+#  CreateShortCut \\\"$DESKTOP\\\\EmCAD.lnk\\\" \\\"$INSTDIR\\\\bin\\\\emcad.exe\\\"
+#  nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_StandardDefaults \\\"$INSTDIR\\\\Resource\\\\StdResource\\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_XCAFDefaults \\\"$INSTDIR\\\\Resource\\\\StdResource\\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_PluginDefaults \\\"$INSTDIR\\\\Resource\\\\StdResource\\\"  '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_IGESDefaults \\\"$INSTDIR\\\\Resource\\\\XSTEPResource\\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_STEPDefaults \\\"$INSTDIR\\\\Resource\\\\XSTEPResource\\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_XmlOcafResource \\\"$INSTDIR\\\\Resource\\\\XmlOcafResource\\\" '
+#   ")
+
+#   ExecWait '$INSTDIR\\\\tmp\\\\vcredist_x64.exe'
+
+# set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS  
+#   " Delete \\\"$DESKTOP\\\\EmCAD.lnk\\\"
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_StandardDefaults \\\" \\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_XCAFDefaults \\\" \\\" '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_PluginDefaults \\\" \\\"  '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_IGESDefaults \\\" \\\"  '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_STEPDefaults \\\" \\\"  '
+#   nsExec::ExecToStack /TIMEOUT=2000  '\\\"C:\\\\Windows\\\\System32\\\\setx.exe\\\"  CSF_XmlOcafResource \\\" \\\" '
+#   ")
 
 include(CPack)
 
 
+endif(WIN32)
 

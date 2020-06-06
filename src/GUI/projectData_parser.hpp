@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
-# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -51,68 +51,106 @@ extern int projectDatadebug;
     NAME = 261,
     DEF = 262,
     MAINASSNAME = 263,
-    NETWORK = 264,
-    LENGTH = 265,
-    FREQ = 266,
-    UNIT = 267,
-    EXP = 268,
-    MESH = 269,
-    WAVELENGTH = 270,
-    RATIO = 271,
-    ANA = 272,
-    BAND = 273,
-    NUM = 274,
-    MOR = 275,
-    RESPONSE = 276,
-    PARAMETER = 277,
-    TYPE = 278,
-    PART = 279,
-    XSCALE = 280,
-    YSCALE = 281,
-    AUTO = 282,
-    ZERO = 283,
-    POLE = 284,
-    CURVE = 285,
-    FILTER = 286,
-    PASS = 287,
-    ORDER = 288,
-    RETURNLOSS = 289,
-    QFACTOR = 290,
-    MAPPING = 291,
-    METHOD = 292,
-    ITERMAX = 293,
-    AUTOMATIC = 294,
-    MAPPED = 295,
-    TX = 296,
-    ZEROS = 297,
-    REMESH = 298,
-    FIRST = 299,
-    DECOMPOSITION = 300,
-    MATERIAL = 301,
-    MODELIZATION = 302,
-    COMPONENT = 303,
-    SAVE = 304,
-    REDUCTION = 305,
-    RELOAD = 306,
-    NEEDED = 307,
-    DONE = 308,
-    CHANGED = 309
+    VARFILEPATH = 264,
+    S2PFILEPATH = 265,
+    NETWORK = 266,
+    LENGTH = 267,
+    FREQ = 268,
+    UNIT = 269,
+    EXP = 270,
+    MESH = 271,
+    REFINE = 272,
+    ENERGY = 273,
+    WAVELENGTH = 274,
+    LOCAL = 275,
+    MESHING3D = 276,
+    ANA = 277,
+    BAND = 278,
+    NUM = 279,
+    MOR = 280,
+    RESPONSE = 281,
+    SYMMETRIC = 282,
+    PARAMETER = 283,
+    TYPE = 284,
+    TOPOLOGY = 285,
+    PART = 286,
+    XSCALE = 287,
+    YSCALE = 288,
+    AUTO = 289,
+    ZERO = 290,
+    POLE = 291,
+    WINDOW = 292,
+    CURVE = 293,
+    CIRCLE = 294,
+    IDEAL = 295,
+    FILTER = 296,
+    PASS = 297,
+    KRYLOV = 298,
+    ORDER = 299,
+    RETURNLOSS = 300,
+    OUTBAND = 301,
+    MAPPING = 302,
+    TUNING = 303,
+    METHOD = 304,
+    SOURCE = 305,
+    ITERMAX = 306,
+    AUTOMATIC = 307,
+    DESIGN = 308,
+    MAPPED = 309,
+    TX = 310,
+    ZEROS = 311,
+    PORT = 312,
+    IMPEDANCE = 313,
+    QFACTOR = 314,
+    UNIFORM = 315,
+    INDUCTIVE = 316,
+    SKIN = 317,
+    LOSSY = 318,
+    PREDISTORTED = 319,
+    OPTIMIZE = 320,
+    ILOSSPP = 321,
+    TRUSTR = 322,
+    CUTOFF = 323,
+    RATIO = 324,
+    RECOMPUTE = 325,
+    JACOBIAN = 326,
+    ERRORT = 327,
+    ONLY = 328,
+    TRANSVERSEJ = 329,
+    XTOL = 330,
+    GRADDX = 331,
+    REMESH = 332,
+    FIRST = 333,
+    DECOMPOSITION = 334,
+    MATERIAL = 335,
+    MODELIZATION = 336,
+    COMPONENT = 337,
+    SAVE = 338,
+    REDUCTION = 339,
+    RELOAD = 340,
+    NEEDED = 341,
+    DONE = 342,
+    CHANGED = 343,
+    tMIN = 344,
+    tMAX = 345
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
-#line 66 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData.y" /* yacc.c:1909  */
+#line 66 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y" /* yacc.c:1909  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 115 "/home/walter/MwCAD/EmCAD/EmCAD/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
+#line 151 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -122,4 +160,4 @@ extern YYSTYPE projectDatalval;
 
 int projectDataparse (void);
 
-#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */
+#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */

@@ -1,7 +1,7 @@
 # This file is part of the EmCAD program which constitutes the client
 # side of an electromagnetic modeler delivered as a cloud based service.
 # 
-# Copyright (C) 2015  Walter Steffe`
+# Copyright (C) 2015-2020  Walter Steffe`
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -46,36 +46,15 @@ set ( PostProc_MOCS
 	plotter.h
 	)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-# Create target for the parser
- ADD_CUSTOM_TARGET(touchstoneparser echo "Creating touchstone parser")
+if((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
 
-# Create custom command for flex/lex (note the outputs)
- ADD_CUSTOM_COMMAND(
-   SOURCE  touchstone.l
-   COMMAND ${FLEX_EXECUTABLE} 
-   ARGS -o ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_lexer.cpp
-	-P touchstone
-         ${CMAKE_CURRENT_SOURCE_DIR}/touchstone.l
-   TARGET TouchstoneLexer
-   OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_lexer.cpp
- )
+FIND_PACKAGE(BISON)
+FIND_PACKAGE(FLEX)
+BISON_TARGET(touchstoneParser ${CMAKE_CURRENT_SOURCE_DIR}/touchstone.y ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_parser.cpp COMPILE_FLAGS "-p touchstone")
+FLEX_TARGET(touchstoneLexer ${CMAKE_CURRENT_SOURCE_DIR}/touchstone.l ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_lexer.cpp COMPILE_FLAGS "-P touchstone")
+ADD_FLEX_BISON_DEPENDENCY(touchstoneLexer touchstoneParser)
 
-# Create custom command for bison/yacc (note the DEPENDS)
- ADD_CUSTOM_COMMAND(
-   SOURCE touchstone.y
-   COMMAND ${BISON_EXECUTABLE}
-   ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/touchstone.y
-        --output ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_parser.cpp
-        -p touchstone
-   TARGET TouchstoneParser
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_lexer.cpp
-   OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/touchstone_parser.cpp
- )
-
- SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/touchstone_parser.cpp GENERATED)
-
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+endif((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
 
 if(${QT_VERSION} EQUAL 4)
  QT4_WRAP_CPP(MOCS ${PostProc_MOCS})
@@ -103,7 +82,6 @@ target_link_libraries (PostProc
 		       Qt5::Widgets 
 		       Qt5::OpenGL)
 endif(${QT_VERSION} EQUAL 5)
-
 
 
 

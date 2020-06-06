@@ -97,6 +97,26 @@ int Tree_Suppress(Tree_T * tree, void *data)
   return 1;
 }
 
+int Tree_Replace(Tree_T * tree, void *data)
+{
+  void *ptr;
+  int state;
+
+  if(!tree) {
+    return (0);
+  }
+  state = avl_lookup(tree->root, data, &ptr);
+  if(state == 0) {
+    Tree_Add(tree, data);
+    return (0);
+  }
+  else {
+    memcpy(ptr, data, tree->size);
+    return (1);
+  }
+}
+
+
 int Tree_Size(Tree_T * tree)
 {
   if(!tree) return 0;

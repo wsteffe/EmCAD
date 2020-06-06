@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -190,7 +190,6 @@ Net	  	 		{ return tNET; }
 Component 		        { return tCOMPONENT; }
 Interface 		        { return tINTERFACE; }
 Assembly 		        { return tASSEMBLY; }
-SurfaceResistance		{ return SURFACERESISTANCE; }
 WaveGuide			{ return tWAVEGUIDE; }
 LinePort			{ return tLINEPORT; }
 Splitter		 	{ return tSPLITTER; }
@@ -202,8 +201,16 @@ length				{ return LENGTH; }
 frequency			{ return FREQUENCY; }
 band	                        { return BAND; }
 resistance			{ return RESISTANCE; }
+inductance			{ return INDUCTANCE; }
+impedance			{ return IMPEDANCE; }
+lossfactor			{ return LOSSFACTOR; }
+Qfactor			        { return QFACTOR; }
 epsLorentz			{ return EPSLORENTZ; }
 muLorentz			{ return MULORENTZ; }
+polesResidues			{ return POLESRESIDUES; }
+polesNum			{ return POLESNUM; }
+surface		                { return SURFACE; }
+rough		                { return ROUGH; }
 epsilonr			{ return EPSILONR; }
 mur				{ return MUR; }
 Conductivity                    { return ECONDUCTIVITY; }

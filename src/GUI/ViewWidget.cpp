@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -62,6 +62,8 @@
 
 #include <IntAna_IntConicQuad.hxx>
 #include <cmath>
+#include <Standard_Version.hxx>
+
 
 
 #ifndef MIN
@@ -73,15 +75,9 @@
 
 extern MwOCAF *mainOCAF;
 
-ViewWidget::ViewWidget( QWidget *parent, Qt::WindowFlags wflags )
-#if defined(WNT)
-  : QWidget( parent, wflags ),
-#elif defined(QT54)
-  : QGLOpenWidget( parent, NULL, wflags ),
-#elif defined(QT4)
-  : QGLWidget( parent, NULL, wflags ),
-#endif
+ViewWidget::ViewWidget( QWidget *parent) : QWidget( parent),
 	myView          ( NULL ),
+	myFirstView     (true),
 	myRubberBand    ( NULL ),
 	myMode		( CurAction3d_Undefined ),
 	myGridSnap      ( Standard_False ),
@@ -91,6 +87,7 @@ ViewWidget::ViewWidget( QWidget *parent, Qt::WindowFlags wflags )
 	myDetection	( AIS_SOD_Nothing ),
 	myKeyboardFlags ( Qt::NoModifier )
 {
+        InitViewer();
 	// Needed to generate mouse events
 	setMouseTracking( true );
 
@@ -124,7 +121,6 @@ ViewWidget::~ViewWidget()
 
 
 
-
 /*!
 \brief	Returns a NULL QPaintEngine
 		This should result in a minor performance benefit.
@@ -133,6 +129,7 @@ QPaintEngine* ViewWidget::paintEngine() const
 {
 	return NULL;
 }
+
 /*!
 \brief	Paint Event
 		Called when the Widget needs to repaint itself
@@ -140,18 +137,17 @@ QPaintEngine* ViewWidget::paintEngine() const
 */
 void ViewWidget::paintEvent ( QPaintEvent * e)
 {
-	if ( !myView.IsNull() )					// Defensive test.
-	{
-		if ( myViewResized )
-		{
-			myView->MustBeResized();
-		}
-		else if ( myButtonFlags == Qt::NoButton )	// Don't repaint if we are already redrawing
-		{											// elsewhere due to a keypress or mouse gesture
-			myView->Redraw();
-		}
-	}
-	myViewResized = Standard_False;
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+  if (myFirstView)
+  {
+    InitView();
+    myFirstView = false;
+  }
+#endif
+  if (!myView.IsNull()){
+	 if ( myViewResized ) myView->MustBeResized();
+	 myView->Redraw();
+  }
 }
 
 /*!
@@ -163,7 +159,14 @@ void ViewWidget::paintEvent ( QPaintEvent * e)
 */
 void ViewWidget::resizeEvent ( QResizeEvent * e)
 {
-	myViewResized = Standard_True;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+  if (myFirstView)
+  {
+    InitView();
+    myFirstView = false;
+  }
+#endif
+  myViewResized = Standard_True;
 }
 
 /*!
@@ -293,10 +296,7 @@ void ViewWidget::idle( )
 */
 void ViewWidget::redraw( void )
 {
-	if (!myView.IsNull())
-	{
-		myView->Redraw();
-	}
+	if (!myView.IsNull()) myView->Redraw();
 }
 
 /*!
@@ -308,10 +308,7 @@ void ViewWidget::redraw( void )
 */
 void ViewWidget::fit( void )
 {
-	if (!myView.IsNull())
-	{
-		myView->FitAll();
-	}
+	if (!myView.IsNull())  myView->FitAll();
 }
 
 /*!
@@ -556,7 +553,7 @@ void ViewWidget::highlightTreeObject(){
    // to be able to use the picked shape
     }
     else{
-     Handle_AIS_InteractiveObject aniobj = myContext->Interactive();
+     Handle(AIS_InteractiveObject) aniobj = myContext->SelectedInteractive();
     // to be able to use the picked interactive object
     }
     myContext->NextDetected(); 
@@ -568,7 +565,7 @@ void ViewWidget::highlightTreeObject(){
 */
 void ViewWidget::checkSelection()
 {
-	AIS_StatusOfPick pick = myContext->Select();
+	AIS_StatusOfPick pick = myContext->Select(true);
 	if ( pick != AIS_SOP_NothingSelected )
 	{
 	   mainOCAF->setSelectedLabels();
@@ -823,7 +820,7 @@ void ViewWidget::onWheel( double degrees)
 AIS_StatusOfDetection ViewWidget::moveEvent( QPoint point )
 {
 	AIS_StatusOfDetection status;
-	status = myContext->MoveTo( point.x(), point.y(), myView );
+	status = myContext->MoveTo( point.x(), point.y(), myView, true );
 	return status;
 }
 
@@ -843,7 +840,7 @@ AIS_StatusOfPick ViewWidget::dragEvent( const QPoint startPoint, const QPoint en
 									   MIN (startPoint.y(), endPoint.y()),
 									   MAX (startPoint.x(), endPoint.x()),
 									   MAX (startPoint.y(), endPoint.y()),
-									   myView );
+									   myView, true );
 	}
 	else
 	{
@@ -851,7 +848,7 @@ AIS_StatusOfPick ViewWidget::dragEvent( const QPoint startPoint, const QPoint en
 								  MIN (startPoint.y(), endPoint.y()),
 								  MAX (startPoint.x(), endPoint.x()),
 								  MAX (startPoint.y(), endPoint.y()),
-								  myView );
+								  myView, true );
 	}
         emit selectionChanged();
 	return pick;
@@ -867,11 +864,11 @@ AIS_StatusOfPick ViewWidget::inputEvent( bool multi )
 
 	if (multi)
 	{
-		pick = myContext->ShiftSelect();
+		pick = myContext->ShiftSelect(true);
 	}
 	else
 	{
-	    pick = myContext->Select();
+	    pick = myContext->Select(true);
 	}
 	if ( pick != AIS_SOP_NothingSelected )  checkSelection();
 	return pick;
@@ -1017,23 +1014,28 @@ void ViewWidget::hideRubberBand( void )
 }
 
 
-void ViewWidget::createViewer( )
+void ViewWidget::InitViewer( )
 {
       Handle(Aspect_DisplayConnection)  aDisplayConnection=new Aspect_DisplayConnection();
+      static Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver (aDisplayConnection);
 
-      Handle(OpenGl_GraphicDriver)  graphicDriver = new OpenGl_GraphicDriver (aDisplayConnection);
-
+#if OCC_VERSION_HEX > 0x060901
+      myViewer = new V3d_Viewer (graphicDriver);
+#else
       const Quantity_Length ViewSize=1000.0;
       myViewer = new V3d_Viewer(
 		                  graphicDriver,
-				  TCollection_ExtendedString("Visual3D").ToExtString(),"",
+				  TCollection_AsciiString a3DName ("Visu3D"),"",
 				  ViewSize,
 				  V3d_XposYnegZpos,      //ViewProj
 				  Quantity_NOC_GRAY50,   //BackgroundColor
                     		  V3d_ZBUFFER,           //TypeOfVisualization          
 				  V3d_GOURAUD,            //TypeOfShadingModel
-                                  V3d_WAIT               //TypeOfUpdate
+				  V3d_WAIT, 
+				  Standard_True, 
+				  Standard_False
 		               );
+#endif
 
        myViewer->SetLightOff();
        Handle(V3d_AmbientLight) L1 = new V3d_AmbientLight(myViewer,Quantity_NOC_WHITE) ;
@@ -1049,7 +1051,7 @@ void ViewWidget::createViewer( )
 
 //	myViewer->SetDefaultLights();
        myContext = new AIS_InteractiveContext( myViewer );
-       myContext->SetDisplayMode(AIS_Shaded);
+       myContext->SetDisplayMode(AIS_Shaded, true);
        Standard_Integer selmode=6;
 //	myContext->ActivateStandardMode(TopAbs_SOLID);
 
@@ -1074,55 +1076,57 @@ void ViewWidget::createViewer( )
 \param	aContext Handle to the AIS Interactive Context managing the view
 \return	nothing
 */
-void ViewWidget::createView()
+
+
+void ViewWidget::InitView()
 {
-  if (myView.IsNull()){
-#if defined(_WIN32) || defined(__WIN32__)
-   Aspect_Handle aWindowHandle = (Aspect_Handle )winId();
-   Handle(WNT_Window) hWnd = new WNT_Window (aWindowHandle);
-#elif defined(__APPLE__) && !defined(MACOSX_USE_GLX)
-   NSView* aViewHandle = (NSView* )winId();
-   Handle(Cocoa_Window) hWnd = new Cocoa_Window (aViewHandle);
+  if (myView.IsNull())
+    myView = myViewer->CreateView();
+
+#ifdef _WIN32 || defined(__WIN32__)
+   Aspect_Handle aWindowHandle = (Aspect_Handle) winId();
+   Handle(WNT_Window) aWnd = new WNT_Window (aWindowHandle);
+#if OCC_VERSION_HEX <= 0x060901
+   myViewer->GetView()->SetZClippingDepth (0.5);
+   myViewer->GetView()->SetZClippingWidth (0.5);
+#endif
+#elif defined (__APPLE__) && !defined (MACOSX_USE_GLX)
+   NSView* aViewHandle = (NSView*)winId();
+   Handle(Aspect_Window) aWnd = new Cocoa_Window (aViewHandle);
 #else
-   Window aWindow = (Window ) winId();
-   Handle(Aspect_DisplayConnection) dispConnection = myContext->CurrentViewer()->Driver()->GetDisplayConnection();
-   Handle(Xw_Window) hWnd = new Xw_Window (dispConnection, aWindow);
-#endif // WNT
+   Window aWindowHandle = (Window ) winId();
+   Handle(Aspect_DisplayConnection) aDispConnection = myContext->CurrentViewer()->Driver()->GetDisplayConnection();
+   Handle(Xw_Window) aWnd = new Xw_Window (aDispConnection, aWindowHandle);
+#endif
 
+   myView->SetWindow (aWnd);
+   if (!aWnd->IsMapped()) aWnd->Map();
 
-   myView = myViewer->CreateView();
-   myView->SetWindow (hWnd);
-   if (!hWnd->IsMapped())   hWnd->Map();
-  }
+   myView->SetBackgroundColor (Quantity_NOC_GRAY70);
+   myView->MustBeResized();
 
-	// Set up axes (Trihedron) in
-	// lower left corner.
-	myView->TriedronDisplay( Aspect_TOTP_LEFT_LOWER,
-							 Quantity_NOC_RED,
-							 0.08);
+   // Set up axes (Trihedron) in
+   // lower left corner.
+   myView->TriedronDisplay( Aspect_TOTP_LEFT_LOWER, Quantity_NOC_RED,0.08);
 
-	// Create a rubber band box for later mouse activity
-	myRubberBand = new QRubberBand( QRubberBand::Rectangle, this );
-	if (myRubberBand)
-	{
-		// If you don't set a style, QRubberBand doesn't work properly
-		// take these lines out if you don't believe me.
-		QStyle* ps = QStyleFactory::create("fusion");
-		myRubberBand->setStyle( ps );
-	}
+   // Create a rubber band box for later mouse activity
+   myRubberBand = new QRubberBand( QRubberBand::Rectangle, this );
+   if (myRubberBand){
+	// If you don't set a style, QRubberBand doesn't work properly
+	// take these lines out if you don't believe me.
+	QStyle* ps = QStyleFactory::create("fusion");
+	myRubberBand->setStyle( ps );
+   }
 
-	// Choose a "nicer" intial scale, and a view from the top, i.e. XY plane
-	myView->SetScale( 2 );
-	viewAxo();
+   // Choose a "nicer" intial scale, and a view from the top, i.e. XY plane
+   myView->SetScale( 2 );
+   viewAxo();
 
-	// Force a redraw to the new window on next paint event
-	myViewResized = Standard_True;
+   // Force a redraw to the new window on next paint event
 
-	// Set default cursor as a cross
-	setMode( CurAction3d_Nothing );
+   // Set default cursor as a cross
+   setMode( CurAction3d_Nothing );
 
-	// This is to signal any connected slots that the view is ready.
-	emit initialized();
 }
 
 
@@ -1136,7 +1140,7 @@ void ViewWidget::createView()
 */
 void ViewWidget::deleteAllObjects()
 {
-        myContext->RemoveAll();
+        myContext->RemoveAll(true);
 /*
 	AIS_ListOfInteractive aList;
 	myContext->DisplayedObjects( aList );

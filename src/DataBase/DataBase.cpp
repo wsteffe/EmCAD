@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,10 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+bool REUSE_CIRCUITS=false;
 
 #include "DataBase.h"
 #define _USE_MATH_DEFINES
 #include "math.h"
+#include <stdio.h>
 
 DB::Units unit;
 
@@ -74,6 +76,7 @@ void StringList_t::reset(){
 
 
 Material::Material(){
+  strcpy(name,"");
   I=0;
   epsr=1.0;
   mur=1.0;
@@ -81,17 +84,21 @@ Material::Material(){
   htandelta=0;
   econductivity=0;
   hconductivity=0;
-  edispersive=0;
-  hdispersive=0;
   Sresistance=0;
-  freqBand[0]=freqBand[1]=0.0;
+  Sinductance=0;
   epsLorentz.stride=3;
   muLorentz.stride=3;
+  surfPolesRes.stride=4;
   color[0]=49;  color[1]=79; color[2]=79; color[3]=255;
+  roughSurfFreq=0.0;
+  roughSurfLossFactor=1.0;
+  roughSurfImpedanceQ=1.0;
+  roughSurfFitPolesNum=1;
 }
 void Material::flush(){
   buff.epsLorentz.flush(&epsLorentz);
   buff.muLorentz.flush(&muLorentz);
+  buff.surfPolesRes.flush(&surfPolesRes);
 }
 
 Material & Material::operator =(const Material &rhs)
@@ -104,11 +111,15 @@ Material & Material::operator =(const Material &rhs)
       etandelta=rhs.etandelta;
       htandelta=rhs.htandelta;
       econductivity=rhs.econductivity;
-      edispersive=rhs.edispersive;
-      hdispersive=rhs.hdispersive;
       epsLorentz=rhs.epsLorentz;
       muLorentz=rhs.muLorentz;
+      surfPolesRes=rhs.surfPolesRes;
       Sresistance=rhs.Sresistance;
+      Sinductance=rhs.Sinductance;
+      roughSurfFreq=rhs.roughSurfFreq;
+      roughSurfLossFactor=rhs.roughSurfLossFactor;
+      roughSurfImpedanceQ=rhs.roughSurfImpedanceQ;
+      roughSurfFitPolesNum=rhs.roughSurfFitPolesNum;
       for(int i=0; i<4; i++) color[i]=rhs.color[i];
   }
   return *this;    // Return ref for multiple assignment
@@ -148,7 +159,7 @@ Volume::Volume(){
   invariant=1;
   defined=1;
   disabled=0;
-  compSolid=0;
+  cellNum=0;
   meshRefinement=1;
   strcpy(material,"?");
 }
@@ -158,7 +169,6 @@ Volume & Volume::operator =(Volume const &rhs){
 	 strcpy(material, rhs.material);
 	 TEportsNum=rhs.TEportsNum;
 	 TMportsNum=rhs.TMportsNum;
-	 compSolid=rhs.compSolid;
 	 return *this;
 }
 
@@ -190,6 +200,12 @@ void applyDelVol(void *a, void *b)
   Volume *v = *(Volume **) a;
   delete(v);
 }
+void applyDelTransf(void *a, void *b)
+{
+  Transform *t = *(Transform **) a;
+  delete(t);
+}
+
 
 // ************
 // EmProblem:
@@ -225,9 +241,11 @@ EmProblem::EmProblem(){
 EmProblem::~EmProblem(){
   Tree_Action(materials,  applyDelMat); Tree_Delete(materials);
   Tree_Action(volumes,    applyDelVol); Tree_Delete(volumes);
+  Tree_Action(invariants, applyDelTransf); Tree_Delete(invariants);
 }
 
 void EmProblem::addMaterial  (Material*  m){Tree_Add(materials, &m);}
+void EmProblem::replaceMaterial (Material*  m){Tree_Replace(materials, &m);}
 void EmProblem::insertMaterial(Material* m){Tree_Insert(materials, &m);}
 void EmProblem::delMaterial  (Material*  m){Tree_Suppress(materials, &m);}
 void EmProblem::insertVolume (Volume*    v){Tree_Insert(volumes,   &v);}
@@ -315,17 +333,20 @@ void _mwm_print_material(void *a, void *b)
    if(mat->etandelta >0)\
    fprintf(EMMFILE, "   eTanDelta     %g\n", mat->etandelta);
    if(mat->htandelta >0)\
-   fprintf(EMMFILE, "   eTanDelta     %g\n", mat->htandelta);
+   fprintf(EMMFILE, "   hTanDelta     %g\n", mat->htandelta);
 
-   if(mat->freqBand[1]>0)\
-   fprintf(EMMFILE,"   frequency band %.8e  %.8e\n", mat->freqBand[0], mat->freqBand[1]);
-   
+   if(mat->roughSurfFreq>0){
+    fprintf(EMMFILE,"   rough surface frequency %.8e\n", mat->roughSurfFreq);
+    fprintf(EMMFILE,"   rough surface lossfactor %.8e\n", mat->roughSurfLossFactor);
+    fprintf(EMMFILE,"   rough surface impedance Qfactor %.8e\n", mat->roughSurfImpedanceQ);
+    fprintf(EMMFILE,"   rough surface polesNum %d\n", mat->roughSurfFitPolesNum);
+   }
    if(mat->epsLorentz.n) {
     fprintf(EMMFILE, "   epsLorentz [\n");
     for(int i=0; i<mat->epsLorentz.n; i++){
      double *d=&mat->epsLorentz[i];
      fprintf(EMMFILE, "          ");
-     fprintf(EMMFILE, "   %.8f ", d[0]);
+     fprintf(EMMFILE, "   %.10g ", d[0]);
      for(int j=1; j<mat->epsLorentz.stride; j++) fprintf(EMMFILE, "   %.8e ", d[j]);
      fprintf(EMMFILE, "\n");
     }
@@ -337,16 +358,31 @@ void _mwm_print_material(void *a, void *b)
     for(int i=0; i<mat->muLorentz.n; i++){
      double *d=&mat->muLorentz[i];
      fprintf(EMMFILE, "          ");
-     fprintf(EMMFILE, "   %.8f ", d[0]);
-     for(int j=1; j<mat->epsLorentz.stride; j++) fprintf(EMMFILE, "   %.8e ", d[j]);
+     fprintf(EMMFILE, "   %.10g ", d[0]);
+     for(int j=1; j<mat->muLorentz.stride; j++) fprintf(EMMFILE, "   %.8e ", d[j]);
      fprintf(EMMFILE, "\n");
     }
     fprintf(EMMFILE, "              ]\n");
    }
 
+    if(mat->surfPolesRes.n) {
+    fprintf(EMMFILE, "   surface polesResidues [\n");
+    for(int i=0; i<mat->surfPolesRes.n; i++){
+     double *d=&mat->surfPolesRes[i];
+     fprintf(EMMFILE, "          ");
+     fprintf(EMMFILE, "   %.10g ", d[0]);
+     for(int j=1; j<mat->surfPolesRes.stride; j++) fprintf(EMMFILE, "   %.10e ", d[j]);
+     fprintf(EMMFILE, "\n");
+    }
+    fprintf(EMMFILE, "               ]\n");
+   }
+
+
    if(mat->Sresistance >0)
-      fprintf(EMMFILE, "  SurfaceResistance  %g\n",   mat->Sresistance);
-      
+      fprintf(EMMFILE, "  surface resistance  %.10g\n",   mat->Sresistance);
+   if(mat->Sinductance >0)
+      fprintf(EMMFILE, "  surface inductance  %.10g\n",   mat->Sinductance);
+   
    fprintf(EMMFILE, "   color [ %d  %d  %d  %d ]\n",   mat->color[0], mat->color[1], mat->color[2], mat->color[3]);
 
   fprintf(EMMFILE, "}\n\n");
@@ -363,11 +399,11 @@ typedef std::map<int,int>::iterator ImapIt;
 void _mwm_print_volume(void *a, void *b)
 {
   DB::Volume *vol = *(DB::Volume **) a;
-  if(vol->compSolid && printOnlyMeshData) return;
   if(vol->disabled && printOnlyMeshData) return;
   if(vol->type==GRID && (printOnlyMeshData ||printOnlyWgData) ) return;
   if(vol->type==LINEPORT && (printOnlyMeshData ||printOnlyWgData) ) return;
-  if((vol->type==DIELECTRIC || vol->type==HOLE) && printOnlyWgData) return;
+  if(vol->type==SPLITTER && (printOnlyMeshData ||printOnlyWgData) ) return;
+  if(vol->type==HOLE && printOnlyWgData) return;
   if(vol->type==WAVEGUIDE) fprintf(EMMFILE, "DEF %s%s  MWM_Volume {\n", WGPREFIX.c_str(),vol->name);
   else                     fprintf(EMMFILE, "DEF %s  MWM_Volume {\n", vol->name);
   switch(vol->type){
@@ -375,8 +411,8 @@ void _mwm_print_volume(void *a, void *b)
 	   fprintf(EMMFILE, "  type  Dielectric\n");
 	   if(!printOnlyMeshData){
 		fprintf(EMMFILE, "  meshRefinement  %f \n", vol->meshRefinement);
-		fprintf(EMMFILE, "  compSolid  %d \n", vol->compSolid);
 	   }
+if(REUSE_CIRCUITS){
 	   if(printOnlyMeshData) if(vol->master){
 	      fprintf(EMMFILE, "  master  %d\n",vol->master);
 	      char mname[100]; sprintf(mname,"Vol%d",vol->master);
@@ -389,12 +425,12 @@ void _mwm_print_volume(void *a, void *b)
 		fprintf(EMMFILE, "  ]\n");
 	      }
 	   }
+}
 	   break;
      case HOLE:
 	   fprintf(EMMFILE, "  type  Hole\n");
 	   if(!printOnlyMeshData){
 		fprintf(EMMFILE, "  meshRefinement  %f \n", vol->meshRefinement);
-		fprintf(EMMFILE, "  compSolid  %d \n", vol->compSolid);
 	   }
 	   break;
      case WAVEGUIDE:

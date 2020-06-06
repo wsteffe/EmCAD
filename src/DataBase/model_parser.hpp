@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
-# define YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
+#ifndef YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
+# define YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -75,52 +75,61 @@ extern int modeldebug;
     LENGTH = 285,
     FREQUENCY = 286,
     BAND = 287,
-    RESISTANCE = 288,
-    SURFACERESISTANCE = 289,
-    MESHREFINEMENT = 290,
-    COMPSOLID = 291,
-    VOLTYPE = 292,
-    EPSILONR = 293,
-    MUR = 294,
-    EPSLORENTZ = 295,
-    MULORENTZ = 296,
-    ECONDUCTIVITY = 297,
-    HCONDUCTIVITY = 298,
-    ETANDELTA = 299,
-    HTANDELTA = 300,
-    MATERIAL = 301,
-    COLOR = 302,
-    VOLUMES = 303,
-    DISABLED = 304,
-    tDIELECTRIC = 305,
-    tHOLE = 306,
-    tBOUNDARYCONDITION = 307,
-    tWAVEGUIDE = 308,
-    tLINEPORT = 309,
-    tSPLITTER = 310,
-    tGRID = 311,
-    tCOMPONENT = 312,
-    tINTERFACE = 313,
-    tNET = 314,
-    tASSEMBLY = 315,
-    tUNDEFINED = 316,
-    SOLID = 317
+    SURFACE = 288,
+    RESISTANCE = 289,
+    INDUCTANCE = 290,
+    IMPEDANCE = 291,
+    LOSSFACTOR = 292,
+    QFACTOR = 293,
+    ROUGH = 294,
+    MESHREFINEMENT = 295,
+    COMPSOLID = 296,
+    VOLTYPE = 297,
+    EPSILONR = 298,
+    MUR = 299,
+    EPSLORENTZ = 300,
+    MULORENTZ = 301,
+    POLESRESIDUES = 302,
+    POLESNUM = 303,
+    ECONDUCTIVITY = 304,
+    HCONDUCTIVITY = 305,
+    ETANDELTA = 306,
+    HTANDELTA = 307,
+    MATERIAL = 308,
+    COLOR = 309,
+    VOLUMES = 310,
+    DISABLED = 311,
+    tDIELECTRIC = 312,
+    tHOLE = 313,
+    tBOUNDARYCONDITION = 314,
+    tWAVEGUIDE = 315,
+    tLINEPORT = 316,
+    tSPLITTER = 317,
+    tGRID = 318,
+    tCOMPONENT = 319,
+    tINTERFACE = 320,
+    tNET = 321,
+    tASSEMBLY = 322,
+    tUNDEFINED = 323,
+    SOLID = 324
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
-#line 97 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model.y" /* yacc.c:1909  */
+#line 97 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/DataBase/model.y" /* yacc.c:1909  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 123 "/home/walter/MwCAD/EmCAD/EmCAD/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
+#line 130 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/DataBase/model_parser.hpp" /* yacc.c:1909  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -130,4 +139,4 @@ extern YYSTYPE modellval;
 
 int modelparse (void);
 
-#endif /* !YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED  */
+#endif /* !YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED  */

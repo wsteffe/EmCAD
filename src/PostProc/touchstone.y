@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,8 +27,6 @@
 
 #include <Message.h>
 #include <stdio.h>
-#include <QString>
-#include <QStringList>
 
 #include "plotData.h"
 
@@ -111,8 +109,8 @@ TouchItem
 	| SetTwoPortOrder
 	| SetPortName
 	| SetMatrixFormat
-	| StartNetworkData
-        | NetParValues
+	| NetworkData
+        | s2pParValues
 	| error		{YYABORT;}
 	;
 
@@ -200,7 +198,7 @@ NetParVal
                        plotData.frequencies[freqi]=$1;
                        curvei++;
                    } else {
-                       plotData.curveArray[freqi+compi*fNum+curvei*2*fNum]=$1; 
+                       plotData.curveArray[(compi+curvei*2)+2*plotData.numberOfCurves*freqi]=$1; 
                        if(compi==1){
                           curvei++;
                           if(curvei==plotData.numberOfCurves) {curvei=-1; freqi++;}
@@ -213,6 +211,37 @@ NetParVal
 NetParValues
 	: NetParVal
 	| NetParValues NetParVal
+	;
+
+NetworkData
+	: StartNetworkData NetParValues
+	;
+
+
+s2pParVal
+	:  Number
+           {      
+                     if(compi==-1){ 
+                        plotData.frequencies.push_back($1); 
+                        compi=0;
+                     } else {
+                       plotData.curveArray.push_back($1); 
+                       compi++;
+                       if(compi==8) compi=-1;
+                     }
+           }
+	;
+
+s2pParValues
+	: s2pParVal
+	| s2pParValues s2pParVal
+         {
+           plotData.numberOfPorts=2;
+           plotData.numberOfCurves=4;
+           plotData.numberOfFreq=plotData.frequencies.size();
+           plotData.portnames << "1";
+           plotData.portnames << "2";
+         }
 	;
 
 SetPortName
@@ -264,6 +293,7 @@ int readTouchstone(const char *fName)
 	}
         strncpy(touchstoneFileName, fName, 255);
         SetTouchstoneFile(fid);
+        compi=-1;
         int result=yyparse();
         if(strcmp(fName,"-")) fclose(fid);
 	return result;

@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -173,38 +173,76 @@ FALSE				{ projectDatalval.ival = 0; return INTEGER; }
 
 DEF				{ BEGIN(expectID); return DEF;}
 mainAssName			{ return MAINASSNAME; }
+varFilePath			{ return VARFILEPATH; }
+s2pFilePath			{ return S2PFILEPATH; }
 network		   	        { return NETWORK; }
 unit		 	        { return UNIT; }
 length			        { return LENGTH; }
 mor	                        { return MOR; }
 ana	                        { return ANA; }
+symmetric	                { return SYMMETRIC; }
 response                        { return RESPONSE; }
+port		                { return PORT; }
+impedance	                { return IMPEDANCE; }
 zero                            { return ZERO; }
 pole                            { return POLE; }
+window                          { return WINDOW; }
+circle                          { return CIRCLE; }
 curve                           { return CURVE; }
 xscale                          { return XSCALE; }
 yscale                          { return YSCALE; }
 auto                            { return AUTO; }
+ideal                           { return IDEAL; }
 type                            { return TYPE; }
+topology                        { return TOPOLOGY; }
 part                            { return PART; }
 parameter                       { return PARAMETER; }
 freq	                        { return FREQ; }
 num	                        { return NUM; }
 filter	                	{ return FILTER; }
+krylov	                	{ return KRYLOV; }
 order	                	{ return ORDER; }
+cutoff	                	{ return CUTOFF; }
+min	                	{ return tMIN; }
+max	                	{ return tMAX; }
+ratio	                	{ return RATIO; }
 returnloss	                { return RETURNLOSS; }
+outband		                { return OUTBAND; }
 Qfactor	                	{ return QFACTOR; }
+uniform	                	{ return UNIFORM; }
+inductive	                { return INDUCTIVE; }
+skin		                { return SKIN; }
+lossy	                	{ return LOSSY; }
+predistorted                	{ return PREDISTORTED; }
+optimize	               	{ return OPTIMIZE; }
+ilosspp	                	{ return ILOSSPP; }
+trustR	                	{ return TRUSTR; }
 tx	                	{ return TX; }
 zeros	                	{ return ZEROS; }
 pass	                	{ return PASS; }
 automatic	  	 	{ return AUTOMATIC; }
+design	  	 		{ return DESIGN; }
 mapping	  	 	        { return MAPPING; }
+tuning	  	 	        { return TUNING; }
+only	  	 	        { return ONLY; }
+transversej	  	 	{ return TRANSVERSEJ; }
 method	  	 	        { return METHOD; }
+source	  	 	        { return SOURCE; }
+recompute	  	 	{ return RECOMPUTE;}
+error		  	 	{ return ERRORT;}
+xtol		  	 	{ return XTOL;}
+trustd		  	 	{ return TRUSTR;}
+graddx		  	 	{ return GRADDX;}
+jacobian	  	 	{ return JACOBIAN;}
 mapped	  	 	        { return MAPPED; }
 itermax	                        { return ITERMAX; }
 band	                        { return BAND; }
 exp	                        { return EXP; }
 mesh	                        { return MESH; }
+refine	                        { return REFINE; }
+energy	                        { return ENERGY; }
+meshing3d	                { return MESHING3D; }
+local	                        { return LOCAL; }
 wavelength	                { return WAVELENGTH; }
 ratio                           { return RATIO; }
 decomposition                   { return DECOMPOSITION; }

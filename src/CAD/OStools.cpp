@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,13 +22,10 @@
 #include <stdio.h>
 #include <boost/filesystem.hpp>
 
-#if defined(_WIN32) || defined(__WIN32__)
-#include <windows.h>
-#include <fcntl.h>
-#include <io.h>
-#endif
 
+#include <sys/file.h>
 #include "OStools.h"
+#include <iostream>
 
 void toUnix(std::string &str){
  if(str.size()) if (str[str.size() - 1] == '\r') str.resize(str.size() - 1);
@@ -42,30 +39,41 @@ std::istream& getLine( std::istream& is, std::string& str){
 const char UNIX_PATH_SEPARATOR = '/';
 const char WINDOWS_PATH_SEPARATOR = '\\';
 
-std::string convertFileNameToWindowsStyle(const std::string& fileName)
+std::string convertPathToWindowsStyle(std::string fileName)
 {
-    std::string new_fileName(fileName);
     
     std::string::size_type slash = 0;
-    while( (slash=new_fileName.find_first_of(UNIX_PATH_SEPARATOR,slash)) != std::string::npos)
+    while( (slash=fileName.find_first_of(UNIX_PATH_SEPARATOR,slash)) != std::string::npos)
     {
-        new_fileName[slash]=WINDOWS_PATH_SEPARATOR;
+        fileName[slash]=WINDOWS_PATH_SEPARATOR;
     }
-    return new_fileName;
+    return fileName;
 }
 
-std::string convertFileNameToUnixStyle(const std::string& fileName)
+std::string convertPathToUnixStyle(std::string fileName)
 {
-    std::string new_fileName(fileName);
-    
     std::string::size_type slash = 0;
-    while( (slash=new_fileName.find_first_of(WINDOWS_PATH_SEPARATOR,slash)) != std::string::npos)
+    while( (slash=fileName.find_first_of(WINDOWS_PATH_SEPARATOR,slash)) != std::string::npos)
     {
-        new_fileName[slash]=UNIX_PATH_SEPARATOR;
+        fileName[slash]=UNIX_PATH_SEPARATOR;
     }
 
-    return new_fileName;
+    return fileName;
 }
+
+std::string cleanWindowsPath(std::string fileName)
+{
+    std::string::size_type p=0;
+    int l=fileName.length();
+    for (int i=l-2; i>=0; i--)
+       if(fileName[i]==WINDOWS_PATH_SEPARATOR && fileName[i+1]==WINDOWS_PATH_SEPARATOR){ 
+          l--;
+   	  for (int j=i+1; j< l; j++) fileName[j]=fileName[j+1];
+        }
+    fileName=fileName.substr(0,l);
+    return fileName;
+}
+
 
 
 using namespace boost::filesystem;
@@ -89,8 +97,8 @@ void createLink(const char* to, const char* link) {
  path pto(to);
  file_status s =status(pto);
  if(!exists(s)){
-  FILE *fp=fopenWithLock(to, "w");
-  fcloseWithLock(fp);
+  FILE *fp=fopen(to, "w");
+  fclose(fp);
  }
  create_hard_link(to, link);
 #endif
@@ -121,9 +129,9 @@ bool removeAllFilesInDir(const char *dirname)
 std::string nativePath(std::string name)
 {
 #if defined(_WIN32) || defined(__WIN32__)
-  return convertFileNameToWindowsStyle(name);
+  return convertPathToWindowsStyle(name);
 #else
-  return convertFileNameToUnixStyle(name);
+  return convertPathToUnixStyle(name);
 #endif
 }
 
@@ -167,52 +175,104 @@ bool createdir(const char *dir)
 }
 
 
-#if defined(_WIN32) || defined(__WIN32__)
-FILE * fopenWithLock(const char *filename, const char * mode)
-{  
-   FILE *fp;
-   std::string native_filename=nativePath(filename);
 
-   DWORD _mode;
-   if (!strcmp(mode,"w")) _mode=GENERIC_WRITE;
-   else if (!strcmp(mode,"r")) _mode=GENERIC_READ;
-   else if (!strcmp(mode,"a")) _mode=GENERIC_WRITE | GENERIC_READ;
-   while(1) {
-    HANDLE h = CreateFile(native_filename.c_str(), _mode, 0, 0,
-        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-    if(h != INVALID_HANDLE_VALUE)
-    {
-        int fd = _open_osfhandle((intptr_t)h, _O_TEXT);
-        if(fd != -1){
-            FILE* fp = _fdopen(fd, "a+");
-            if(fp != 0) break;
-	}
+
+#if defined(_MINGW)
+  #include <windows.h>
+  #include <errno.h>
+  #include <io.h>
+
+
+  int setLock(FILE * fh, const char *mode)
+  {
+    int fd = fileno(fh);
+    HANDLE h = (HANDLE) _get_osfhandle (fd);
+
+    DWORD size_lower=1;
+    DWORD size_upper=0;
+
+    OVERLAPPED ovlp;
+    ovlp.Offset=0;
+    ovlp.OffsetHigh=0;
+    ovlp.hEvent=NULL;
+
+    if(mode[0]=='w'||mode[0]=='a') {
+	   if(!LockFileEx (h, LOCKFILE_EXCLUSIVE_LOCK, 0, size_lower, size_upper, &ovlp)){ 
+		 std::cerr << "ERROR: could not obtain write lock \n";
+		 return -1;
+	   }
+    } else if(mode[0]=='r') {
+	   if(!LockFileEx (h, 0, 0, size_lower, size_upper, &ovlp)){
+		 std::cerr << "ERROR: could not obtain read lock \n";
+		 return -1;
+	   }
+    } else {
+	    std::cerr << "ERROR: invalid mode " << mode <<"\n";
+	    return -1;
     }
-    Sleep(1000);
-   }
-
-   return fp;
+    return 0;
 }
+
+int releaseLock(FILE * fh){
+    int fd = fileno(fh);
+    HANDLE h = (HANDLE) _get_osfhandle (fd);
+
+    DWORD size_lower=1;
+    DWORD size_upper=0;
+    DWORD OffsetLow=0;
+    DWORD OffsetHigh=0;
+
+    if(!UnlockFile(h, OffsetLow, OffsetHigh, size_lower, size_upper)) {
+      std::cerr << "ERROR: could not remove the lock \n";
+      return -1;
+    }
+    
+    return 0;
+}
+
+
 #else
-FILE * fopenWithLock(const char *filename, const char * mode)
-{  
-   FILE *fp;
-   std::string native_filename=nativePath(filename);
-   fp =fopen(native_filename.c_str(), mode);
-   flockfile(fp);
-   return fp;
+
+
+#include <fcntl.h>
+int setLock(FILE * fh, const char *mode)
+{
+    int fd = fileno(fh);
+    struct flock fl;
+    fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+    fl.l_start  = 0;        /* Offset from l_whence         */
+    fl.l_len    = 0;        /* length, 0 = to EOF           */
+    fl.l_pid    = getpid(); /* our PID                      */
+    
+    if(mode[0]=='w'||mode[0]=='a') {
+           fl.l_type= F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+	   if(fcntl(fd, F_SETLKW, &fl) == -1){ 
+		 std::cerr << "ERROR: could not obtain write lock \n";
+		 return -1;
+	   }
+    } else if(mode[0]=='r') {
+           fl.l_type= F_RDLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+	   if(fcntl(fd, F_SETLKW, &fl) == -1){
+		 std::cerr << "ERROR: could not obtain read lock \n";
+		 return -1;
+	   }
+    } else if(mode[0]=='0'){
+           fl.l_type= F_UNLCK;  /* tell it to unlock the region */
+	   if(fcntl(fd, F_SETLK, &fl) == -1) {
+		 std::cerr << "ERROR: could not remove the lock \n";
+		 return -1;
+	   }
+    } else {
+	    std::cerr << "ERROR: invalid mode " << mode <<"\n";
+	    return -1;
+    }
+    return 0;
 }
+
+int releaseLock(FILE * fh){setLock(fh, "0");}
+
+
 #endif
-
-
-
-void fcloseWithLock(FILE *fp){
-#if !defined(_WIN32) || !defined(__WIN32__)
-  funlockfile(fp);
-#endif
-  fclose(fp);
-}
-
 
 
 /*

@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
-# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -76,17 +76,19 @@ extern int touchstonedebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
-#line 75 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1909  */
+#line 73 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1909  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 89 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.hpp" /* yacc.c:1909  */
+#line 89 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.hpp" /* yacc.c:1909  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -96,4 +98,4 @@ extern YYSTYPE touchstonelval;
 
 int touchstoneparse (void);
 
-#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */
+#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */

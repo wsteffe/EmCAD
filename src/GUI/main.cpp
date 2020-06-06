@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,6 +44,9 @@ std::map<std::string, std::string> botoConfig;
 
 char emcadPath[256];
 extern int useAWS;
+extern int useServer;
+extern int useAPI;
+extern int useDOCKER;
 
 extern int modeldebug;
 extern int model_flex_debug;
@@ -53,7 +56,7 @@ extern int touchstone_flex_debug;
 void WriteBoto();
 
 #ifdef WNT
-
+#include <windows.h>
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow)
 {
@@ -106,8 +109,10 @@ int main(int argc, char *argv[])
     botoConfig_filename=homedir+"/.boto";
     if(!stat(botoConfig_filename.c_str(), &botoConfigInfo)) ReadFile(botoConfig_filename, &botoConfig);
 
-
-    useAWS=emcadConfig[std::string("localModeler")]!=std::string("true");
+    useAWS=emcadConfig[std::string("modeler")]==std::string("aws");
+    useAPI=emcadConfig[std::string("modeler")]==std::string("api");
+    useServer=emcadConfig[std::string("modeler")]==std::string("lan");
+    useDOCKER=useServer || emcadConfig[std::string("modeler")]==std::string("docker");
 
     if(emcadAccount[std::string("credit")].empty()) emcadAccount[std::string("credit")]="0";
 
@@ -124,8 +129,6 @@ int main(int argc, char *argv[])
 
     bool useGUI = true;
     QApplication app( argc, argv, useGUI);
-
-//    Standard::SetReentrant(Standard_True);
 
     mainWindow=new MainWindow;
     mainWindow->show();

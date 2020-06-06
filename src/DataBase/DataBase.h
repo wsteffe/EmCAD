@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 #define _DATABASE_H_
 
 #include<MallocUtils.h>
+#include<math.h>
 #include<string>
 #include<vector>
 #include<map>
@@ -89,6 +90,7 @@ class MatBuffer{
 public:
   Buffer<double, 100, 3>  epsLorentz;
   Buffer<double, 100, 3>  muLorentz;
+  Buffer<double, 100, 4>  surfPolesRes;
 };
 class Material {
 public:
@@ -100,15 +102,21 @@ public:
   double   htandelta;
   double   econductivity;
   double   hconductivity;
-  int      edispersive;
-  int      hdispersive;
   Vec<double>   epsLorentz;
   Vec<double>   muLorentz;
-  double     Sresistance;
-  double freqBand[2];
+  Vec<double>   surfPolesRes;
+  double    Sresistance;
+  double    Sinductance;
+  double    roughSurfFreq;
+  double    roughSurfLossFactor;
+  double    roughSurfImpedanceQ;
+  int       roughSurfFitPolesNum;
   int     color[4];
   static MatBuffer buff;
   Material();
+  int  edispersive(){return (fabs(econductivity) >1.e-30 || epsLorentz.n>0);}
+  int  hdispersive(){return (fabs(hconductivity) >1.e-30 || muLorentz.n>0);}
+  int  sdispersive(){return (fabs(Sresistance) >1.e-30 || surfPolesRes.n>0);}
   void flush();
   Material& operator =(const Material &rhs);
 };
@@ -125,13 +133,13 @@ public:
   int        TEMportsNum;
   int        TEportsNum;
   int        TMportsNum;
-  int        compSolid;
   int        defined;
   int        disabled;
   int        gridNum;
   int        PML;
   int        invariant;
   double     meshRefinement;
+  int        cellNum;
   std::map<int,int> Fmap, Cmap;
   Volume();
   Volume & operator =(Volume const &rhs);
@@ -158,6 +166,7 @@ public:
   EmProblem();
   ~EmProblem();
   void addMaterial  (Material*  m);
+  void replaceMaterial  (Material*  m);
   void insertMaterial(Material* m);
   void delMaterial  (Material*  m);
   void insertVolume (Volume*    v);
@@ -169,7 +178,7 @@ public:
   void saveMaterials(FILE *fid);
   std::string stepFilePath;
   std::string occFilePath;
-  bool  hasGeo;
+  bool hasGeo;
   int  level;
   str_t defaultBC;
   int assemblyType;

@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -105,11 +105,11 @@ char	*sval;
 %token <sval> STRING NAME
 
 %token IMPORT
-%token ASSEMBLYTYPE  LEVEL
+%token ASSEMBLYTYPE LEVEL
 %token DEF SET CIRCUITNAME DEFAULTBC
 %token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
-%token LENGTH FREQUENCY BAND RESISTANCE SURFACERESISTANCE MESHREFINEMENT COMPSOLID
-%token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
+%token LENGTH FREQUENCY BAND SURFACE RESISTANCE INDUCTANCE IMPEDANCE LOSSFACTOR QFACTOR ROUGH MESHREFINEMENT COMPSOLID
+%token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ POLESRESIDUES POLESNUM ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
 %token VOLUMES DISABLED
 %token tDIELECTRIC tHOLE tBOUNDARYCONDITION tWAVEGUIDE tLINEPORT tSPLITTER tGRID tCOMPONENT tINTERFACE tNET tASSEMBLY tUNDEFINED
 %token SOLID
@@ -238,6 +238,23 @@ MFVec3f
 	; 
 
 
+SFVec4f
+	: SFFloat SFFloat SFFloat SFFloat {}
+	;
+
+SFVec4fList
+	: SFVec4f
+	| SFVec4fList SFVec4f
+	| SFVec4fList ','
+	|
+	;
+
+MFVec4f
+	: SFVec4f
+	| '[' SFVec4fList ']'
+	; 
+
+
 
 StringList
 	 :  STRING {strList->add($1);}
@@ -277,6 +294,7 @@ Level
 			loadingEmP->level=$2;
 		}
 	;
+
 
 DefaultBoundCond
 	: DEFAULTBC  STRING
@@ -371,17 +389,22 @@ MaterialElements
 	;
 
 MaterialElement
-	:  EPSILONR	        {Fbuff = NULL;}    SFFloat             {mat->epsr=$3;     }
-	|  MUR		        {Fbuff = NULL;}    SFFloat             {mat->mur=$3;          }
-	|  ETANDELTA            {Fbuff = NULL;}    SFFloat             {mat->etandelta=$3; mat->edispersive=1;}
-	|  HTANDELTA            {Fbuff = NULL;}    SFFloat             {mat->htandelta=$3; mat->edispersive=1;}
-	|  ECONDUCTIVITY        {Fbuff = NULL;}    SFFloat             {mat->econductivity=$3; mat->edispersive=1;}
-	|  HCONDUCTIVITY        {Fbuff = NULL;}    SFFloat             {mat->hconductivity=$3; mat->hdispersive=1; }
-	|  EPSLORENTZ	        {Fbuff  = &mat->buff.epsLorentz; Fbuff->reset();}   MFVec3f  {mat->edispersive=1;}
-	|  MULORENTZ            {Fbuff  = &mat->buff.muLorentz; Fbuff->reset();}    MFVec3f  {mat->hdispersive=1;}
-	|  SURFACERESISTANCE    {Fbuff = NULL;}    SFFloat             {mat->Sresistance=$3; }
-        |  FREQUENCY BAND       {Fbuff = NULL;}    SFFloat SFFloat     {mat->freqBand[0]=$4; mat->freqBand[1]=$5; }
-        |  COLOR                { Ibuff = &IntBuffer; Ibuff->reset();}	   MFInt32
+	:  EPSILONR	            {Fbuff = NULL;}    SFFloat             {mat->epsr=$3;     }
+	|  MUR		            {Fbuff = NULL;}    SFFloat             {mat->mur=$3;          }
+	|  ETANDELTA                {Fbuff = NULL;}    SFFloat             {mat->etandelta=$3;}
+	|  HTANDELTA                {Fbuff = NULL;}    SFFloat             {mat->htandelta=$3;}
+	|  ECONDUCTIVITY            {Fbuff = NULL;}    SFFloat             {mat->econductivity=$3;}
+	|  HCONDUCTIVITY            {Fbuff = NULL;}    SFFloat             {mat->hconductivity=$3;}
+	|  EPSLORENTZ	            {Fbuff  =&mat->buff.epsLorentz; Fbuff->reset();}            MFVec3f
+	|  MULORENTZ                {Fbuff  =&mat->buff.muLorentz; Fbuff->reset();}             MFVec3f
+	|  SURFACE POLESRESIDUES    {Fbuff  =&mat->buff.surfPolesRes; Fbuff->reset();}          MFVec4f
+	|  SURFACE RESISTANCE       {Fbuff = NULL;}    SFFloat             {mat->Sresistance=$4; }
+	|  SURFACE INDUCTANCE       {Fbuff = NULL;}    SFFloat             {mat->Sinductance=$4; }
+	|  ROUGH SURFACE POLESNUM   {Fbuff = NULL;}    SFFloat             {mat->roughSurfFitPolesNum=$5; }
+        |  ROUGH SURFACE FREQUENCY  {Fbuff = NULL;}    SFFloat             {mat->roughSurfFreq=$5; }
+        |  ROUGH SURFACE LOSSFACTOR {Fbuff = NULL;}    SFFloat             {mat->roughSurfLossFactor=$5;}
+        |  ROUGH SURFACE IMPEDANCE QFACTOR {Fbuff = NULL;}    SFFloat      {mat->roughSurfImpedanceQ=$6;}
+        |  COLOR                    { Ibuff = &IntBuffer; Ibuff->reset();}	   MFInt32
             {
               IntBuffer.flush(&matColor); 
               for(int i=0; i<4; i++) mat->color[i]=matColor[i];
@@ -502,7 +525,7 @@ VolumeElement
 	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
 	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
 
-	|  COMPSOLID         {Ibuff = NULL;}    SFInt32      {vol->compSolid=$3; }
+	|  COMPSOLID         {Ibuff = NULL;}    SFInt32      { }
 
 	|  DISABLED          { }                             {vol->disabled=1; }
 	;

@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,10 +21,12 @@
 
 #include <QStringList>
 #include <vector>
-#include <array>
 #include <map>
 
-typedef std::map< std::array<int, 2>, std::array< std::vector<double>, 2>  >::iterator PlotDataCurveMapIterator;
+
+typedef std::map< std::pair<int, int>, std::pair< std::vector<double>, std::vector<double> >  >::iterator PlotDataCurveMapIterator;
+
+void convert2db(char format[5], double val[2], double oval[2]);
 
 struct PlotData{
  char param;
@@ -36,13 +38,27 @@ struct PlotData{
  int numberOfCurves;
  std::vector<double> frequencies;
  std::vector<double> curveArray;
- std::map< std::array<int, 2>, std::array< std::vector<double>, 2>  > curveMap;
+ std::map< std::pair<int, int>, std::pair< std::vector<double>, std::vector<double> >  > curveMap;
  QStringList portnames;
  void clear(){
   frequencies.clear();
   curveArray.clear();
   portnames.clear();
   curveMap.clear();
+ }
+ void getCurveData(int ip, int jp, int k, double x[]){
+   int Np=numberOfPorts;
+   bool convert_to_dB= (param=='S') && strcmp(format,"DB");
+   for (int l=0; l< numberOfFreq; l++){
+      int ijl=(2*ip+2*Np*jp)+2*Np*Np*l;
+      if(!convert_to_dB) 
+        x[l]=curveArray[k+ijl];
+      else{
+        double val[2]; 
+	convert2db(format, &curveArray[ijl], val);
+        x[l]=val[k];
+      }	    
+   }
  }
  int setFrequnit(char funit[5])
  {

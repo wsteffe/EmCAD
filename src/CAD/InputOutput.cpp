@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,11 +25,12 @@
  #include <config.h>
 #endif
 
+#include "assert.h"
+
 #include<string>
 
 #include "InputOutput.h"
 #include "OStools.h"
-
 
 #include <TDataStd_Name.hxx>
 
@@ -40,6 +41,8 @@
 #include <TopoDS_Solid.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopTools_DataMapOfShapeInteger.hxx>
+#include <XCAFDoc_DataMapOfShapeLabel.hxx>
+
 
 #include <Geom_Line.hxx>
 #include <Geom_Plane.hxx>
@@ -51,7 +54,6 @@
 #include <BRep_Tool.hxx>
 
 #include <BRepTools.hxx>
-#include <ShapeSchema.hxx>
 #include <TCollection_AsciiString.hxx>
 #include <TColStd_HSequenceOfTransient.hxx>
 #include <TColStd_SequenceOfAsciiString.hxx>
@@ -95,20 +97,21 @@
 #include <TDF_ChildIterator.hxx>
 
 // specific CSFDB
+#include <NCollection_Handle.hxx>
+#include <StdStorage.hxx>
+#include <StdStorage_Data.hxx>
+#include <StdStorage_RootData.hxx>
+#include <StdStorage_HeaderData.hxx>
+#include <StdStorage_Root.hxx>
+#include <StdStorage_HSequenceOfRoots.hxx>
+#include <StdObjMgt_Persistent.hxx>
+#include <ShapePersistent_TopoDS.hxx>
+#include <StdPersistent_TopLoc.hxx>
+#include <Standard_ErrorHandler.hxx>
+#include <PCDM_ReadWriter.hxx>
 #include <FSD_File.hxx>
-#include <MgtBRep.hxx>
-#include <MgtTopLoc.hxx>
-#include <PTopLoc_Location.hxx>
-#include <PTopLoc_ItemLocation.hxx>
-#include <PTColStd_PersistentTransientMap.hxx>
-#include <PTColStd_TransientPersistentMap.hxx>
-#include <PTopoDS_HShape.hxx>
-#include <Storage_Data.hxx>
 #include <Storage_Error.hxx>
 #include <Storage_HSeqOfRoot.hxx>
-#include <Storage_Root.hxx>
-#include <ShapeSchema.hxx>
-
 
 
 /******************************************************************
@@ -150,20 +153,25 @@ Standard_Boolean ReadNamesBis(const Handle(XSControl_WorkSession)& WS,
 }
 */
 
-void  importSTEP( Handle(TDocStd_Document) doc, char* fileName, char *lengthUnitName )
+bool isCompName(TCollection_AsciiString &name);
+bool isValidMultibodyPartName(TCollection_AsciiString &name);
+
+XCAFDoc_DataMapOfShapeLabel multiBodyShapesMap;
+
+void  importSTEP( Handle(TDocStd_Document) doc, char* fileName,  char *lengthUnitName)
 {
 
 	STEPCAFControl_Reader reader;
-	if(!Interface_Static::SetIVal("read.stepcaf.subshapes.name",0)) cout<<"error";
-	if(!Interface_Static::SetIVal("read.step.product.mode",1)) cout<<"error";
-	if(!Interface_Static::SetIVal("read.step.product.context",1))  cout<<"error";
-	if(!Interface_Static::SetIVal("read.step.shape.repr",1)) cout<<"error";
-	if(!Interface_Static::SetIVal("read.step.assembly.level",2))  cout<<"error";
-        if(!Interface_Static::SetIVal("read.step.shape.aspect",1)) cout<<"error";
-        if(!Interface_Static::SetIVal("read.step.shape.relationship",1)) cout<<"error";
+	if(!Interface_Static::SetIVal("read.stepcaf.subshapes.name",1)) std::cout<<"error";
+	if(!Interface_Static::SetIVal("read.step.product.mode",1)) std::cout<<"error";
+	if(!Interface_Static::SetIVal("read.step.product.context",1))  std::cout<<"error";
+	if(!Interface_Static::SetIVal("read.step.shape.repr",1)) std::cout<<"error";
+	if(!Interface_Static::SetIVal("read.step.assembly.level",1))  std::cout<<"error";
+        if(!Interface_Static::SetIVal("read.step.shape.aspect",1)) std::cout<<"error";
+        if(!Interface_Static::SetIVal("read.step.shape.relationship",1)) std::cout<<"error";
 	if(lengthUnitName){
 		Standard_CString LU=lengthUnitName;
-	        if(!Interface_Static::SetCVal("step.cascade.unit",LU)) cout<<"error";
+	        if(!Interface_Static::SetCVal("step.cascade.unit",LU)) std::cout<<"error";
 	}
 
         IFSelect_ReturnStatus status = reader.ReadFile(fileName);
@@ -182,6 +190,8 @@ void  importSTEP( Handle(TDocStd_Document) doc, char* fileName, char *lengthUnit
         Handle(Transfer_TransientProcess) TP = TR->TransientProcess();
         Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool( doc->Main() );
 
+
+	multiBodyShapesMap.Clear();
         for (int i = 1; i <= nb; i ++) {
             Handle(Standard_Transient) enti = model->Value(i);
 	    TCollection_AsciiString entityName;
@@ -196,29 +206,28 @@ void  importSTEP( Handle(TDocStd_Document) doc, char* fileName, char *lengthUnit
                Handle(StepShape_ManifoldSolidBrep) MSB = Handle(StepShape_ManifoldSolidBrep)::DownCast(enti);
                entityName =MSB->Name()->String();
 	       t=1;
-/*	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_ShellBasedSurfaceModel) ) ){
+	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_ShellBasedSurfaceModel) ) ){
               Handle(StepShape_ShellBasedSurfaceModel) ShBSM = Handle(StepShape_ShellBasedSurfaceModel)::DownCast(enti);
               entityName =ShBSM->Name()->String();
 	      t=2;
-*/
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_OpenShell) ) ){
               Handle(StepShape_OpenShell) OSh = Handle(StepShape_OpenShell)::DownCast(enti);
               entityName =OSh->Name()->String();
 	      t=3;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_AdvancedBrepShapeRepresentation) ) ){
               Handle(StepShape_AdvancedBrepShapeRepresentation) REP = Handle(StepShape_AdvancedBrepShapeRepresentation)::DownCast(enti);
-//              entityName =REP->Name()->String();
-              entityName =TCollection_AsciiString("REMOVE");
+              entityName =REP->Name()->String();
+//              entityName =TCollection_AsciiString("REMOVE");
 	      t=4;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_ManifoldSurfaceShapeRepresentation) ) ){
               Handle(StepShape_ManifoldSurfaceShapeRepresentation) REP = Handle(StepShape_ManifoldSurfaceShapeRepresentation)::DownCast(enti);
-//              entityName =REP->Name()->String();
-              entityName =TCollection_AsciiString("REMOVE");
+              entityName =REP->Name()->String();
+//              entityName =TCollection_AsciiString("REMOVE");
 	      t=5;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_GeometricallyBoundedSurfaceShapeRepresentation) ) ){
               Handle(StepShape_GeometricallyBoundedSurfaceShapeRepresentation) REP = Handle(StepShape_GeometricallyBoundedSurfaceShapeRepresentation)::DownCast(enti);
-//              entityName =REP->Name()->String();
-              entityName =TCollection_AsciiString("REMOVE");
+              entityName =REP->Name()->String();
+//              entityName =TCollection_AsciiString("REMOVE");
 	      t=6;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepGeom_CompositeCurve) ) ){
               Handle(StepGeom_CompositeCurve) REP = Handle(StepGeom_CompositeCurve)::DownCast(enti);
@@ -235,19 +244,44 @@ void  importSTEP( Handle(TDocStd_Document) doc, char* fileName, char *lengthUnit
             if((t==5) && (S.ShapeType()!=TopAbs_COMPOUND)) continue;
             if((t==6) && (S.ShapeType()!=TopAbs_COMPOUND)) continue;
             if((t==7) && (S.ShapeType()!=TopAbs_WIRE)) continue;
-            TDF_Label shL=shapeTool->FindShape( S,Standard_False); 
-	    if(shL.IsNull()) continue;
+	    TDF_Label label;
+	    if ( ! shapeTool->Search ( S, label, Standard_True, Standard_True) ) continue;
+            TopoDS_Shape SS = shapeTool->GetShape(label);
+//            TDF_Label label=shapeTool->FindShape( S,Standard_False); 
+//	    if(label.IsNull()) continue;
             Handle(TDataStd_Name)  nameAtt;  TCollection_AsciiString name;
-            if(!shL.FindAttribute(TDataStd_Name::GetID(),nameAtt)){
-		   nameAtt= new TDataStd_Name();
-		   shL.AddAttribute (nameAtt);
+            if(!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)){
+		   nameAtt= TDataStd_Name::Set(label,name);
             }
             name=nameAtt->Get();
+	    TopoDS_Shape S0 = S;
+	    TopLoc_Location loc;
+            S0.Location (loc);
+	    if(isValidMultibodyPartName(name)){
+	        if(!multiBodyShapesMap.IsBound(S0)) multiBodyShapesMap.Bind(S0,label);
+	    }
             if(name==entityName) continue;
-	    nameAtt->Set(entityName);
+	    if(isValidMultibodyPartName(entityName)){
+	      if(isCompName(name)){
+		if(SS.ShapeType()!=TopAbs_COMPOUND){
+	         TopoDS_Compound  C;
+	         BRep_Builder builder;
+                 builder.MakeCompound(C);
+                 builder.Add(C,S);
+	         shapeTool->SetShape(label,C);
+	        }
+                TDF_TagSource aTag;
+                TDF_Label sublabel = aTag.NewChild(label);
+	        shapeTool->SetShape(sublabel,S);
+	        shapeTool->UpdateAssemblies();
+	        nameAtt= TDataStd_Name::Set(sublabel,entityName);
+	        if(!multiBodyShapesMap.IsBound(S0)) multiBodyShapesMap.Bind(S0,sublabel);
+	      } else {
+		nameAtt->Set(entityName);
+	        if(!multiBodyShapesMap.IsBound(S0)) multiBodyShapesMap.Bind(S0,label);
+	      }
+	   }
 	 }
-
-
 
 }
 
@@ -256,7 +290,7 @@ void  importIGES( Handle(TDocStd_Document) doc, char* fileName )
 {
 	IGESControl_Controller::Init();
 	IGESCAFControl_Reader reader;
-//	if(!Interface_Static::SetIVal("read.step.assembly.level",1))  cout<<"error";
+//	if(!Interface_Static::SetIVal("read.step.assembly.level",1))  std::cout<<"error";
         IFSelect_ReturnStatus status = reader.ReadFile(fileName);
 	bool ok= status==IFSelect_RetDone ;
         if(ok){       
@@ -274,25 +308,23 @@ FSD_File *fileDriver=NULL;
 bool openShape( const char* fileName, TopoDS_Shape &shape)
 {
     // Check file type
-    if(!fileDriver) fileDriver=new FSD_File();
+
     if ( FSD_File::IsGoodFileType( fileName ) != Storage_VSOk )  return false;
 
-    TCollection_AsciiString aName( fileName );
-    if ( fileDriver->Open( aName, Storage_VSRead ) != Storage_VSOk ) return false;
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = schema->Read( *fileDriver );
-    if ( data->ErrorStatus() != Storage_VSOk ) return false;
+    Handle(StdStorage_Data) data;
+    Storage_Error error = StdStorage::Read(TCollection_AsciiString(fileName), data);
+    if (error != Storage_VSOk ) return false;
 
-    fileDriver->Close();
 
-    Handle(Storage_HSeqOfRoot) roots = data->Roots();
-    Handle(Storage_Root) r = roots->Value( 1 );
-    Handle(Standard_Persistent) p = r->Object();
-    Handle(PTopoDS_HShape) aPShape = Handle(PTopoDS_HShape)::DownCast(p);
-    if ( aPShape.IsNull() ) return 1;
-    PTColStd_PersistentTransientMap aMap;
-    MgtBRep::Translate( aPShape, aMap, shape, MgtBRep_WithoutTriangle );
+    Handle(StdStorage_RootData) rootData = data->RootData();
+    Handle(StdStorage_HSequenceOfRoots) roots = rootData->Roots();
+    Handle(StdStorage_Root) r = roots->Value( 1 );
+    Handle(StdObjMgt_Persistent) pObject = r->Object();
+    if (pObject.IsNull()) return;
+    Handle(ShapePersistent_TopoDS::HShape) pHShape = Handle(ShapePersistent_TopoDS::HShape)::DownCast(pObject);
+    if ( pHShape.IsNull() ) return 1;
+    shape = pHShape->Import();
     return true;
 
 /*
@@ -319,36 +351,31 @@ bool openShape( const char* fileName, TopoDS_Shape &shape)
 
 bool openShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
 {
-    // Check file type
+
     if ( FSD_File::IsGoodFileType( fileName ) != Storage_VSOk )  return false;
 
-    if(!fileDriver) fileDriver=new FSD_File();
-    TCollection_AsciiString aName( fileName );
-    if ( fileDriver->Open( aName, Storage_VSRead ) != Storage_VSOk ) return false;
+    Handle(StdStorage_Data) data;
+    Storage_Error error = StdStorage::Read(TCollection_AsciiString(fileName), data);
+    if (error != Storage_VSOk ) return false;
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = schema->Read( *fileDriver );
-    if ( data->ErrorStatus() != Storage_VSOk ) return false;
 
-    fileDriver->Close();
+    Handle(StdStorage_RootData) rootData = data->RootData();
+    Handle(StdStorage_HSequenceOfRoots) roots = rootData->Roots();
 
-    Handle(Storage_HSeqOfRoot) roots = data->Roots();
     shapes.Clear();
     int N=roots->Length();
     int *permu=new int[N];
     for ( int i = 1; i <= N; i++ ) {
-        Handle(Storage_Root) r=roots->Value( i );
+        Handle(StdStorage_Root) r=roots->Value( i );
 	permu[atoi(r->Name().ToCString())-1]=i;
     }
     for ( int i = 1; i <= N; i++ )
     {
-        Handle(Storage_Root) r=roots->Value( permu[i-1] );
-        Handle(PTopoDS_HShape) aPShape = Handle(PTopoDS_HShape)::DownCast(r->Object());
-        if ( !aPShape.IsNull() )
+        Handle(StdStorage_Root) r=roots->Value( permu[i-1] );
+        Handle(ShapePersistent_TopoDS::HShape) pHShape = Handle(ShapePersistent_TopoDS::HShape)::DownCast(r->Object());
+        if ( !pHShape.IsNull() )
         {
-	    PTColStd_PersistentTransientMap aMap;
-	    TopoDS_Shape S;
-            MgtBRep::Translate( aPShape, aMap, S, MgtBRep_WithoutTriangle );
+	    TopoDS_Shape S= pHShape->Import();
 	    shapes.Add(S);
         }
     }
@@ -362,29 +389,35 @@ bool openShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
 bool saveShape( const char* fileName, TopoDS_Shape shape)
 {
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = new Storage_Data();
-    data->ClearErrorStatus();
+    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+   // Try to open the file driver for writing
+    Storage_Error aStatus = fileDriver->Open(TCollection_ExtendedString(fileName), Storage_VSWrite);
+    if (aStatus != Storage_VSOk) return false;
 
-    data->SetApplicationName( TCollection_ExtendedString( "MwCAE" ) );
-    data->SetApplicationVersion( "1" );
-    data->SetDataType( TCollection_ExtendedString( "Shapes" ) );
-    data->AddToUserInfo( "Storing the shape in a flat file" );
-    data->AddToComments( TCollection_ExtendedString( "Application is based on CasCade 6.8" ) );
+    // Create a storage data instance
+    Handle(StdStorage_Data) data = new StdStorage_Data();
+    // Set an axiliary application name (optional)
+    data->HeaderData()->SetApplicationName(TCollection_ExtendedString("MwCAE"));
+    data->HeaderData()->SetApplicationVersion( "1" );
+    data->HeaderData()->SetDataType( TCollection_ExtendedString( "Shapes" ) );
+    data->HeaderData()->AddToUserInfo( "Storing the shape in a flat file" );
+    data->HeaderData()->AddToComments( TCollection_ExtendedString( "Application is based on OpenCascade 7.2" ) );
 
-    if(!fileDriver) fileDriver=new FSD_File();
-    if ( fileDriver->Open( fileName, Storage_VSWrite ) != Storage_VSOk ) return false;
+    StdObjMgt_TransientPersistentMap aMap;
 
-    PTColStd_TransientPersistentMap aMap;
-    Handle(PTopoDS_HShape) pshape = MgtBRep::Translate(shape, aMap, MgtBRep_WithoutTriangle );
-    data->AddRoot( pshape );
-
-    schema->Write( *fileDriver, data );
-//    fileDriver->myStream.flush();
+    Handle(ShapePersistent_TopoDS::HShape) pHShape =ShapePersistent_TopoDS::Translate(shape, aMap, ShapePersistent_WithoutTriangle);
+    TCollection_AsciiString name = TCollection_AsciiString("Shape");
+  // Add a root to storage data
+    Handle(StdStorage_Root) root = new StdStorage_Root(name, pHShape);
+    data->RootData()->AddRoot(root);
+    
+    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    if (error != Storage_VSOk ) return false;
     fflush(NULL);
     fileDriver->Close();
 
-    return ( data->ErrorStatus() == Storage_VSOk );
+    return true;
+
 }
 
 
@@ -392,32 +425,36 @@ bool saveShape( const char* fileName, TopoDS_Shape shape)
 bool saveShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
 {
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = new Storage_Data();
-    data->ClearErrorStatus();
+    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+    Storage_Error aStatus = fileDriver->Open(TCollection_ExtendedString(fileName), Storage_VSWrite);
+    if (aStatus != Storage_VSOk) return false;
 
-    data->SetApplicationName( TCollection_ExtendedString( "MwCAE" ) );
-    data->SetApplicationVersion( "1" );
-    data->SetDataType( TCollection_ExtendedString( "Shapes" ) );
-    data->AddToUserInfo( "Storing the shape in a flat file" );
-    data->AddToComments( TCollection_ExtendedString( "Application is based on CasCade 6.2" ) );
+    // Create a storage data instance
+    Handle(StdStorage_Data) data = new StdStorage_Data();
+    // Set an axiliary application name (optional)
+    data->HeaderData()->SetApplicationName(TCollection_ExtendedString("MwCAE"));
+    data->HeaderData()->SetApplicationVersion( "1" );
+    data->HeaderData()->SetDataType( TCollection_ExtendedString( "Shapes" ) );
+    data->HeaderData()->AddToUserInfo( "Storing the shape in a flat file" );
+    data->HeaderData()->AddToComments( TCollection_ExtendedString( "Application is based on OpenCascade 7.2" ) );
 
-    if(!fileDriver) fileDriver=new FSD_File();
-    if ( fileDriver->Open( fileName, Storage_VSWrite ) != Storage_VSOk ) return false;
-
-    PTColStd_TransientPersistentMap aMap;
+    StdObjMgt_TransientPersistentMap aMap;
 //---------
     for (Standard_Integer I=1;I<=shapes.Extent();I++){
       TCollection_AsciiString name=I;
       TopoDS_Shape S =shapes.FindKey(I);
-      Handle(PTopoDS_HShape) pS = MgtBRep::Translate(S, aMap, MgtBRep_WithoutTriangle );
-      data->AddRoot(name, pS);
+      Handle(ShapePersistent_TopoDS::HShape) pHShape =ShapePersistent_TopoDS::Translate(S, aMap, ShapePersistent_WithoutTriangle);
+      Handle(StdStorage_Root) root = new StdStorage_Root(name, pHShape);
+      data->RootData()->AddRoot(root);
     }
 //---------
-    schema->Write( *fileDriver, data );
+    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    if (error != Storage_VSOk ) return false;
+    fflush(NULL);
     fileDriver->Close();
 
-    return ( data->ErrorStatus() == Storage_VSOk );
+    return true;
+
 }
 
 void touchModified(const char* file){
@@ -495,24 +532,32 @@ bool openLocation( const char* fileName,  TopLoc_Location  &loc)
     // Check file type
     if ( FSD_File::IsGoodFileType( fileName ) != Storage_VSOk )  return false;
 
-    if(!fileDriver) fileDriver=new FSD_File();
-    TCollection_AsciiString aName( fileName );
-    if ( fileDriver->Open( aName, Storage_VSRead ) != Storage_VSOk ) return false;
+    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+   // Try to open the file driver for writing
+    try {
+     OCC_CATCH_SIGNALS
+     PCDM_ReadWriter::Open (*fileDriver, TCollection_ExtendedString(fileName), Storage_VSRead);
+    } 
+    catch (Standard_Failure& e) {
+      return false;
+    }
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = schema->Read( *fileDriver );
-    if ( data->ErrorStatus() != Storage_VSOk ) return false;
+    Handle(StdStorage_Data) data;
+    Storage_Error error = StdStorage::Read(*fileDriver, data);
+    if (error != Storage_VSOk ) return false;
 
     fileDriver->Close();
 
-    Handle(Storage_HSeqOfRoot) roots = data->Roots();
-    Handle(Storage_Root) r = roots->Value( 1 );
-    Handle(Standard_Persistent) p = r->Object();
-    Handle(PTopLoc_ItemLocation) pItemLoc = Handle(PTopLoc_ItemLocation)::DownCast(p);
-    if ( pItemLoc.IsNull() ) return 1;
-    PTColStd_PersistentTransientMap aMap;
-    PTopLoc_Location ploc;  ploc._CSFDB_SetPTopLoc_LocationmyData(pItemLoc);
-    loc=MgtTopLoc::Translate( ploc, aMap);
+    Handle(StdStorage_RootData) rootData = data->RootData();
+    Handle(StdStorage_HSequenceOfRoots) roots = rootData->Roots();
+    Handle(StdStorage_Root) r = roots->Value( 1 );
+    Handle(StdObjMgt_Persistent) pObject = r->Object();
+    if (pObject.IsNull()) return false;
+
+    Handle(StdPersistent_TopLoc::ItemLocation) pItemLoc = Handle(StdPersistent_TopLoc::ItemLocation)::DownCast(pObject);
+    if ( pItemLoc.IsNull() ) return false;
+    loc = pItemLoc->Import();
+
     return true;
 
 
@@ -522,28 +567,42 @@ bool openLocation( const char* fileName,  TopLoc_Location  &loc)
 bool saveLocation( const char* fileName,  TopLoc_Location loc)
 {
 
-    Handle(ShapeSchema) schema = new ShapeSchema();
-    Handle(Storage_Data) data  = new Storage_Data();
-    data->ClearErrorStatus();
+    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+   // Try to open the file driver for writing
+    try {
+     OCC_CATCH_SIGNALS
+     PCDM_ReadWriter::Open (*fileDriver, TCollection_ExtendedString(fileName), Storage_VSWrite);
+    } 
+    catch (Standard_Failure& e) {
+      return false;
+    }
 
-    data->SetApplicationName( TCollection_ExtendedString( "MwCAE" ) );
-    data->SetApplicationVersion( "1" );
-    data->SetDataType( TCollection_ExtendedString( "Shapes" ) );
-    data->AddToUserInfo( "Storing the CAD Solids in a flat file" );
-    data->AddToComments( TCollection_ExtendedString( "Application is based on CasCade 6.2" ) );
+    // Create a storage data instance
+    Handle(StdStorage_Data) data = new StdStorage_Data();
+    // Set an axiliary application name (optional)
+    data->HeaderData()->SetApplicationName(TCollection_ExtendedString("MwCAE"));
+    data->HeaderData()->SetApplicationVersion( "1" );
+    data->HeaderData()->SetDataType( TCollection_ExtendedString( "Shapes" ) );
+    data->HeaderData()->AddToUserInfo( "Storing the shape in a flat file" );
+    data->HeaderData()->AddToComments( TCollection_ExtendedString( "Application is based on OpenCascade 7.2" ) );
 
-    if(!fileDriver) fileDriver=new FSD_File();
-    if ( fileDriver->Open( fileName, Storage_VSWrite ) != Storage_VSOk ) return false;
 
-    PTColStd_TransientPersistentMap aMap;
-    PTopLoc_Location ploc = MgtTopLoc::Translate(loc, aMap);
-    Handle(PTopLoc_ItemLocation) pItemLoc=ploc._CSFDB_GetPTopLoc_LocationmyData();
-    data->AddRoot(pItemLoc);
+    StdObjMgt_TransientPersistentMap aMap;
 
-    schema->Write( *fileDriver, data );
+    Handle(StdPersistent_TopLoc::ItemLocation) pItemLoc =StdPersistent_TopLoc::Translate(loc, aMap);
+    TCollection_AsciiString name = TCollection_AsciiString("Loc");
+  // Add a root to storage data
+    Handle(StdStorage_Root) root = new StdStorage_Root(name, pItemLoc);
+    data->RootData()->AddRoot(root);
+    
+    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    if (error != Storage_VSOk ) return false;
+    fflush(NULL);
     fileDriver->Close();
 
-    return ( data->ErrorStatus() == Storage_VSOk );
+    return true;
+
+
 }
 
 
@@ -556,7 +615,7 @@ void saveLocationIfDiff(const char* file,  TopLoc_Location loc, const char *tmpf
 
 
 
-bool checkFacetedBrep( const Handle_TopTools_HSequenceOfShape& shapes )
+bool checkFacetedBrep( const Handle(TopTools_HSequenceOfShape)& shapes )
 {
 	bool err = false;
 	for ( int i = 1; i <= shapes->Length(); i++ )

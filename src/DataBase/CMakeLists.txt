@@ -1,7 +1,7 @@
 # This file is part of the EmCAD program which constitutes the client
 # side of an electromagnetic modeler delivered as a cloud based service.
 # 
-# Copyright (C) 2015  Walter Steffe`
+# Copyright (C) 2015-2020  Walter Steffe`
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -39,36 +39,17 @@ set ( DataBase_SRCS
 	model_parser.cpp
 	)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
+
 # Create target for the parser
- ADD_CUSTOM_TARGET(modelparser echo "Creating model parser")
 
-# Create custom command for flex/lex (note the outputs)
- ADD_CUSTOM_COMMAND(
-   SOURCE  model.l
-   COMMAND ${FLEX_EXECUTABLE} 
-   ARGS -o ${CMAKE_CURRENT_SOURCE_DIR}/model_lexer.cpp
-	-P model
-         ${CMAKE_CURRENT_SOURCE_DIR}/model.l
-   TARGET ModelLexer
-   OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/model_lexer.cpp
- )
+FIND_PACKAGE(BISON)
+FIND_PACKAGE(FLEX)
+BISON_TARGET(modelParser ${CMAKE_CURRENT_SOURCE_DIR}/model.y ${CMAKE_CURRENT_SOURCE_DIR}/model_parser.cpp COMPILE_FLAGS "-p model")
+FLEX_TARGET(modelLexer ${CMAKE_CURRENT_SOURCE_DIR}/model.l ${CMAKE_CURRENT_SOURCE_DIR}/model_lexer.cpp COMPILE_FLAGS "-P model")
+ADD_FLEX_BISON_DEPENDENCY(modelLexer modelParser)
 
-# Create custom command for bison/yacc (note the DEPENDS)
- ADD_CUSTOM_COMMAND(
-   SOURCE model.y
-   COMMAND ${BISON_EXECUTABLE}
-   ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/model.y
-        --output ${CMAKE_CURRENT_SOURCE_DIR}/model_parser.cpp
-        -p model
-   TARGET ModelParser
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/model_lexer.cpp
-   OUTPUTS ${CMAKE_CURRENT_SOURCE_DIR}/model_parser.cpp
- )
-
- SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/model_parser.cpp GENERATED)
-
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+endif((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
 
 add_library ( DataBase STATIC 
 	${DataBase_SRCS} 

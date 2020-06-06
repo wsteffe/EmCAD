@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+#define YYBISON_VERSION "3.0.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -70,7 +70,7 @@
 #define yychar          touchstonechar
 
 /* Copy the first part of user declarations.  */
-#line 22 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:339  */
+#line 22 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:339  */
 
 //debug:
 #define YYDEBUG 1
@@ -79,8 +79,6 @@
 
 #include <Message.h>
 #include <stdio.h>
-#include <QString>
-#include <QStringList>
 
 #include "plotData.h"
 
@@ -123,7 +121,7 @@ extern PlotData plotData;
 
 
 
-#line 127 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:339  */
+#line 125 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -143,8 +141,8 @@ extern PlotData plotData;
 
 /* In a future release of Bison, this section will be replaced
    by #include "touchstone_parser.hpp".  */
-#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
-# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -189,17 +187,19 @@ extern int touchstonedebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
-#line 75 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:355  */
+#line 73 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:355  */
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 202 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:355  */
+#line 200 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:355  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -209,11 +209,11 @@ extern YYSTYPE touchstonelval;
 
 int touchstoneparse (void);
 
-#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */
+#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-#line 217 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:358  */
+#line 217 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -455,16 +455,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   38
+#define YYLAST   43
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  29
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  17
+#define YYNNTS  20
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  38
+#define YYNRULES  42
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  48
+#define YYNSTATES  53
 
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
@@ -513,10 +513,11 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    98,    98,   101,   103,   108,   109,   110,   111,   112,
-     113,   114,   115,   116,   123,   124,   130,   131,   132,   133,
-     137,   138,   139,   143,   144,   145,   146,   147,   153,   160,
-     167,   174,   177,   183,   187,   197,   214,   215,   219
+       0,    96,    96,    99,   101,   106,   107,   108,   109,   110,
+     111,   112,   113,   114,   121,   122,   128,   129,   130,   131,
+     135,   136,   137,   141,   142,   143,   144,   145,   151,   158,
+     165,   172,   175,   181,   185,   195,   212,   213,   217,   222,
+     236,   237,   248
 };
 #endif
 
@@ -533,7 +534,7 @@ static const char *const yytname[] =
   "Number", "FreqUnit", "Format", "Param", "SetOptions",
   "SetNumberOfPorts", "SetNumberOfFreq", "SetTwoPortOrder",
   "SetMatrixFormat", "StartNetworkData", "NetParVal", "NetParValues",
-  "SetPortName", YY_NULLPTR
+  "NetworkData", "s2pParVal", "s2pParValues", "SetPortName", YY_NULLPTR
 };
 #endif
 
@@ -548,10 +549,10 @@ static const yytype_uint16 yytoknum[] =
 };
 # endif
 
-#define YYPACT_NINF -14
+#define YYPACT_NINF -9
 
 #define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-14)))
+  (!!((Yystate) == (-9)))
 
 #define YYTABLE_NINF -3
 
@@ -562,11 +563,12 @@ static const yytype_uint16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-     -14,    11,     1,   -14,   -14,   -14,   -14,     0,     0,    20,
-     -14,    -2,     6,   -14,   -14,   -14,   -14,   -14,   -14,   -14,
-     -14,     2,   -14,   -14,   -14,   -14,   -14,   -14,   -14,   -14,
-     -14,   -14,   -14,   -14,    -6,   -14,   -14,   -14,   -14,   -14,
-     -14,     7,   -14,   -14,   -14,   -13,     0,   -14
+      -9,     4,     2,    -9,    -9,    -9,    -9,    -9,     9,     9,
+      21,    -9,    -7,     7,    -9,    -9,    -9,    -9,    -9,    -9,
+      -9,    12,    -9,    -9,     9,    -9,    -9,    -9,    -9,    -9,
+      -9,    -9,    -9,    -9,    -9,    -5,    -9,    -9,    12,    -9,
+      -9,    -9,    -9,    -9,    -9,     8,    -9,    -9,    -9,    -9,
+      -1,     9,    -9
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -574,25 +576,26 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       3,     0,     0,     1,    13,    35,    38,     0,     0,     0,
-      34,     0,     0,     4,     5,     6,     7,     8,    10,    11,
-      36,    12,     9,    15,    14,    29,    30,    31,    32,    33,
-      16,    17,    18,    19,     0,    37,    23,    24,    25,    26,
-      27,     0,    20,    21,    22,     0,     0,    28
+       3,     0,     0,     1,    13,    15,    14,    42,     0,     0,
+       0,    34,     0,     0,     4,    39,     5,     6,     7,     8,
+      10,     0,    11,    40,    12,     9,    29,    30,    31,    32,
+      33,    16,    17,    18,    19,     0,    35,    36,    38,    41,
+      23,    24,    25,    26,    27,     0,    37,    20,    21,    22,
+       0,     0,    28
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -14,   -14,   -14,   -14,    -8,   -14,   -14,   -14,   -14,   -14,
-     -14,   -14,   -14,   -14,     5,   -14,   -14
+      -9,    -9,    -9,    -9,    -8,    -9,    -9,    -9,    -9,    -9,
+      -9,    -9,    -9,    -9,    -4,    -9,    -9,    11,    -9,    -9
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     1,     2,    13,    25,    34,    45,    41,    14,    15,
-      16,    17,    18,    19,    20,    21,    22
+      -1,     1,     2,    14,    15,    35,    50,    45,    16,    17,
+      18,    19,    20,    21,    37,    38,    22,    23,    24,    25
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -600,29 +603,32 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      26,    -2,     4,    23,    24,     5,     5,     6,     7,     8,
-       9,     3,    29,    10,    11,    46,    12,    36,    37,    38,
-      39,    40,    30,    31,    32,    33,    35,    42,    43,    44,
-      27,    28,     0,     0,     0,     0,     0,     0,    47
+      26,    27,    -2,     4,     3,     5,     6,    30,     7,     8,
+       9,    10,     5,     6,    11,    12,    36,    13,    40,    41,
+      42,    43,    44,    31,    32,    33,    34,    51,    47,    48,
+      49,    28,    29,     0,    46,    39,     0,     0,     0,     0,
+       0,     0,     0,    52
 };
 
 static const yytype_int8 yycheck[] =
 {
-       8,     0,     1,     3,     4,     4,     4,     6,     7,     8,
-       9,     0,    14,    12,    13,    28,    15,    23,    24,    25,
-      26,    27,    16,    17,    18,    19,    21,    20,    21,    22,
-      10,    11,    -1,    -1,    -1,    -1,    -1,    -1,    46
+       8,     9,     0,     1,     0,     3,     4,    14,     6,     7,
+       8,     9,     3,     4,    12,    13,     4,    15,    23,    24,
+      25,    26,    27,    16,    17,    18,    19,    28,    20,    21,
+      22,    10,    11,    -1,    38,    24,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    51
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,    30,    31,     0,     1,     4,     6,     7,     8,     9,
-      12,    13,    15,    32,    37,    38,    39,    40,    41,    42,
-      43,    44,    45,     3,     4,    33,    33,    10,    11,    14,
-      16,    17,    18,    19,    34,    43,    23,    24,    25,    26,
-      27,    36,    20,    21,    22,    35,    28,    33
+       0,    30,    31,     0,     1,     3,     4,     6,     7,     8,
+       9,    12,    13,    15,    32,    33,    37,    38,    39,    40,
+      41,    42,    45,    46,    47,    48,    33,    33,    10,    11,
+      14,    16,    17,    18,    19,    34,     4,    43,    44,    46,
+      23,    24,    25,    26,    27,    36,    43,    20,    21,    22,
+      35,    28,    33
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
@@ -631,7 +637,8 @@ static const yytype_uint8 yyr1[] =
        0,    29,    30,    31,    31,    32,    32,    32,    32,    32,
       32,    32,    32,    32,    33,    33,    34,    34,    34,    34,
       35,    35,    35,    36,    36,    36,    36,    36,    37,    38,
-      39,    40,    40,    41,    42,    43,    44,    44,    45
+      39,    40,    40,    41,    42,    43,    44,    44,    45,    46,
+      47,    47,    48
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
@@ -640,7 +647,8 @@ static const yytype_uint8 yyr2[] =
        0,     2,     1,     0,     2,     1,     1,     1,     1,     1,
        1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
        1,     1,     1,     1,     1,     1,     1,     1,     6,     2,
-       2,     2,     2,     2,     1,     1,     1,     2,     1
+       2,     2,     2,     2,     1,     1,     1,     2,     2,     1,
+       1,     2,     1
 };
 
 
@@ -1317,146 +1325,146 @@ yyreduce:
   switch (yyn)
     {
         case 13:
-#line 116 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 114 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {YYABORT;}
-#line 1323 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1331 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 124 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 122 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {(yyval.fval) = (double)(yyvsp[0].ival);}
-#line 1329 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1337 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 130 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 128 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.frequnit,"Hz");}
-#line 1335 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1343 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 131 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 129 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.frequnit,"KHz");}
-#line 1341 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1349 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 132 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 130 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.frequnit,"MHz");}
-#line 1347 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1355 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 133 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 131 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.frequnit,"GHz");}
-#line 1353 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1361 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 137 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 135 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.format,"DB");}
-#line 1359 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1367 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 138 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 136 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.format,"MA");}
-#line 1365 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1373 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 139 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 137 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {strcpy(plotData.format,"RI");}
-#line 1371 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1379 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 143 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 141 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.param='S';}
-#line 1377 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1385 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 144 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 142 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.param='Y';}
-#line 1383 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1391 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 145 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 143 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.param='Z';}
-#line 1389 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1397 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 146 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 144 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.param='H';}
-#line 1395 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1403 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 147 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 145 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.param='G';}
-#line 1401 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1409 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 154 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 152 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
                   plotData.R=(yyvsp[0].fval);
 		}
-#line 1409 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1417 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 161 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 159 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
 			plotData.numberOfPorts=(yyvsp[0].fval);
 		}
-#line 1417 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1425 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 168 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 166 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
 			fNum=plotData.numberOfFreq=(yyvsp[0].fval);
 		}
-#line 1425 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1433 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 175 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 173 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
 		}
-#line 1432 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1440 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 178 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 176 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
 		}
-#line 1439 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1447 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 34:
-#line 188 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 186 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
                  curvei=-1; freqi=0; compi=0;
                  cNum=plotData.numberOfCurves=plotData.numberOfPorts*plotData.numberOfPorts;
                  plotData.frequencies.resize(plotData.numberOfFreq);
                  plotData.curveArray.resize(fNum*2*cNum);
           }
-#line 1450 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1458 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
   case 35:
-#line 198 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+#line 196 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {
                    if(curvei==-1){
                        plotData.frequencies[freqi]=(yyvsp[0].fval);
                        curvei++;
                    } else {
-                       plotData.curveArray[freqi+compi*fNum+curvei*2*fNum]=(yyvsp[0].fval); 
+                       plotData.curveArray[(compi+curvei*2)+2*plotData.numberOfCurves*freqi]=(yyvsp[0].fval); 
                        if(compi==1){
                           curvei++;
                           if(curvei==plotData.numberOfCurves) {curvei=-1; freqi++;}
@@ -1464,17 +1472,44 @@ yyreduce:
                        } else compi=1;
                    }
            }
-#line 1468 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1476 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
-  case 38:
-#line 219 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1646  */
+  case 39:
+#line 223 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
+    {      
+                     if(compi==-1){ 
+                        plotData.frequencies.push_back((yyvsp[0].fval)); 
+                        compi=0;
+                     } else {
+                       plotData.curveArray.push_back((yyvsp[0].fval)); 
+                       compi++;
+                       if(compi==8) compi=-1;
+                     }
+           }
+#line 1491 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+    break;
+
+  case 41:
+#line 238 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
+    {
+           plotData.numberOfPorts=2;
+           plotData.numberOfCurves=4;
+           plotData.numberOfFreq=plotData.frequencies.size();
+           plotData.portnames << "1";
+           plotData.portnames << "2";
+         }
+#line 1503 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+    break;
+
+  case 42:
+#line 248 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1646  */
     {plotData.portnames<<(yyvsp[0].sval);}
-#line 1474 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1509 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
     break;
 
 
-#line 1478 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
+#line 1513 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.cpp" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1702,7 +1737,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 222 "/home/walter/MwCAD/EmCAD/EmCAD/src/PostProc/touchstone.y" /* yacc.c:1906  */
+#line 251 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y" /* yacc.c:1906  */
 
 
 
@@ -1748,6 +1783,7 @@ int readTouchstone(const char *fName)
 	}
         strncpy(touchstoneFileName, fName, 255);
         SetTouchstoneFile(fid);
+        compi=-1;
         int result=yyparse();
         if(strcmp(fName,"-")) fclose(fid);
 	return result;

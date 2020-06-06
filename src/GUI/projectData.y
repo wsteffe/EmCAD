@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,10 +73,13 @@ char	*sval;
 %token <fval> FLOATING
 %token <sval> STRING NAME
 
-%token DEF MAINASSNAME NETWORK LENGTH FREQ UNIT EXP MESH WAVELENGTH RATIO ANA BAND NUM MOR
-%token RESPONSE PARAMETER TYPE PART XSCALE YSCALE AUTO ZERO POLE CURVE
-%token FILTER PASS ORDER RETURNLOSS QFACTOR MAPPING METHOD ITERMAX AUTOMATIC MAPPED TX ZEROS
+%token DEF MAINASSNAME VARFILEPATH S2PFILEPATH NETWORK LENGTH FREQ UNIT EXP MESH REFINE ENERGY WAVELENGTH LOCAL MESHING3D ANA BAND NUM MOR
+%token RESPONSE SYMMETRIC PARAMETER TYPE TOPOLOGY PART XSCALE YSCALE AUTO ZERO POLE WINDOW CURVE CIRCLE
+%token IDEAL FILTER PASS KRYLOV ORDER RETURNLOSS OUTBAND MAPPING TUNING METHOD SOURCE ITERMAX AUTOMATIC DESIGN MAPPED TX ZEROS
+%token PORT IMPEDANCE QFACTOR UNIFORM INDUCTIVE SKIN LOSSY PREDISTORTED OPTIMIZE ILOSSPP TRUSTR
+%token CUTOFF RATIO RECOMPUTE JACOBIAN ERRORT ONLY TRANSVERSEJ XTOL GRADDX
 %token REMESH FIRST DECOMPOSITION MATERIAL MODELIZATION COMPONENT SAVE REDUCTION RELOAD NEEDED DONE CHANGED
+%token tMIN tMAX
 
 
 %type <fval> SFFloat
@@ -100,8 +103,10 @@ PrjDataItem
 	: CAD
         | Units
         | Mesh
+        | ImportData
         | FreqAna
         | FilterDesign
+        | Mwm
         | Mor
         | WorkStatus
 	| error		{YYABORT;}
@@ -216,7 +221,20 @@ NodeEnd
 	| '}' ','
 	;
 
-//*** 
+
+//***
+
+ImportData:
+	   VARFILEPATH STRING
+            {
+              prjData.varFilePath=$2;
+            }
+	|  S2PFILEPATH STRING
+            {
+              prjData.s2pFilePath=$2;
+            }
+	;
+
 CAD:
 	   MAINASSNAME STRING
             {
@@ -244,6 +262,35 @@ Mesh:
             {
               prjData.meshPerWavelen=$4;
             }
+         | MESH CIRCLE RATIO INTEGER
+            {
+              prjData.meshPerCircle=$4;
+            }
+         | MESH REFINE tMAX NUM INTEGER
+            {
+              prjData.meshRefineMaxNum=$5;
+            }
+        |  REFINE FREQ BAND SFFloat SFFloat
+            {
+              prjData.refFreqBand[0]=$4;
+              prjData.refFreqBand[1]=$5;
+            }
+         | MESH tMIN ENERGY RATIO SFFloat
+            {
+              prjData.meshMinEnergyRatio=$5;
+            }
+         | LOCAL MESHING3D INTEGER
+            {
+              prjData.localMeshing3d=$3;
+            }
+	;
+
+Mwm:
+           CUTOFF RATIO SFFloat
+           {
+              prjData.cutoffRatio=$3;
+           }
+	;
 
 Mor:
            MOR FREQ BAND SFFloat SFFloat
@@ -254,6 +301,10 @@ Mor:
         |  MOR FREQ NUM INTEGER
             {
               prjData.MORFreqNum=$4;
+            }
+        |  MOR KRYLOV ORDER INTEGER
+            {
+              prjData.KrylovOrder=$4;
             }
 	;
 
@@ -268,6 +319,15 @@ FreqAna:
               prjData.zpFreqBand[0]=$5;
               prjData.zpFreqBand[1]=$6;
             }
+        |  ZERO POLE WINDOW RATIO SFFloat
+            {
+              prjData.zpWinRatio=$5;
+            }
+        |   MAPPING FREQ BAND SFFloat SFFloat
+            {
+              prjData.mapFreqBand[0]=$4;
+              prjData.mapFreqBand[1]=$5;
+            }
         |  ANA FREQ NUM INTEGER
             {
               prjData.anaFreqNum=$4;
@@ -276,13 +336,67 @@ FreqAna:
             {
               prjData.anaMORFreqNum=$5;
             }
+        |  IDEAL FILTER TYPE INTEGER
+            {
+              prjData.idealFilterType=$4;
+            }
+        |  IDEAL FILTER TOPOLOGY INTEGER
+            {
+              prjData.idealFilterTopology=$4;
+            }
         |  FILTER MAPPING METHOD INTEGER
             {
-              prjData.filtermapMethod=$4;
+            }
+        |  FILTER MAPPING SYMMETRIC INTEGER
+            {
+              prjData.filtermapSymmetric=$4;
+            }
+        |  FILTER MAPPING SOURCE INTEGER
+            {
+              prjData.filtermapSource=$4;
+            }
+        |  FILTER MAPPING QFACTOR SFFloat
+            {
+              prjData.filtermapQfactor = $4;
             }
         |  FILTER MAPPING ITERMAX INTEGER
             {
-              prjData.filtermapItermax=$4;
+            }
+        |  FILTER TUNING ITERMAX INTEGER
+            {
+              prjData.filterTuneItermax=$4;
+            }
+        |  FILTER TUNING METHOD INTEGER
+            {
+              prjData.filterTuneMethod=$4;
+            }
+        |  FILTER TUNING RECOMPUTE JACOBIAN INTEGER
+            {
+              prjData.filterTuneRecomputeJaco=$5;
+            }
+        |  FILTER TUNING RECOMPUTE ERRORT INTEGER
+            {
+              prjData.filterTuneRecomputeError=$5;
+            }
+        |  FILTER TUNING ONLY TRANSVERSEJ INTEGER
+            {
+              prjData.filterTuneOnlyJt=$5;
+            }
+        |  FILTER SYMMETRIC TUNING INTEGER
+            {
+              prjData.filterSymmetricTuning=$4;
+            }
+        |  FILTER TUNING XTOL SFFloat
+            {
+              prjData.filterTuneXtol=$4;
+            }
+        |  FILTER TUNING TRUSTR SFFloat
+            {
+              prjData.filterTuneTrustR=$4;
+            }
+        |  FILTER TUNING GRADDX SFFloat
+            {
+              prjData.filterTuneGradDx=$4;
             }
         |  FREQ RESPONSE TYPE INTEGER
             {
@@ -314,9 +428,9 @@ FreqAna:
             }
         |  ZERO POLE CURVE INTEGER INTEGER
             {
-              std::array<int, 2> Sij_ports;
-              Sij_ports[0]=$4;
-              Sij_ports[1]=$5;
+              std::pair<int, int> Sij_ports;
+              Sij_ports.first=$4;
+              Sij_ports.second=$5;
               prjData.zeropoleCurves.insert(Sij_ports);
             }
         |  AUTOMATIC FREQ RESPONSE  INTEGER
@@ -327,9 +441,17 @@ FreqAna:
             {
               prjData.autoZeropole=$4;
             }
+        |  AUTOMATIC DESIGN MAPPED POLE INTEGER
+            {
+              prjData.autoDesignWithMappedTz=$5;
+            }
         |  AUTOMATIC MAPPED FREQ RESPONSE INTEGER
             {
               prjData.autoMappedFreqResponse=$5;
+            }
+        |  AUTOMATIC IDEAL MAPPED POLE FREQ RESPONSE INTEGER
+            {
+              prjData.autoIdealMappedTzFreqResponse=$7;
             }
         |  AUTOMATIC MAPPED ZERO POLE  INTEGER
             {
@@ -355,14 +477,71 @@ FilterDesign:
             {
               prjData.filterRetLoss = $3;
             }
+        |  FILTER OUTBAND RETURNLOSS SFFloat
+            {
+              prjData.filterOutbandRetLoss = $4;
+            }
+        |  FILTER PORT IMPEDANCE SFFloat
+            {
+              prjData.filterPortImpedance = $4;
+            }
         |  FILTER QFACTOR SFFloat
             {
               prjData.filterQfactor = $3;
+            }
+        |  FILTER INDUCTIVE SKIN INTEGER
+            {
+              prjData.filterInductiveSkin = $4;
             }
         |  FILTER TX ZEROS {ProjData::Fbuff =&prjData.filterZeros; ProjData::Fbuff->clear();} MFFloat
             {
               ProjData::Fbuff=NULL;
             }
+        |  SYMMETRIC FILTER RESPONSE INTEGER
+            {
+              prjData.symmFilterResponse = $4;
+            }
+        |  PREDISTORTED FILTER INTEGER
+            {
+              prjData.predistortedFilter = $3;
+            }
+        |  PREDISTORTED FILTER OPTIMIZE INTEGER
+            {
+              prjData.predistFilterOptim = $4;
+            }
+        |  PREDISTORTED FILTER RETURNLOSS SFFloat
+            {
+              prjData.predistFilterOptimRL = $4;
+            }
+        |  PREDISTORTED FILTER ILOSSPP SFFloat
+            {
+              prjData.predistFilterOptimILpp = $4;
+            }
+        |  PREDISTORTED FILTER TRUSTR SFFloat
+            {
+              prjData.predistFilterOptimTrustR = $4;
+            }
+        |  PREDISTORTED FILTER ITERMAX INTEGER
+            {
+              prjData.predistFilterOptimIterMax = $4;
+            }
+        |  PREDISTORTED FILTER INTEGER
+            {
+              prjData.predistortedFilter = $3;
+            }
+        |  LOSSY FILTER OPTIMIZE INTEGER
+            {
+            }
+        |  LOSSY FILTER ILOSSPP SFFloat
+            {
+            }
+        |  LOSSY FILTER TRUSTR SFFloat
+            {
+            }
+        |  LOSSY FILTER ITERMAX INTEGER
+            {
+            }
+
 
 WorkStatus:
 	   DECOMPOSITION  NEEDED INTEGER

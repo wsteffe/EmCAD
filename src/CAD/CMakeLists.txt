@@ -1,7 +1,7 @@
 # This file is part of the EmCAD program which constitutes the client
 # side of an electromagnetic modeler delivered as a cloud based service.
 # 
-# Copyright (C) 2015  Walter Steffe`
+# Copyright (C) 2015-2020  Walter Steffe`
 # 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@ include_directories (
 	${OCC_INCLUDES}
 	${Boost_INCLUDE_DIR}
 	.
-	../SalomeGeom/GEOM/GEOMAlgo
 	../DataBase
 	../GUI
 	)
@@ -35,6 +34,7 @@ set ( CAD_HDRS
 set ( CAD_SRCS
 	ocaf.cpp
 	InputOutput.cpp
+	gnulib_flock.cpp
 	OStools.cpp
 	)
 
@@ -54,7 +54,7 @@ add_executable ( emcad_imprint ${EMCAD_IMPRINT_SRCS})
   if(MSVC)
       target_link_libraries ( 
 	emcad_imprint
-	CAD DataBase GEOMAlgo
+	CAD DataBase GEOMAlgo ShHealOper
         optimized ${OCC_LIBRARIES}
 	debug   ${OCC_LIBRARIES_DEB}
 	${OCC_3PARTIES_LIBRARIES}
@@ -63,7 +63,7 @@ add_executable ( emcad_imprint ${EMCAD_IMPRINT_SRCS})
   else(MSVC)
       target_link_libraries ( 
 	emcad_imprint 
-	CAD DataBase GEOMAlgo  
+	CAD DataBase 
         ${OCC_LIBRARIES}
 	${OCC_3PARTIES_LIBRARIES}
 	${Boost_LIBRARIES}
@@ -88,7 +88,7 @@ add_executable ( emcad_split ${EMCAD_SPLIT_SRCS})
 
 if(MSVC)
    target_link_libraries ( 
-    emcad_split CAD DataBase GEOMAlgo 
+    emcad_split CAD DataBase
     optimized ${OCC_LIBRARIES}
     debug   ${OCC_LIBRARIES_DEB}
     ${OCC_3PARTIES_LIBRARIES}
@@ -96,7 +96,7 @@ if(MSVC)
    )
 else(MSVC)
    target_link_libraries ( 
-    emcad_split CAD DataBase GEOMAlgo 
+    emcad_split CAD DataBase
     ${OCC_LIBRARIES}
     ${OCC_3PARTIES_LIBRARIES}
     ${Boost_LIBRARIES}

@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include <sys/stat.h> 
 #include <string>
 
+#define USEXMLXCAF 1
 
 
 extern int modeldebug;
@@ -46,6 +47,11 @@ int main(int argc, char **argv)
       }
 
       std::string subprojDir=argv[1];
+      
+#if defined(_WIN32) || defined(__WIN32__)
+      subprojDir=cleanWindowsPath(subprojDir);
+#endif    
+
 
 //*****
 
@@ -54,18 +60,31 @@ int main(int argc, char **argv)
 //      ocaf->checkPartNF(ocaf->mainDoc);
       ocaf->regenerateIndexedSubShapes();
       ocaf->split();
-      ocaf->saveSplitFaceMap();
-      std::string splitModel=subprojDir;  splitModel+="/Partition/model.dxc";
-      ocaf->save(splitModel.c_str());
-      std::string  emFileName=subprojDir; emFileName+="/Partition/model.em";
-      FILE *fid= fopen(nativePath(emFileName).c_str(), "w");
-      fprintf(fid, "Level  %d\n", ocaf->EmP.level+1);
-      fprintf(fid, "AssemblyType  %d\n", PARTITION);
-      fprintf(fid, "DefaultBoundCond  \"%s\"\n", ocaf->EmP.defaultBC);
-      ocaf->EmP.save(fid);
-      fclose(fid);
       ocaf->closeDoc();
+      std::string partitionDir=subprojDir+std::string("/Partition");
       delete ocaf;
+      ocaf=new MwOCAF();
+      ocaf->workopen(partitionDir.c_str());
+      ocaf->regenerateIndexedSubShapes();
+      ocaf->initFEPdataStruct();
+      if(ocaf->subCompNum) ocaf->setSuperFaces();
+      int subCompNum=ocaf->subCompNum;
+      delete ocaf;
+      for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {
+       ocaf=new MwOCAF();
+       ocaf->workopen(partitionDir.c_str());
+       ocaf->regenerateIndexedSubShapes();
+       ocaf->extractSubcomp(subcmpI);
+       ocaf->saveSubPartitionMap();
+       std::string subSplitModel=subprojDir;
+       subSplitModel+="/Partition/model";
+       char tag[10]; sprintf(tag,"_%d",subcmpI);
+       subSplitModel+=tag;
+       if(USEXMLXCAF)  subSplitModel+=".xml";
+       else            subSplitModel+=".dxc";
+       ocaf->saveAs(subSplitModel.c_str());
+       delete ocaf;
+      }
       return 0;
       
 }

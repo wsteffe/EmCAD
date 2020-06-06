@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,8 +33,8 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 
 
-class Handle_AIS_InteractiveContext;
-class Handle_TopTools_HSequenceOfShape;
+class AIS_InteractiveContext;
+class TopTools_HSequenceOfShape;
 
 class ImportFailure{};
 
@@ -53,6 +53,6 @@ bool  openLocation( const char* fileName,  TopLoc_Location  &loc);
 bool  saveLocation ( const char* fileName, TopLoc_Location loc);
 void saveLocationIfDiff(const char* file,  TopLoc_Location loc, const char *tmpfile);
 
-bool checkFacetedBrep( const Handle_TopTools_HSequenceOfShape& );
+bool checkFacetedBrep( const Handle(TopTools_HSequenceOfShape)& );
 
 #endif

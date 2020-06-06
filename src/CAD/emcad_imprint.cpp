@@ -2,7 +2,7 @@
  * This file is part of the EmCAD program which constitutes the client
  * side of an electromagnetic modeler delivered as a cloud based service.
  * 
- * Copyright (C) 2015  Walter Steffe
+ * Copyright (C) 2015-2020  Walter Steffe
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -54,21 +54,25 @@ int main(int argc, char **argv)
       int downImprint= (int) atoi(argv[1]);
       std::string subprojDir=argv[2];
 
+#if defined(_WIN32) || defined(__WIN32__)
+      subprojDir=cleanWindowsPath(subprojDir);
+#endif    
+
+
 //*****
 
       if(downImprint){
         MwOCAF* ocaf=new MwOCAF();
         ocaf->workopen(subprojDir.c_str());
         if (ocaf->EmP.assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
-        ocaf->worksave(subprojDir.c_str());
         if(ocaf->EmP.assemblyType==NET) ocaf->savePartsIF();
-        ocaf->saveFEPlinks();
+        ocaf->initFEPdataStruct();
 	if(ocaf->EmP.assemblyType==COMPONENT){
 //	     ocaf->makeFaceAdjCells();
 	     ocaf->setFaceComp();
              ocaf->setDisabledVolumes();
-             ocaf->worksave(subprojDir.c_str());
 	}
+        ocaf->worksave();
         ocaf->closeDoc();
         delete ocaf;
       } else {
@@ -78,14 +82,14 @@ int main(int argc, char **argv)
         ocaf->saveIF();
         if(!ocaf->EmP.level) {
           if(ocaf->EmP.assemblyType==NET) ocaf->savePartsIF();
-          ocaf->saveFEPlinks();
+          ocaf->initFEPdataStruct();
 	  if(ocaf->EmP.assemblyType==COMPONENT){
 //                 ocaf->makeFaceAdjCells();
 		 ocaf->setFaceComp();
 	  }
         } 
         if(ocaf->EmP.assemblyType==COMPONENT) ocaf->updatePartColors();
-        ocaf->worksave(subprojDir.c_str());
+        ocaf->worksave();
         ocaf->closeDoc();
         delete ocaf;
       }
