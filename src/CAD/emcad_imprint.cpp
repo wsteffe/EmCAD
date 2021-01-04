@@ -64,10 +64,10 @@ int main(int argc, char **argv)
       if(downImprint){
         MwOCAF* ocaf=new MwOCAF();
         ocaf->workopen(subprojDir.c_str());
-        if (ocaf->EmP.assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
-        if(ocaf->EmP.assemblyType==NET) ocaf->savePartsIF();
+        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
+        if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
         ocaf->initFEPdataStruct();
-	if(ocaf->EmP.assemblyType==COMPONENT){
+	if(ocaf->EmP->assemblyType==COMPONENT){
 //	     ocaf->makeFaceAdjCells();
 	     ocaf->setFaceComp();
              ocaf->setDisabledVolumes();
@@ -78,17 +78,17 @@ int main(int argc, char **argv)
       } else {
         MwOCAF* ocaf=new MwOCAF();
         ocaf->workopen(subprojDir.c_str());
-        if (ocaf->EmP.assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
+        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
         ocaf->saveIF();
-        if(!ocaf->EmP.level) {
-          if(ocaf->EmP.assemblyType==NET) ocaf->savePartsIF();
+        if(!ocaf->EmP->level) {
+          if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
           ocaf->initFEPdataStruct();
-	  if(ocaf->EmP.assemblyType==COMPONENT){
+	  if(ocaf->EmP->assemblyType==COMPONENT){
 //                 ocaf->makeFaceAdjCells();
 		 ocaf->setFaceComp();
 	  }
         } 
-        if(ocaf->EmP.assemblyType==COMPONENT) ocaf->updatePartColors();
+        if(ocaf->EmP->assemblyType==COMPONENT) ocaf->updatePartColors();
         ocaf->worksave();
         ocaf->closeDoc();
         delete ocaf;

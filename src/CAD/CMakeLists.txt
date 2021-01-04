@@ -35,10 +35,14 @@ set ( CAD_SRCS
 	ocaf.cpp
 	InputOutput.cpp
 	gnulib_flock.cpp
+	)
+
+set ( OStools_SRCS
 	OStools.cpp
 	)
 
 add_library ( CAD STATIC  ${CAD_SRCS}  )
+add_library ( OStools STATIC  ${OStools_SRCS}  )
 
 
 
@@ -54,7 +58,7 @@ add_executable ( emcad_imprint ${EMCAD_IMPRINT_SRCS})
   if(MSVC)
       target_link_libraries ( 
 	emcad_imprint
-	CAD DataBase GEOMAlgo ShHealOper
+	CAD OStools DataBase GEOMAlgo ShHealOper
         optimized ${OCC_LIBRARIES}
 	debug   ${OCC_LIBRARIES_DEB}
 	${OCC_3PARTIES_LIBRARIES}
@@ -63,7 +67,7 @@ add_executable ( emcad_imprint ${EMCAD_IMPRINT_SRCS})
   else(MSVC)
       target_link_libraries ( 
 	emcad_imprint 
-	CAD DataBase 
+	CAD OStools DataBase 
         ${OCC_LIBRARIES}
 	${OCC_3PARTIES_LIBRARIES}
 	${Boost_LIBRARIES}
@@ -88,7 +92,7 @@ add_executable ( emcad_split ${EMCAD_SPLIT_SRCS})
 
 if(MSVC)
    target_link_libraries ( 
-    emcad_split CAD DataBase
+    emcad_split CAD OStools DataBase
     optimized ${OCC_LIBRARIES}
     debug   ${OCC_LIBRARIES_DEB}
     ${OCC_3PARTIES_LIBRARIES}
@@ -96,7 +100,7 @@ if(MSVC)
    )
 else(MSVC)
    target_link_libraries ( 
-    emcad_split CAD DataBase
+    emcad_split CAD OStools DataBase
     ${OCC_LIBRARIES}
     ${OCC_3PARTIES_LIBRARIES}
     ${Boost_LIBRARIES}

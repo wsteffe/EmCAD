@@ -100,8 +100,11 @@ TreeWidget::TreeWidget(){
       connect(aboutAction, SIGNAL(triggered()), this, SLOT(about()));
 //      connect(aboutAction, SIGNAL(triggered()), this, SIGNAL(buttonClicked()));
 
-      openCompAction = new QAction(tr("&Open Component"), this);
-      connect(openCompAction, SIGNAL(triggered()), this, SLOT(openComp()));
+      openCompOrPartitionAction = new QAction(tr("&Open Component OR Partition"), this);
+      connect(openCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(openCompOrPartition()));
+
+      openCompAndPartitionAction = new QAction(tr("&Open Component AND Partition"), this);
+      connect(openCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(openCompAndPartition()));
 
       assignLayerAction = new QAction(tr("&Set Layer"), this);
       assignLayerAction->setStatusTip(tr("Assign a Layer to the Selected Part "));
@@ -202,7 +205,7 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
        isVertex =mainOCAF->isVertex(label);
        isShape =mainOCAF->isShape(label);
        isGeomPart=mainOCAF->isPart(label);
-       if(isGeomPart) vol=mainOCAF->EmP.FindVolume(qtext.toLatin1().data());
+       if(isGeomPart) vol=mainOCAF->EmP->FindVolume(qtext.toLatin1().data());
      } else if(item->getMaterial(mat)){ // item is defined from DataBase material
          qtext=mat->name;
 	 isMaterial=true;
@@ -237,6 +240,8 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
          if(vol->type==GRID && vol->PML) qtext.append(" PML");
          if(vol->type!=SPLITTER)     if(!vol->defined) item->setBackground ( 0, redbrush );
 	                             else              item->setBackground ( 0, Qt::NoBrush );
+         if(vol->type==WAVEGUIDE)    if(!prjData.workStatus.decompositionNeeded && !vol->defined) item->setBackground ( 0, redbrush );
+	                             else                                                         item->setBackground ( 0, Qt::NoBrush );
          if(showlayers&&hasLayers){
            qtext.append(" - ");
            for (int i = 1; i <= layers->Length(); i++){
@@ -258,7 +263,7 @@ void TreeWidget::setItemText(TreeWidgetItem * item){
        item->setHidden(!showlayers);
      }else if(isLayer){
        item->setHidden(!showlayers);
-//         TBD=!mainOCAF->EmP.FindMaterial(qtext.toLatin1().data());
+//         TBD=!mainOCAF->EmP->FindMaterial(qtext.toLatin1().data());
 //---------------------
      }else if(isFace||isEdge){
         TDF_LabelSequence *equivalents=mainOCAF->getEquivalents(label);
@@ -400,7 +405,7 @@ void TreeWidget::makeMaterials(TreeWidgetItem * troot)
 //  int N=troot->childCount();
 //  for(int i = N; i > 0; i--) troot->removeChild(troot->child(i));
   troot->takeChildren();
-  DB::List_T *mats = Tree2List(mainOCAF->EmP.materials);
+  DB::List_T *mats = Tree2List(mainOCAF->EmP->materials);
   for(int i = 0; i < List_Nbr(mats); i++) {
     DB::Material *mat;
     List_Read(mats, i, &mat);
@@ -466,7 +471,7 @@ extern DB::Material theDefaultMaterial;
 void TreeWidget::setDefaultBC(){
   if(currentMaterialName.isEmpty()) return;
   if(!strcmp(theDefaultMaterial.name,currentMaterialName.toLatin1().data())) return;
-  DB::Material* mat = mainOCAF->EmP.FindMaterial(currentMaterialName.toLatin1().data());
+  DB::Material* mat = mainOCAF->EmP->FindMaterial(currentMaterialName.toLatin1().data());
   if(!mat) return;
   if( !strcmp(currentMaterialName.toLatin1().data(),"PEC") || 
         !strcmp(currentMaterialName.toLatin1().data(),"PMC") ||
@@ -475,7 +480,7 @@ void TreeWidget::setDefaultBC(){
      ){
      theDefaultMaterial=*mat;
      strcpy(theDefaultMaterial.name,mat->name);
-     strcpy(mainOCAF->EmP.defaultBC,currentMaterialName.toLatin1().data());
+     strcpy(mainOCAF->EmP->defaultBC,currentMaterialName.toLatin1().data());
      prjData.workStatus.decompositionNeeded=true;
      mainWindow->recursiveAssignDefaultMaterial();
    }else
@@ -483,7 +488,7 @@ void TreeWidget::setDefaultBC(){
 }
 
 void TreeWidget::assignMaterial(){
-  DB::Volume *vol=mainOCAF->EmP.FindVolume(currentPartName.toLatin1().data());
+  DB::Volume *vol=mainOCAF->EmP->FindVolume(currentPartName.toLatin1().data());
   if(!vol) return; 
   if( ( 
         !strcmp(currentMaterialName.toLatin1().data(),"PEC") || 
@@ -591,10 +596,10 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
 
 /*     
      int tI=0;
-     if(mainOCAF->EmP.assemblyType==NET){
+     if(mainOCAF->EmP->assemblyType==NET){
        typeChooser->addItem(tr("Component"));       typeChooserMap[tI++]=ASSEMBLY;
      }
-     else if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->isPartition() || mainOCAF->EmP.assemblyType==INTERFACE){
+     else if(mainOCAF->EmP->assemblyType==COMPONENT || mainOCAF->isPartition() || mainOCAF->EmP->assemblyType==INTERFACE){
        typeChooser->addItem(tr("Dielectric"));      typeChooserMap[tI++]=DIELECTRIC;
        typeChooser->addItem(tr("Hole"));            typeChooserMap[tI++]=HOLE;
        typeChooser->addItem(tr("Waveguide"));       typeChooserMap[tI++]=WAVEGUIDE;
@@ -728,7 +733,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      meshGroupBox=new QGroupBox(tr(""));
      meshGroupBox->setLayout(meshLayout);
 
-     if(mainOCAF->EmP.assemblyType==NET) meshGroupBox->hide();
+     if(mainOCAF->EmP->assemblyType==NET) meshGroupBox->hide();
 
 
 //****************************************
@@ -805,7 +810,7 @@ void SetCompPropertiesDialog::updateType(int t)
 
 void SetCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
-  DB::Volume* vol = mainOCAF->EmP.FindVolume(volname.toLatin1().data());
+  DB::Volume* vol = mainOCAF->EmP->FindVolume(volname.toLatin1().data());
   if(!vol) return;
   QString TEMnum; TEMnum.setNum(vol->TEMportsNum);
   TEMnumLE->setText(TEMnum);
@@ -847,6 +852,7 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
 	if(vol->TEportsNum!=TEnumSB->value())  {vol->TEportsNum=TEnumSB->value(); portChanged=changed=true;}
 	if(vol->TMportsNum!=TMnumSB->value())  {vol->TMportsNum=TMnumSB->value(); portChanged=changed=true;}
 	if(portChanged) {
+           mainOCAF->setPartsStatus();
            prjData.workStatus.decompositionNeeded=true;
         }
   }
@@ -888,7 +894,7 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
 void SetCompPropertiesDialog::set(){
 	QString volname=nameLineEdit->text();
 	if(volname.isEmpty()) return;
-	DB::Volume* vol =mainOCAF->EmP.FindVolume(volname.toLatin1().data());
+	DB::Volume* vol =mainOCAF->EmP->FindVolume(volname.toLatin1().data());
 	if(!vol) return; 
 	setVolumeData(vol);
         treeWidget->updateText();
@@ -929,7 +935,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      dispersive=new QCheckBox("Dispersive Model", this);
      dispersive->setCheckState(Qt::Unchecked);
 
-     roughSurfModel=new QCheckBox("Rough Surface", this);
+     roughSurfModel=new QCheckBox("Lossy Metal", this);
      roughSurfModel->setCheckState(Qt::Unchecked);
 
      boundaryModel=new QCheckBox("Surf Impedance Model", this);
@@ -986,9 +992,8 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 
      QString SIGMAM=QString::fromUtf8("\u03C3");
      SIGMAM.append(tr("<font face='arial'><sub>m</sub>["));
-     SIGMAM.append(  tr("<font face='symbol'>") );
-     SIGMAM.append( QString::fromUtf8("\u03A9"));
-     SIGMAM.append(  tr("</font><font face='arial'>/m]") );
+     SIGMAM.append(QString::fromUtf8("\u03A9"));
+     SIGMAM.append(  tr("/m]") );
      QLabel *sigmamLabel= new QLabel(); 
      sigmamLabel->setText(SIGMAM); sigmamLabel->setAlignment( Qt::AlignRight);
      sigmamLineEdit = new QLineEdit();
@@ -1139,12 +1144,17 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      roughFreqLineEdit = new QLineEdit();
      roughFreqLineEdit->setValidator(dvalidator);		
 
+     lossFacValidator = new QDoubleValidator(this);
+     lossFacValidator->setDecimals(1000); // (standard anyway)
+     lossFacValidator->setNotation(QDoubleValidator::ScientificNotation);
+     lossFacValidator->setBottom(1.0);
+
      QLabel *roughLossFactorLabel= new QLabel(); 
      roughLossFactorLabel->setText(tr("Loss Factor"));
 
      roughLossFactorLineEdit = new QLineEdit();
-     roughLossFactorLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 8));
-     roughLossFactorLineEdit->setValidator(dvalidator);		
+     roughLossFactorLineEdit->setText(QString("%1").arg(1.0, 0, 'f', 8));
+     roughLossFactorLineEdit->setValidator(lossFacValidator);		
 
      QLabel *roughFitPolesNumLabel= new QLabel(); 
      roughFitPolesNumLabel->setText(tr("Number of Fitting Poles:"));
@@ -1162,7 +1172,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      roughImpedanceQLabel->setText(tr("Q Factor"));
 
      roughImpedanceQLineEdit = new QLineEdit();
-     roughImpedanceQLineEdit->setText(QString("%1").arg(0.0, 0, 'f', 8));
+     roughImpedanceQLineEdit->setText(QString("%1").arg(1.0, 0, 'f', 8));
      roughImpedanceQLineEdit->setValidator(roughQvalidator);		
 
      QGridLayout *roughSurfLayout = new QGridLayout();
@@ -1176,7 +1186,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      roughSurfLayout->addWidget(roughImpedanceQLabel,1, 2);
      roughSurfLayout->addWidget(roughImpedanceQLineEdit,1, 3);
 
-     sRoughGroupBox=new QGroupBox(tr("Rough Surface Model"));
+     sRoughGroupBox=new QGroupBox(tr("Lossy Metal Model"));
      sRoughGroupBox->setLayout(roughSurfLayout);
      sRoughGroupBox->hide();
 
@@ -1185,7 +1195,10 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 
      QString SRES=tr("<font face='arial'> Surf Resist (f=");
      SRES.append(QString::fromUtf8("\u221E"));
-     SRES.append(tr("<font face='arial'>) [ohm]"));
+     SRES.append(tr("<font face='arial'>) ["));
+     SRES.append(QString::fromUtf8("\u03A9"));
+     SRES.append(tr("]"));
+
      QLabel *SresLabel= new QLabel();
      SresLabel->setText(SRES);
      SresLineEdit = new QLineEdit();
@@ -1195,7 +1208,7 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
      QLabel *SindLabel= new QLabel(); 
      QString SIND=tr("<font face='arial'> Surf Induct (f=");
      SIND.append(QString::fromUtf8("\u221E"));
-     SIND.append(tr("<font face='arial'>) [ohm]"));
+     SIND.append(tr("<font face='arial'>) [H]"));
      SindLabel->setText(SIND);
      SindLineEdit = new QLineEdit();
      SindLineEdit->setText(QString("%1").arg(0.0, 0, 'e', 8));
@@ -1389,7 +1402,7 @@ void DefineMaterialDialog::help()
 
 void DefineMaterialDialog::getMaterialData(QString matname){
   if(matname.isEmpty()) return;
-  DB::Material* mat = mainOCAF->EmP.FindMaterial(matname.toLatin1().data());
+  DB::Material* mat = mainOCAF->EmP->FindMaterial(matname.toLatin1().data());
   if(!mat) return;
   nameLineEdit->setText(matname);
   epsLineEdit->setText(QString("%1").arg(mat->epsr, 0, 'f', 5));
@@ -1680,11 +1693,11 @@ void DefineMaterialDialog::setMaterialData(DB::Material* mat){
 void DefineMaterialDialog::set(){
 	QString matname=nameLineEdit->text();
 	if(matname.isEmpty()) return;
-	DB::Material* mat =mainOCAF->EmP.FindMaterial(matname.toLatin1().data());
+	DB::Material* mat =mainOCAF->EmP->FindMaterial(matname.toLatin1().data());
 	if(!mat){ 
 	   mat =new DB::Material();
            strcpy(mat->name,matname.toLatin1().data());
-	   mainOCAF->EmP.addMaterial(mat);
+	   mainOCAF->EmP->addMaterial(mat);
            TreeWidgetItem* matit=treeWidget->getItemFromLabel(mainOCAF->theMaterials);
 	   if(matit) treeWidget->makeMaterials(matit);
 	}
@@ -1698,8 +1711,8 @@ void DefineMaterialDialog::set(){
 void DefineMaterialDialog::del(){
 	QString matname=nameLineEdit->text();
 	if(matname.isEmpty()) return;
-	DB::Material* mat =mainOCAF->EmP.FindMaterial(matname.toLatin1().data());
-	if(mat) mainOCAF->EmP.delMaterial(mat);
+	DB::Material* mat =mainOCAF->EmP->FindMaterial(matname.toLatin1().data());
+	if(mat) mainOCAF->EmP->delMaterial(mat);
 	else {
 	     mainWindow->temporaryMessage(tr("Material ") + matname + tr(" is not present"));
              return;
@@ -1754,7 +1767,7 @@ QString genericName(QString name);
 
 void ImportCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
-  DB::Volume* vol = mainOCAF->EmP.FindVolume(volname.toLatin1().data());
+  DB::Volume* vol = mainOCAF->EmP->FindVolume(volname.toLatin1().data());
   if(!vol) return;
   nameLineEdit->setText(volname);
   QString filter1=genericName(volname)+".emc";
@@ -1890,24 +1903,24 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
        currentPart=item;
        getLabelName(label, currentPartName);
        emit sendPartName(currentPartName);
-       mainWindow->openCompAction->setEnabled(true);
-       mainWindow->openCompAction_->setEnabled(true);
+       mainWindow->openCompOrPartitionAction->setEnabled(true);
+       mainWindow->openCompAndPartitionAction->setEnabled(true);
        return;
    } 
    if(!label.IsNull()) if(mainOCAF->isLayer(label)){ 
        currentLayer=item;
        getLabelName(label, currentLayerName);
        emit sendLayerName(currentLayerName);
-       mainWindow->openCompAction->setEnabled(false);
-       mainWindow->openCompAction_->setEnabled(false);
+       mainWindow->openCompOrPartitionAction->setEnabled(false);
+       mainWindow->openCompAndPartitionAction->setEnabled(false);
        return;
    }
    if(item->getMaterial(mat)){
       currentMaterial=item;
       currentMaterialName=mat->name;
       emit sendMaterialName(currentMaterialName);
-       mainWindow->openCompAction->setEnabled(false);
-       mainWindow->openCompAction_->setEnabled(false);
+      mainWindow->openCompOrPartitionAction->setEnabled(false);
+      mainWindow->openCompAndPartitionAction->setEnabled(false);
       return;
    }
    if(!label.IsNull())
@@ -1915,11 +1928,12 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
       QString labelName;
       getLabelName(label, labelName);
       currentSubComp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(labelName.toLatin1().data()) : 0;
-      mainWindow->openCompAction->setEnabled(currentSubComp>0);
+      mainWindow->openCompOrPartitionAction->setEnabled(currentSubComp>0);
+      mainWindow->openCompAndPartitionAction->setEnabled(currentSubComp>0);
       return;
    }
-   mainWindow->openCompAction->setEnabled(false);
-   mainWindow->openCompAction_->setEnabled(false);
+   mainWindow->openCompOrPartitionAction->setEnabled(false);
+   mainWindow->openCompAndPartitionAction->setEnabled(false);
 }
 
 void TreeWidget::assignLayerDialog()
@@ -1960,7 +1974,7 @@ void TreeWidget::setDefaultBCdialog()
 {    
      SetDefaultBCDialog *dialog=new SetDefaultBCDialog(this);
      dialog->label2->setText(tr("BC:"));
-     dialog->lineEdit2->setText(mainOCAF->EmP.defaultBC);
+     dialog->lineEdit2->setText(mainOCAF->EmP->defaultBC);
      connect( this, SIGNAL( sendMaterialName( QString) ),\
 	      dialog->lineEdit2, SLOT( setText( QString ) )  );
      connect(dialog, SIGNAL(assigned()), this, SLOT(setDefaultBC()));
@@ -2024,9 +2038,13 @@ void  TreeWidget::showWgModes()
 
 
 
-void TreeWidget::openComp()
+void TreeWidget::openCompAndPartition()
 {    
-     mainWindow->openComp();
+     mainWindow->openCompAndPartition();
+}
+void TreeWidget::openCompOrPartition()
+{    
+     mainWindow->openCompOrPartition();
 }
 
 void TreeWidget::displaySelectedMesh()
@@ -2179,9 +2197,9 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
       QString selectedLabelName;
       getLabelName(selectedLabel, selectedLabelName);
       char *ctext=selectedLabelName.toLatin1().data();
-      DB::Volume *vol=mainOCAF->EmP.FindVolume(selectedLabelName.toLatin1().data());
+      DB::Volume *vol=mainOCAF->EmP->FindVolume(selectedLabelName.toLatin1().data());
       if(vol){ 
-	 if(mainOCAF->EmP.assemblyType==COMPONENT || mainOCAF->EmP.assemblyType==INTERFACE) {
+	 if(mainOCAF->EmP->assemblyType==COMPONENT || mainOCAF->EmP->assemblyType==INTERFACE) {
 	     if (vol->type==DIELECTRIC || vol->type==BOUNDARYCOND) menu.addAction(assignMaterialAction);
              if (vol->type==WAVEGUIDE) menu.addAction(showWgModesAction);
              menu.addAction(setCompPropertiesAction);
@@ -2190,10 +2208,15 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
 	 }
       }
       if(showlayers)      menu.addAction(assignLayerAction);
-      if(mainOCAF->isPart(selectedLabel)) menu.addAction(openCompAction);
-      else if(mainOCAF->isPartition()){
+      if(mainOCAF->isPart(selectedLabel)){
+	      menu.addAction(openCompOrPartitionAction);
+	      menu.addAction(openCompAndPartitionAction);
+      } else if(mainOCAF->isPartition()){
        int currentSubCmp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(selectedLabelName.toLatin1().data()) : 0;
-       if(currentSubCmp>0) menu.addAction(openCompAction);
+       if(currentSubCmp>0) {
+	     menu.addAction(openCompOrPartitionAction);
+	     menu.addAction(openCompAndPartitionAction);
+       }
       }
       menu.exec(event->globalPos());
     }

@@ -310,6 +310,7 @@ DefaultBoundCond
 Import
 	: IMPORT  STRING 
 		{
+                  loadingEmP->stepFilePath=$2;
                   if(loadingOcaf) 
                      step_file_reloaded=loadingOcaf->importSTEP_OR_DXC($2, reload_step_file);
 		}
@@ -596,7 +597,7 @@ int loadModel(MwOCAF* ocaf, const char *fName, bool update)
 {
         reload_step_file=update;
         loadingOcaf=ocaf;
-        loadingEmP=&loadingOcaf->EmP;
+        loadingEmP=loadingOcaf->EmP;
         FILE *fid;
         if(!(fid = fopen(fName, "r"))){
 		DB::Msg(ERROR, "Cannot open file %s\n", fName);

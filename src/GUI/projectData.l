@@ -193,6 +193,7 @@ xscale                          { return XSCALE; }
 yscale                          { return YSCALE; }
 auto                            { return AUTO; }
 ideal                           { return IDEAL; }
+canonical                       { return CANONICAL; }
 type                            { return TYPE; }
 topology                        { return TOPOLOGY; }
 part                            { return PART; }
@@ -200,6 +201,7 @@ parameter                       { return PARAMETER; }
 freq	                        { return FREQ; }
 num	                        { return NUM; }
 filter	                	{ return FILTER; }
+custom	                	{ return CUSTOM; }
 krylov	                	{ return KRYLOV; }
 order	                	{ return ORDER; }
 cutoff	                	{ return CUTOFF; }
@@ -208,6 +210,7 @@ max	                	{ return tMAX; }
 ratio	                	{ return RATIO; }
 returnloss	                { return RETURNLOSS; }
 outband		                { return OUTBAND; }
+target	                	{ return TARGET; }
 Qfactor	                	{ return QFACTOR; }
 uniform	                	{ return UNIFORM; }
 inductive	                { return INDUCTIVE; }

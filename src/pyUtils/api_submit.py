@@ -59,6 +59,13 @@ for i,arg in enumerate(argv):
        meshing=1
        break
 
+target_cktname=''
+for i,arg in enumerate(argv):
+    if arg=="-target_cktname":
+       target_cktname=argv[i+1]
+       break
+
+
 
 folder=project
 
@@ -73,7 +80,11 @@ res_url_fname=fname+'.res.url'
 if(os.path.exists(res_url_fname)):
       os.remove(res_url_fname)
 
-log_fname=fname+'.log'
+if job=="ideal_filter_tune":
+  log_fname=fname+'_tuning.log'
+else:
+  log_fname=fname+'.log'
+
 if(os.path.exists(log_fname)):
       os.remove(log_fname)
 
@@ -123,6 +134,11 @@ def project_file_putall(job):
     elif job=="analyse" or job=="analyseszp":
        project_file_put(fname+'.JC')
        project_file_put('extern_port_loads.JC')
+    elif job=="ideal_filter_tune":
+       project_file_put(fname+'.dat')
+       project_file_put(fname+'_xpar.txt')
+       project_file_put(target_cktname+'_xpar.txt')
+       project_file_put('extern_port_loads.JC')
     elif job=="filtermap":
        pippo=1
     elif job=="symmfilter":
@@ -158,7 +174,7 @@ def wait_for_job_completed():
 
 
 def project_file_getall(job):
-    if(len(project_file_get(fname+'.log'))!=1):
+    if(len(project_file_get(log_fname))!=1):
              sys.exit(255)  # log file is mandatory for all jobs
     if job=="modelize1":
              if meshing==1:
@@ -176,9 +192,14 @@ def project_file_getall(job):
              project_file_get(fname+'.ts')
     elif job=="analyseszp":
              project_file_get(fname+'.SZP')
-             project_file_get(fname+'_mapped.inp')
+             project_file_get(fname+'_mapped_canonical.inp')
     elif job=="filtermap":
              pippo=1
+    elif job=="ideal_filter_tune":
+             project_file_get(fname+'.dat')
+             project_file_get(fname+'_xpar.txt')
+             project_file_get(fname+'.JC')
+             project_file_get(fname+'.SZP')
     elif job=="symmfilter":
              project_file_get(fname+'.JC')
              project_file_get(fname+'.sp')

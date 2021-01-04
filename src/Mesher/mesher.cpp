@@ -236,7 +236,7 @@ void makeInvMasters(MwOCAF* ocaf,
      }
      EIset2FI[Iset]=FI;
   }
-  DB::List_T *invariants=DB::Tree2List(ocaf->EmP.invariants);
+  DB::List_T *invariants=DB::Tree2List(ocaf->EmP->invariants);
   std::map< std::set<int>, int > FIset2VI;
   typedef std::set<int >::iterator IsetIt;
   typedef std::map<int,int>::iterator ImapIt;
@@ -394,7 +394,7 @@ void makeInvMasters(MwOCAF* ocaf,
     }
     for (int VI=1; VI<=ocaf->indexedSolids->Extent(); VI++){
        char vname[100]; sprintf(vname,"Vol%d",VI);
-       DB::Volume* vol=ocaf->EmP.FindVolume(vname);
+       DB::Volume* vol=ocaf->EmP->FindVolume(vname);
        TopoDS_Shape V = ocaf->indexedSolids->FindKey(VI);
        std::set<int> Iset;
        for (TopExp_Explorer exp(V,TopAbs_FACE); exp.More(); exp.Next()){
@@ -406,7 +406,7 @@ void makeInvMasters(MwOCAF* ocaf,
        if(FIset2VI.find(Iset)!=FIset2VI.end()){
 	   int VIm=FIset2VI[Iset];
            char vmname[100]; sprintf(vmname,"Vol%d",VIm);
-           DB::Volume* volm=ocaf->EmP.FindVolume(vmname);
+           DB::Volume* volm=ocaf->EmP->FindVolume(vmname);
 	   if(!strcmp(volm->material,vol->material)){
 	    Vmaster_i[inv][VI-1]=VIm;
             for (ImapIt it=VFmap_i[inv][VI-1].begin(); it!= VFmap_i[inv][VI-1].end(); it++)  (*it).second=Fmaster_i[inv][(*it).first-1];
@@ -585,7 +585,7 @@ void makeInvMasters(MwOCAF* ocaf,
   }
   for (int I=1; I<=NV; I++) if(Vmaster[I-1]) {
        char vname[100]; sprintf(vname,"Vol%d",I);
-       DB::Volume* vol=ocaf->EmP.FindVolume(vname);
+       DB::Volume* vol=ocaf->EmP->FindVolume(vname);
        vol->master=Vmaster[I-1];
        vol->Fmap=VFmap[I-1];
        vol->Cmap=VEmap[I-1];
@@ -764,9 +764,9 @@ double max_refri(GModel *gm, MwOCAF* ocaf){
          if(ocaf->faceAdjParts) for (int parti=0; parti< 2; parti++){
              TCollection_AsciiString volname=ocaf->faceAdjParts[2*(FI-1)+parti];
              if(volname!=TCollection_AsciiString("?")){
-		 DB::Volume *vol=ocaf->EmP.FindVolume(volname.ToCString());
+		 DB::Volume *vol=ocaf->EmP->FindVolume(volname.ToCString());
                  DB::Material* mat;
-		 if(vol) mat= ocaf->EmP.FindMaterial(vol->material);
+		 if(vol) mat= ocaf->EmP->FindMaterial(vol->material);
                  if(mat) refri=max(refri,sqrt(mat->epsr * mat->mur));
              }
 	 }
@@ -881,9 +881,9 @@ void mesher_setSingularEdges(GModel *gm, MwOCAF* ocaf)
      TCollection_AsciiString vol1name=ocaf->faceAdjParts[2*(FI-1)];
      TCollection_AsciiString vol2name=ocaf->faceAdjParts[2*(FI-1)+1];
      DB::Volume *vol1=NULL;
-     if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP.FindVolume(vol1name.ToCString());
+     if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP->FindVolume(vol1name.ToCString());
      DB::Volume *vol2=NULL;
-     if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP.FindVolume(vol2name.ToCString());
+     if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP->FindVolume(vol2name.ToCString());
      int FDsign=1;
      bool isBoundaryFace =false;
      if(vol1) if(vol1->type==DIELECTRIC){
@@ -1213,14 +1213,9 @@ class myElement{
     getMat(mat);
     return det3x3(mat)/6.;
   }
-  double refTetSize1(std::map< std::size_t, double> &refmap){
-     double tetref=refmap[tag()];
-     double tetsize=cbrt(volume()/tetref*6*sqrt(2.0));
-     return tetsize;
-  }
   double refTetSize(std::map< std::size_t, double> &refmap){
      double tetref=refmap[tag()];
-     double tetsize=meanEdge()/cbrt(tetref);
+     double tetsize=meanEdge()/tetref;
      return tetsize;
   }
 };
@@ -1369,20 +1364,6 @@ class myMesh{
 };
 
 
-void computeNodeSizeField1(const myMesh &mesh,
-		      std::map< std::pair<int,int>, double> &refmap,
-                      std::map<std::size_t, double> &sf_node
-		      )
-{
-  for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) if(it->second->nodes().size()==4){
-     double Psize[4]; it->second->minRefEdge(refmap, Psize);
-     for (int i=0; i<4; i++){
-       int iP=it->second->nodes()[i]->tag();
-       sf_node[iP]=(sf_node.find(iP)==sf_node.end()) ? Psize[i]: min(Psize[i],sf_node[iP]);
-     }
-  }
-}
-
 
 void computeNodeSizeField2(const myMesh &mesh,
 		      std::map< std::pair<int,int>, double> &refmap,
@@ -1405,7 +1386,23 @@ void computeNodeSizeField2(const myMesh &mesh,
 }
 
 
+
 void computeNodeSizeField(const myMesh &mesh,
+		      std::map< std::size_t, double> &refmap,
+                      std::map<std::size_t, double> &sf_node
+		      )
+{
+  for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) if(it->second->nodes().size()==4){
+     double tetsize=it->second->refTetSize(refmap);
+     for (int i=0; i<4; i++){
+       int iP=it->second->nodes()[i]->tag();
+       sf_node[iP]=(sf_node.find(iP)==sf_node.end()) ? tetsize: min(tetsize,sf_node[iP]);
+     }
+  }
+}
+
+
+void computeNodeSizeField2(const myMesh &mesh,
 		      std::map< std::size_t, double> &refmap,
                       std::map<std::size_t, double> &sf_node
 		      )
@@ -1602,7 +1599,6 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 		    std::list<int> &mshFieldList,
 		    int useEdgeAttractor)
 {
-      std::map<int, std::list<int> > refElist;
       std::map<int, std::list<int> > singElist;
       FieldManager *fields = gm->getFields();
       for(GModel::eiter it = gm->firstEdge(); it != gm->lastEdge(); it++){
@@ -1613,18 +1609,12 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 	      double edgeRef=refri*edgeData[EI-1].meshref;
 	      int mshrefI=10*edgeRef+0.2;
 	      double emeshSize=10*meshsize/mshrefI;
-	      if(mesh3D){ 
-		      if (edgeData[EI-1].singular){
-//		              singElist[mshrefI].push_back(ge->tag());
-			      refElist[mshrefI].push_back(ge->tag());
-                              emeshSize/=2;
-		      } else                         
-			      refElist[mshrefI].push_back(ge->tag());
-	      }
+	      if(mesh3D) if (edgeData[EI-1].singular) emeshSize*=0.7;
+	      ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,emeshSize/edgeRef);
 	      GVertex * v1=ge->getBeginVertex();
 	      GVertex * v2=ge->getEndVertex();
-	      v1->setPrescribedMeshSizeAtVertex(min(v1->prescribedMeshSizeAtVertex(),emeshSize/edgeRef));
-	      v2->setPrescribedMeshSizeAtVertex(min(v2->prescribedMeshSizeAtVertex(),emeshSize/edgeRef));
+	      v1->setPrescribedMeshSizeAtVertex(min(v1->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
+	      v2->setPrescribedMeshSizeAtVertex(min(v2->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
 
       }
       if(!useEdgeAttractor) return;
@@ -1684,10 +1674,29 @@ void mesher_setBackgroundField(GModel *gm, std::list<int> &mshFieldList){
       }
 }
 
+void mesher_setRegionMeshAttribute(GModel *gm, MwOCAF* ocaf, 
+		    double meshsize,
+		    std::map< int, std::string > &solidNames
+	      )
+{
+      for(GModel::riter it = gm->firstRegion(); it != gm->lastRegion(); ++it) {
+              GRegion *gr=*it;
+              TopoDS_Shape S=* (TopoDS_Shape *) gr->getNativePtr();
+              int VI=ocaf->indexedSolids->FindIndex(S);
+	      if(VI<1) continue;
+	      DB::Volume *vol=ocaf->EmP->FindVolume(solidNames[VI].c_str());
+	      if(vol==NULL) continue;
+              DB::Material* mat= ocaf->EmP->FindMaterial(vol->material);
+	      if(mat==NULL) continue;
+	      double refri=sqrt(mat->epsr * mat->mur);
+	      gr->meshAttributes.meshSize = meshsize/(refri*vol->meshRefinement);
+      }
+}
+
 
 void mesher_setFaceMeshAttribute(GModel *gm,
 	            TopTools_IndexedMapOfShape *indexedFaces,
-		    double meshsize, FaceData  *faceData
+		    double meshsize, double sharedMeshRef, FaceData  *faceData
 	      )
 {
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
@@ -1696,14 +1705,25 @@ void mesher_setFaceMeshAttribute(GModel *gm,
               int FI=indexedFaces->FindIndex(F);
 	      double refri=sqrt(faceData[FI-1].epsr * faceData[FI-1].mur);
 	      gf->meshAttributes.meshSize = meshsize/(refri*faceData[FI-1].meshref);
-	      if(faceData[FI-1].shared) gf->meshAttributes.meshSize*=0.7;
+	      if(faceData[FI-1].shared){
+		     if(sharedMeshRef>1) gf->meshAttributes.meshSize/=sharedMeshRef;
+		     std::vector<GEdge*> Fedges=gf->edges();
+                     for (std::vector<GEdge*>::const_iterator eit=Fedges.begin(); eit!=Fedges.end(); ++eit){
+                       GEdge *ge=*eit;
+		       ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,gf->meshAttributes.meshSize);
+	               GVertex * v1=ge->getBeginVertex();
+	               GVertex * v2=ge->getEndVertex();
+	               v1->setPrescribedMeshSizeAtVertex(min(v1->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
+	               v2->setPrescribedMeshSizeAtVertex(min(v2->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
+                     }
+	      }
       }
 }
 
 
 void mesher_setFaceMeshAttribute(GModel *gm,
 	            TopTools_IndexedMapOfShape *indexedFaces,
-		    double meshsize, FaceData  *faceData,
+		    double meshsize, double sharedMeshRef, FaceData  *faceData,
 		    std::list<int> &mshFieldList)
 {
       std::map<int, std::list<int> > refFlist;
@@ -1756,7 +1776,7 @@ void laplaceSmoothing(GFace *gf);
 
 
 
-void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, int meshpercircle, const char* dirName, const char* modelDir)
+void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, double sharedMeshRef, int meshpercircle, const char* dirName, const char* modelDir)
 {
     bool CHECK=false;
 
@@ -1860,6 +1880,23 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //      mesher_setTags(gm, ocaf->indexedFaces, ocaf->indexedEdges, ocaf->indexedVertices);
 //
 
+      std::map< int, std::string > solidNames;
+      if(mesh3D){
+       int SI=0;
+       for (TDF_ChildIterator it(ocaf->theParts,Standard_False); it.More(); it.Next()) {
+        TDF_Label label1 = it.Value();
+        Handle(TDF_Reference)  refAtt;
+        if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
+        TDF_Label label = refAtt->Get();
+        TopoDS_Shape S = ocaf->shapeTool->GetShape(label);
+        if(!S.IsNull()) if(S.ShapeType()==TopAbs_SOLID){
+          int VI=ocaf->indexedSolids->FindIndex(S);
+          DB::Volume *vol=ocaf->getLabelVol(label);
+	  solidNames[VI]=std::string(vol->name);
+        }
+       }
+      }
+
 //
       std::map< int, GEdge * > indexedGmshEdges;
       for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
@@ -1873,21 +1910,21 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 	 indexedGmshEdges[EI]=ge;
       }
 
-      double meshsize_=meshsize;
 #if defined(GMSH3D)
 //      if(!mesh3D) meshsize_=meshsize*0.7;
 #endif
 //      if(mesh3D)  mesher_setSingularEdges(gm, ocaf);
-      mesher_setEdgeMeshAttribute(gm, mesh3D, ocaf->indexedEdges, meshsize_, ocaf->edgeData,mshFieldList, 
+      mesher_setEdgeMeshAttribute(gm, mesh3D, ocaf->indexedEdges, meshsize, ocaf->edgeData,mshFieldList, 
 		                  useEdgeAttractor && meshSizeViewTag>=0);
-//      mesher_setGlobalAniso(gm, ocaf->indexedEdges, meshsize_, 1.0, 1.0, 2.0, fieldNum, mshFieldList);
+//      mesher_setGlobalAniso(gm, ocaf->indexedEdges, meshsize, 1.0, 1.0, 2.0, fieldNum, mshFieldList);
       if(meshSizeViewTag<0)
         mesher_setSingularVertices(gm, ocaf->indexedVertices, meshsize, ocaf->vertexData, mshFieldList);
       if(useFaceAttractor)
-       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize_, ocaf->faceData, mshFieldList);
+       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize, sharedMeshRef, ocaf->faceData, mshFieldList);
       else
-       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize_, ocaf->faceData);
+       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize, sharedMeshRef, ocaf->faceData);
 
+      if(mesh3D) mesher_setRegionMeshAttribute(gm, ocaf, meshsize, solidNames);
 
 #if defined(MAKEMASTERS)
       if(mesh3D){
@@ -1905,7 +1942,7 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
            gf->meshAttributes.method=MESH_UNSTRUCTURED;
 //	   if(gf->geomType()==GEntity::Plane) gf->setMeshingAlgo(ALGO_2D_MESHADAPT);
 //	   else                               gf->setMeshingAlgo(ALGO_2D_MESHADAPT);
-	 } else if(ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level>=ocaf->EmP.level)
+	 } else if(ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level>=ocaf->EmP->level)
            gf->meshAttributes.method=MESH_UNSTRUCTURED;
 	 else
            gf->meshAttributes.method=MESH_NONE;
@@ -1914,8 +1951,10 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 	 CTX::instance()->mesh.algo2d=ALGO_2D_BAMG;
 //         CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
       else            
-         CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
-//         CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
+//           CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
+//           CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
+         CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
+//         CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
 //         CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
       CTX::instance()->mesh.lcFromPoints=1;
       CTX::instance()->mesh.lcFromCurvature=1;
@@ -1923,25 +1962,27 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       CTX::instance()->mesh.minCircPoints=meshpercircle;
       CTX::instance()->mesh.minElementsPerTwoPi=meshpercircle;
       CTX::instance()->mesh.anisoMax=10000;
-      CTX::instance()->mesh.nbSmoothing=4;
-      CTX::instance()->mesh.smoothRatio=1.2;
+//      CTX::instance()->mesh.refineSteps=2;
+      CTX::instance()->mesh.nbSmoothing=(meshSizeViewTag>=0)? 0 : 2;
+      CTX::instance()->mesh.smoothRatio=1.5;
       CTX::instance()->mesh.lcIntegrationPrecision=1.e-3;
       CTX::instance()->mesh.lcMax=meshsize;
-      CTX::instance()->mesh.lcMin=meshsize/10;
+      CTX::instance()->mesh.lcMin=meshsize/100;
 
 #if defined(GMSH3D)
       CTX::instance()->mesh.lcExtendFromBoundary=0;
       if(mesh_aniso)
             CTX::instance()->mesh.algo3d=ALGO_3D_DELAUNAY;
-//          CTX::instance()->mesh.algo3d=ALGO_3D_FRONTAL;
+//            CTX::instance()->mesh.algo3d=ALGO_3D_FRONTAL;
 //	    CTX::instance()->mesh.algo3d=ALGO_3D_MMG3D;
       else            
             CTX::instance()->mesh.algo3d=ALGO_3D_DELAUNAY;
+//            CTX::instance()->mesh.algo3d= (meshSizeViewTag>=0)? ALGO_3D_DELAUNAY : ALGO_3D_FRONTAL;
 //          CTX::instance()->mesh.algo3d=ALGO_3D_HXT;
-//          CTX::instance()->mesh.algo3d=ALGO_3D_FRONTAL;
 //          CTX::instance()->mesh.algo3d=ALGO_3D_RTREE;
-      CTX::instance()->mesh.optimizeThreshold=0.8;
-      CTX::instance()->mesh.optimize=1;
+      CTX::instance()->mesh.optimizeThreshold=0.5;
+      CTX::instance()->mesh.optimize=4;
+//      CTX::instance()->mesh.optimizeNetgen=(meshSizeViewTag>=0)? 1 : 2;
       CTX::instance()->mesh.optimizeNetgen=0;
 #endif
 
@@ -1955,10 +1996,8 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //      CTX::instance()->mesh.smoothRatio=0.0;
 //
 
-      if(meshSizeViewTag>=0){
-        mesher_setMeshSizeField(gm, meshSizeViewTag, mshFieldList);
-        CTX::instance()->mesh.nbSmoothing=0;
-      }
+      if(meshSizeViewTag>=0) mesher_setMeshSizeField(gm, meshSizeViewTag, mshFieldList);
+      
 
       mesher_setBackgroundField(gm, mshFieldList);
 
@@ -2000,36 +2039,11 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       }
 #endif
 
-      std::map< int, std::string > solidNames;
 #if defined(GMSH3D)
-      if(mesh3D){
-       int SI=0;
-       for (TDF_ChildIterator it(ocaf->theParts,Standard_False); it.More(); it.Next()) {
-        TDF_Label label1 = it.Value();
-        Handle(TDF_Reference)  refAtt;
-        if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
-        TDF_Label label = refAtt->Get();
-        TopoDS_Shape S = ocaf->shapeTool->GetShape(label);
-        if(!S.IsNull()) if(S.ShapeType()==TopAbs_SOLID){
-          int VI=ocaf->indexedSolids->FindIndex(S);
-          DB::Volume *vol=ocaf->getLabelVol(label);
-	  solidNames[VI]=std::string(vol->name);
-        }
-       }
-
-       gm->mesh(3);
-      }
+//      if(meshSizeViewTag>=0) CTX::instance()->mesh.nbSmoothing=0;
+      if(mesh3D) gm->mesh(3);
 #endif
 
-
-/*
-      for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
-         GFace *gf=*fit;
-	 if(gf->meshAttributes.Method ==MESH_TRANSFINITE) continue;
-	 mymeshGFaceBamg(gf);
-//         for(int i = 0; i < CTX::instance()->mesh.nbSmoothing; i++) laplaceSmoothing(gf);
-      }
-*/
 
 
 
@@ -2043,6 +2057,18 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 		Fmaster
 	       );
 
+      if(mesh3D) for(GModel::riter it = gm->firstRegion(); it != gm->lastRegion(); ++it)  {
+        GRegion *gr=*it;
+        TopoDS_Solid V=* (TopoDS_Solid *) gr->getNativePtr();
+        int VI=ocaf->indexedSolids->FindIndex(V);
+        assert(VI);
+        assert((*it)->tetrahedra.size()>0);
+        for(unsigned int i = 0; i < (*it)->tetrahedra.size(); i++){
+ 	  MElement *t=(*it)->tetrahedra[i];
+          assert(t->gammaShapeMeasure()>1.e-5);
+        }
+      }
+      
       gmsh::finalize();
 
 }

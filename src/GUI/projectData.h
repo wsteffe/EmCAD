@@ -29,10 +29,9 @@
 enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
 #ifndef _SELECTEDCIRCUIT_H_
 #define _SELECTEDCIRCUIT_H_
-enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IDEALCIRCUITMAPPEDTZ=3, IMPORTEDRESPONSE=4};
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IMPORTEDCIRCUIT=3, IDEALCIRCUITMAPPEDTZ=4, IMPORTEDRESPONSE=5};
 #endif
 enum FilterMapSource {ZEROPOLES=0, IMPORTED_RESPONSE=1, IMPORTED_CIRCUIT=2};
-enum FilterTuneMethod {FIXEDGRADIENT=0, POWELL=1};
 enum FilterTopology   {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
 enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1};
 
@@ -40,6 +39,13 @@ enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1};
 struct StringList
 {
   std::set<std::string, std::less<std::string> > list;
+  void read(const char*filename);
+  void save(const char*filename);
+};
+
+struct StringStringVecMap
+{
+  std::map<std::string, std::vector<std::string>, std::less<std::string> > map;
   void read(const char*filename);
   void save(const char*filename);
 };
@@ -72,6 +78,7 @@ class WorkStatus
 
 
 typedef std::set< std::pair<int, int> >::iterator ZeroPoleCurvesIterator;
+typedef std::map< std::pair<int, int>, double >::iterator SparseMatIterator;
 
 struct ProjectData
 {
@@ -90,13 +97,23 @@ struct ProjectData
     double meshMinEnergyRatio;
     int    localMeshing3d;
     double freqBand[2];
-    double refFreqBand[2];
+//    double refFreqBand[2];
     double anaFreqBand[2];
     double zpFreqBand[2];
     double zpWinRatio;
     double mapFreqBand[2];
     double cutoffRatio;
     std::set< std::pair<int,int> > zeropoleCurves;
+    std::map< std::pair<int,int>, double > idealFilterJ;
+    std::map< std::pair<int,int>, double > idealFilterCK;
+    std::map< std::pair<int,int>, double > idealFilterLK;
+    std::map< std::pair<int,int>, double > idealFilterG;
+    std::map< std::pair<int,int>, int > idealFilterJvar;
+    std::map< std::pair<int,int>, int > idealFilterCKvar;
+    std::map< std::pair<int,int>, int > idealFilterLKvar;
+    std::map< std::pair<int,int>, int > idealFilterGvar;
+    std::vector<double> idealFilterResonFreq;
+    std::vector<double> idealFilterImpedance;
     int    MORFreqNum;
     int    KrylovOrder;
     int    anaFreqNum;
@@ -113,10 +130,12 @@ struct ProjectData
     double filterRetLoss;
     double filterOutbandRetLoss;
     double filterQfactor;
+    double filterTargetQfactor;
     int    filterInductiveSkin;
     double filterPortImpedance;
     int    filterOrder;
     int    symmFilterResponse;
+    int    customIdealFilter;
     int    predistortedFilter;
     int    predistFilterOptim;
     double predistFilterOptimRL;
@@ -124,7 +143,7 @@ struct ProjectData
     int    predistFilterOptimIterMax;
     double predistFilterOptimTrustR;
     int    idealFilterType;
-    int    idealFilterTopology;
+    int    canonicalFilterTopology;
     int    filtermapSymmetric;
     int    filtermapSource;
     double filtermapQfactor;
@@ -140,7 +159,7 @@ struct ProjectData
     std::vector<double> filterZeros;
 
     StringList components;
-    StringList wgcomponents;
+    StringStringVecMap wgcomponents;
 
     WorkStatus workStatus;
 

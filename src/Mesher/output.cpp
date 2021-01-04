@@ -175,7 +175,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
    TCollection_AsciiString wgmodelFileName=TCollection_AsciiString(modelDir)+"/"+assName+"_WG.mwm";
    fwg=fopen(nativePath(wgmodelFileName.ToCString()).c_str(), "w"); if(!fwg) return;
    std::string WGprefix=(remove_SUB(assName)).ToCString()+std::string("__");
-   ocaf->EmP.save(fwg, true, true, WGprefix);
+   ocaf->EmP->save(fwg, true, true, WGprefix);
   }
   
   FILE *fout=NULL;
@@ -184,7 +184,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
    TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
    fout=fopen(nativePath(modelFileName.ToCString()).c_str(), "a"); if(!fout) return;
    std::string WGprefix=(remove_SUB(assName)).ToCString()+std::string("__");
-   ocaf->EmP.save(fout, true, false, WGprefix);
+   ocaf->EmP->save(fout, true, false, WGprefix);
 
 
 #if defined(GMSH3D)
@@ -227,6 +227,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
    typedef std::map<std::string, CompCurveType >::const_iterator CompCurveIt;
    for (CompCurveIt ccit=compCurves.begin(); ccit!= compCurves.end(); ccit++){
 //sorting
+     bool badCompCurve=false;
      double dist=0;
      int EN=(*ccit).second.curves.size();
      int *permu=new int[EN];
@@ -241,7 +242,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       vimult[v1->getIndex()]++;
       vimult[v2->getIndex()]++;
      }
-     int first,firstv;
+     int first=0,firstv=0;
      for (int ei=0; ei< EN; ei++){
       GEdge *ge=(*ccit).second.curves[ei];
       unsigned int ElineNum=ge->getNumMeshElements();
@@ -250,23 +251,50 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       if(vimult[v1->getIndex()]==1) {first=ei; firstv=v1->getIndex();};
       if(vimult[v2->getIndex()]==1) {first=ei; firstv=v2->getIndex();};
      }
-     std::set<int> done;
-     int last=0; permu[last]=first; 
-     int lastv=firstv;
-     bool changed=true;
-     while(changed){
-      changed=false;
-      for (int ei=0; ei< EN; ei++) if(done.find(ei)==done.end()){
+     if(firstv>0){
+      std::set<int> done;
+      int last=0; permu[last]=first; 
+      int lastv=firstv;
+      bool changed=true;
+      while(changed){
+       changed=false;
+       for (int ei=0; ei< EN; ei++) if(done.find(ei)==done.end()){
         GEdge *ge=(*ccit).second.curves[ei];
         unsigned int ElineNum=ge->getNumMeshElements();
         MVertex *v1 = ge->getMeshElement(0)->getVertex(0);
         MVertex *v2 = ge->getMeshElement(ElineNum-1)->getVertex(1);
         if     (v1->getIndex()==lastv) {done.insert(ei); permu[last]=ei; esign[last++]=1;  lastv=v2->getIndex(); changed=true;}
 	else if(v2->getIndex()==lastv) {done.insert(ei); permu[last]=ei; esign[last++]=-1; lastv=v1->getIndex(); changed=true;}
+       }
       }
+      badCompCurve=(last!=EN);
+      bool checkBadCompCurve=false;
+      if(badCompCurve && checkBadCompCurve){
+	  std::vector<int> vertices;
+	  std::vector<int> curves;
+          for (int ei=0; ei< EN; ei++) {
+            GEdge *ge=(*ccit).second.curves[ei];
+            TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
+            int EI=ocaf->indexedEdges->FindIndex(E);
+	    curves.push_back(EI);
+            unsigned int ElineNum=ge->getNumMeshElements();
+            MVertex *v1 = ge->getMeshElement(0)->getVertex(0);
+            MVertex *v2 = ge->getMeshElement(ElineNum-1)->getVertex(1);
+	    vertices.push_back(v1->getIndex());
+	    vertices.push_back(v2->getIndex());
+	  }
+      }
+     } else { //this is a special case of a single curve with coincident vertices
+       assert(EN==1);
+       GEdge *ge=(*ccit).second.curves[0];
+       unsigned int ElineNum=ge->getNumMeshElements();
+       MVertex *v1 = ge->getMeshElement(0)->getVertex(0);
+       MVertex *v2 = ge->getMeshElement(ElineNum-1)->getVertex(1);
+       assert(v1->getIndex()==v2->getIndex());
+       esign[0]=1;
      }
-     assert(last==EN);
 //end sorting
+     if(badCompCurve) continue;  //skip bad comp curve
      fprintf(fout, "DEF %s  MWM_CompCurve {\n",  (*ccit).first.c_str());
      if((*ccit).second.linePort) fprintf(fout, "  LinePort   %d\n", 1);
      fprintf(fout, "  curves [\n");
@@ -409,7 +437,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
      fprintf(fout, "}\n\n");
      delete [] permu;
      delete [] esign;
-   }  //port iteration
+   }  //CompCurve iteration
 
   }  //if mesh3D *****************
   
@@ -430,12 +458,15 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     GFace *gf=*fit;
     if(gf->meshAttributes.method==MESH_NONE) continue;
     TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+    int Ssign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
     F.Orientation(TopAbs_FORWARD);
     int FI=ocaf->indexedFaces->FindIndex(F);
     if(!FI) continue;
-    if(meshIF && ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level <ocaf->EmP.level) continue;
-    int TriSsign=GmshOCCfaceSign(gf);
-    int Ssign=GfaceOCCfaceSign(gf);
+    if(meshIF && ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level <ocaf->EmP->level) continue;
+//    int TriSsign=GmshOCCfaceSign(gf);
+//    assert(TriSsign==1);
+//    int Ssign1=GfaceOCCfaceSign(gf);
+//    assert(Ssign==Ssign1);
     bool skipFaceMesh=REUSE_CIRCUITS;
     if(meshIF){
         int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
@@ -456,10 +487,10 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       TCollection_AsciiString vol2name=ocaf->faceAdjParts[2*(FI-1)+1-rev];
       if(vol1name==TCollection_AsciiString("-") && vol2name==TCollection_AsciiString("-")) continue;
       DB::Volume *vol1=NULL;
-      if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP.FindVolume(vol1name.ToCString());
+      if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP->FindVolume(vol1name.ToCString());
       if(vol1) if(vol1->disabled) vol1=NULL;
       DB::Volume *vol2=NULL;
-      if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP.FindVolume(vol2name.ToCString());
+      if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP->FindVolume(vol2name.ToCString());
       if(vol2) if(vol2->disabled) vol2=NULL;
       if(ocaf->faceData[FI-1].shared){
        if(!vol1) vol1name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
@@ -476,7 +507,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       }
       if(  bdrname==TCollection_AsciiString("-")
         &&(vol1name==TCollection_AsciiString("-") || vol2name==TCollection_AsciiString("-"))
-      ) bdrname=TCollection_AsciiString(ocaf->EmP.defaultBC);
+      ) bdrname=TCollection_AsciiString(ocaf->EmP->defaultBC);
       bool hasbdrc =(bdrname!=TCollection_AsciiString("-"))
 	         &&(bdrname!=TCollection_AsciiString("WAVEGUIDE"));
       if(hasbdrc && (bdrname!=TCollection_AsciiString("PEC")) && (bdrname!=TCollection_AsciiString("PML")) ) skipFaceMesh=false;
@@ -521,13 +552,13 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 */
     std::vector<GEdge*>   Fedges;
     std::vector<int>      FedgesSign;
-    for(TopoDS_Iterator it1(F.Oriented(TopAbs_FORWARD),TopAbs_WIRE); it1.More(); it1.Next()){
+    for(TopoDS_Iterator it1(F,TopAbs_WIRE); it1.More(); it1.Next()){
     TopoDS_Shape W=it1.Value();
     int Wsgn=1;
     if(REUSE_CIRCUITS) if(mesh3D) if(Fmaster[FI-1]<0) Wsgn=-1;
     for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
       TopoDS_Shape E=it2.Value();
-      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Wsgn : -Wsgn;
+      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Ssign*Wsgn : -Ssign*Wsgn;
       E.Orientation(TopAbs_FORWARD);
       int EI=ocaf->indexedEdges->FindIndex(E);
       GEdge *ge=indexedGEdges[EI];
@@ -558,6 +589,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 
     if(!skipFaceMesh) {
 
+    std::map<int, std::pair<double, double> > faceContPar; 
     for(int k = 0; k <2; k++) for(int TI = 0; TI <FtriaNum; ++TI){
       MTriangle *t = gf->triangles[TI];
       SPoint3 CP(0.0,0.0,0.0);
@@ -565,14 +597,27 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
         MVertex *v=reversedFace ? t->getVertex((3-j)%3) : t->getVertex(j);
         int I = v->getIndex();
         if(PI2FPI.find(I)==PI2FPI.end())
-        if (v->onWhat()->dim() < 2 || k==1){
+        if (v->onWhat()->dim() < 2 || v->onWhat()->dim()==2 && k==1){
 	   PI2FPI[I]=FPNum++;
 	   FPI2PI.push_back(I);
 	   points.push_back(v->x());
 	   points.push_back(v->y());
 	   points.push_back(v->z());
            if(gf->geomType() != GEntity::Plane){
-             SVector3 n=gf->normal(gf->parFromPoint(v->point()));
+             SVector3 n;
+	     SPoint2 uv;
+	     double u0=0., u1=0.;
+	     if(v->getParameter(0, u0) && v->getParameter(1, u1))
+		  uv=SPoint2(u0, u1);
+	     else if(faceContPar.find(I)==faceContPar.end()){
+		  uv=gf->parFromPoint(v->point());
+                  std::pair<double, double> p=std::make_pair(uv.x(),uv.y());
+                  faceContPar[I]=p;
+	     } else {
+		   std::pair<double, double> p=faceContPar[I];
+		   uv=SPoint2(p.first, p.second);
+	     }
+	     n=gf->normal(uv);
 	     normals.push_back(n.x());
 	     normals.push_back(n.y());
 	     normals.push_back(n.z());
@@ -583,24 +628,36 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
     for(int TI = 0; TI <FtriaNum; ++TI){
       MTriangle *t = gf->triangles[TI];
-      SPoint3 CP(0.0,0.0,0.0);
+      SPoint2 SP(0.0,0.0);
       for(int j = 0; j < 3; ++j){
-       MVertex *v = t->getVertex(j);
-       CP+=v->point();
+         MVertex *v = t->getVertex(j);
+         int I = v->getIndex();
+	 SPoint2 uv;
+	 double u0=0., u1=0.;
+	 if(v->getParameter(0, u0) && v->getParameter(1, u1))
+	    uv=SPoint2(u0, u1);
+	 else if(faceContPar.find(I)==faceContPar.end()){
+	    uv=gf->parFromPoint(v->point());
+            std::pair<double, double> p=std::make_pair(uv.x(),uv.y());
+            faceContPar[I]=p;
+	 } else {
+            std::pair<double, double> p=faceContPar[I];
+            uv=SPoint2(p.first, p.second);
+	 }
+         SP+=uv;
       }
-      CP/=3.0;
-      double SCPx, SCPy, SCPz;
-      double CNx, CNy, CNz;
-      supPointAndNormal(GS, CP.x(), CP.y(), CP.z(), SCPx, SCPy, SCPz, CNx, CNy, CNz);
+      SP*=1.0/3;
+      GPoint P=gf->point(SP);
       TI2FPI[TI]=FPNum++;
       FPI2PI.push_back(0);
-      points.push_back(SCPx);
-      points.push_back(SCPy);
-      points.push_back(SCPz);
+      points.push_back(P.x());
+      points.push_back(P.y());
+      points.push_back(P.z());
       if(gf->geomType() != GEntity::Plane){
-       normals.push_back(CNx*Ssign);
-       normals.push_back(CNy*Ssign);
-       normals.push_back(CNz*Ssign);
+       SVector3 n=gf->normal(SP);
+       normals.push_back(n.x());
+       normals.push_back(n.y());
+       normals.push_back(n.z());
 /*
        SPoint3 SCP(SCPx, SCPy, SCPz);
        SVector3 n=gf->normal(gf->parFromPoint(CP));
@@ -608,14 +665,6 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        normals.push_back(n.y());
        normals.push_back(n.z());
 */
-      }
-     // checks orientation
-      if(TI==0){
-//      SVector3 n=gf->normal(gf->parFromPoint(CP));
-       SVector3 n=SVector3(CNx*Ssign, CNy*Ssign, CNz*Ssign);
-       SVector3 A=SVector3(t->getVertex(0)->point(),t->getVertex(1)->point());
-       SVector3 B=SVector3(t->getVertex(0)->point(),t->getVertex(2)->point());
-       if (dot(n,crossprod(A,B))<0) std::cout<< "Wrong orientation of face "<< FI<<std::endl;
       }
    }
 
@@ -637,8 +686,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
   if(fout) fprintf(fout, "  curveSign [\n");
   if(fwg && onWG) fprintf(fwg, "  curveSign [\n");
   for (int i=0; i<Fedges.size(); i++){
-    if(fout) fprintf(fout, "\t%d,\n", FedgesSign[i]*Ssign);
-    if(fwg && onWG) fprintf(fwg, "\t%d,\n", FedgesSign[i]*Ssign);
+    if(fout) fprintf(fout, "\t%d,\n", FedgesSign[i]);
+    if(fwg && onWG) fprintf(fwg, "\t%d,\n", FedgesSign[i]);
   }
   if(fout) fprintf(fout, "  ]\n");
   if(fwg && onWG) fprintf(fwg, "  ]\n");
@@ -927,6 +976,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        TopoDS_Solid V=* (TopoDS_Solid *) gr->getNativePtr();
        int VI=ocaf->indexedSolids->FindIndex(V);
        assert(VI);
+       assert((*it)->tetrahedra.size()>0);
        fprintf(fout, "\ntetsI OF %s  [\n", solidNames[VI].c_str());
        for(unsigned int i = 0; i < (*it)->tetrahedra.size(); i++){
 	 MElement *t=(*it)->tetrahedra[i];
@@ -970,10 +1020,10 @@ void print_mwm3D(GModel *gm,  MwOCAF* ocaf,
    TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
    fout=fopen(nativePath(modelFileName.ToCString()).c_str(), "a"); if(!fout) return;
    std::string WGprefix=assName.ToCString()+std::string("__");
-   ocaf->EmP.save(fout, true, false, WGprefix);
+   ocaf->EmP->save(fout, true, false, WGprefix);
    TCollection_AsciiString wgmodelFileName=TCollection_AsciiString(modelDir)+"/"+assName+"_WG.mwm";
    fwg=fopen(nativePath(wgmodelFileName.ToCString()).c_str(), "w"); if(!fwg) return;
-   ocaf->EmP.save(fwg, true, true, WGprefix);
+   ocaf->EmP->save(fwg, true, true, WGprefix);
 
    bool saveAll=true;
    int saveSinglePartition=0;
@@ -1211,11 +1261,11 @@ void print_mwm3D(GModel *gm,  MwOCAF* ocaf,
       TCollection_AsciiString vol2name=ocaf->faceAdjParts[2*(FI-1)+1-rev];
       if(vol1name==TCollection_AsciiString("-") && vol2name==TCollection_AsciiString("-")) continue;
       DB::Volume *vol1=NULL;
-      if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP.FindVolume(vol1name.ToCString());
+      if(vol1name!=TCollection_AsciiString("-")) vol1=ocaf->EmP->FindVolume(vol1name.ToCString());
       if(vol1) if(vol1->disabled) vol1=NULL;
 //      if(vol1) if(vol1->type==DIELECTRIC) vol1name=TCollection_AsciiString("-");
       DB::Volume *vol2=NULL;
-      if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP.FindVolume(vol2name.ToCString());
+      if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP->FindVolume(vol2name.ToCString());
       if(vol2) if(vol2->disabled) vol2=NULL;
 //      if(vol2) if(vol2->type==DIELECTRIC) vol2name=TCollection_AsciiString("-");
       if(ocaf->faceData[FI-1].shared){
@@ -1224,7 +1274,7 @@ void print_mwm3D(GModel *gm,  MwOCAF* ocaf,
       }
       if(  bdrname==TCollection_AsciiString("-")
         &&(vol1name==TCollection_AsciiString("-") || vol2name==TCollection_AsciiString("-"))
-      ) bdrname=TCollection_AsciiString(ocaf->EmP.defaultBC);
+      ) bdrname=TCollection_AsciiString(ocaf->EmP->defaultBC);
       bool hasbdrc =(bdrname!=TCollection_AsciiString("-"))
 	         &&(bdrname!=TCollection_AsciiString("WAVEGUIDE"));
       if(hasbdrc && (bdrname!=TCollection_AsciiString("PEC")) && (bdrname!=TCollection_AsciiString("PML")) ) skipFaceMesh=false;
@@ -1262,10 +1312,10 @@ void print_mwm3D(GModel *gm,  MwOCAF* ocaf,
     std::vector<int>      FedgesSign;
     for(TopoDS_Iterator it1(F.Oriented(TopAbs_FORWARD),TopAbs_WIRE); it1.More(); it1.Next()){
     TopoDS_Shape W=it1.Value();
-    int Wsgn=(W.Orientation()==TopAbs_FORWARD) ? 1 : -1;    
+//    int Wsgn=(W.Orientation()==TopAbs_FORWARD) ? 1 : -1;    
     for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
       TopoDS_Shape E=it2.Value();
-      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Wsgn : -Wsgn;
+      int Esgn=(E.Orientation()==TopAbs_FORWARD) ? 1 : -1;
       if(reversedFace) Esgn=-Esgn;
       E.Orientation(TopAbs_FORWARD);
       int EI=ocaf->indexedEdges->FindIndex(E);

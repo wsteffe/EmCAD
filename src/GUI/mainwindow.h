@@ -45,7 +45,7 @@
 
 #ifndef _SELECTEDCIRCUIT_H_
 #define _SELECTEDCIRCUIT_H_
-enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IDEALCIRCUITMAPPEDTZ=3, IMPORTEDRESPONSE=4};
+enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IMPORTEDCIRCUIT=3, IDEALCIRCUITMAPPEDTZ=4, IMPORTEDRESPONSE=5};
 #endif
 
 class QAction;
@@ -93,6 +93,7 @@ class Modeler : public QThread
     void zeropoleAna();
     void filterMap();
     void filterDesign(bool mappedTxZeros=false);
+    void idealFilterTune(QString targetCkt, QString tunedCkt);
     QObject *receiver;
   
   signals:
@@ -101,6 +102,7 @@ class Modeler : public QThread
     void zeropoleEnd();
     void filterDesignEnd();
     void filterMapEnd();
+    void idealFilterTuneEnd();
     void sendLogMessageSignal(const QString &);
     void sendStatusMessageSignal(const QString);
   private:
@@ -223,8 +225,6 @@ class FilterTunerDialog : public QDialog
 
 
 
-
-
 struct RunningStatus
 {
   bool projectIsOpen;
@@ -263,7 +263,8 @@ class MainWindow : public QMainWindow
 
 public slots:
     void openComp();
-    void openComp_();
+    void openCompAndPartition();
+    void openCompOrPartition();
     void workopen(QString wkprojpath, int subcomp=0);
     void updateModels();
     void closeDoc();
@@ -283,6 +284,7 @@ private slots:
     void responsePlot();
     void ideal_responsePlot();
     void imported_responsePlot();
+    void importedcircuit_responsePlot();
     void ideal_mappedTZ_responsePlot();
     void mapped_responsePlot();
     void zeropolePlot();
@@ -290,6 +292,8 @@ private slots:
     void mapped_zeropolePlot();
     void accountStatus();
     void closeComp();
+    void closeCompAndPartition();
+    void closeCompOrPartition();
     void closeAll();
     void importGeometry();
     void importMaterial();
@@ -367,8 +371,8 @@ private:
     FilterTuner tuner;
     public:
 
-    QAction *openCompAction;
-    QAction *openCompAction_;
+    QAction *openCompAndPartitionAction;
+    QAction *openCompOrPartitionAction;
     
     private:
     QProcess *emhelp;
@@ -397,7 +401,8 @@ private:
     QMenu *editLayersMenu;
 
     QAction *openAction;
-    QAction *closeCompAction;
+    QAction *closeCompAndPartitionAction;
+    QAction *closeCompOrPartitionAction;
     QAction *closeAction;
     QAction *importGeometryAction;
     QAction *importMaterialAction;
@@ -447,6 +452,7 @@ private:
     QAction *mapped_responsePlotAction;
     QAction *ideal_responsePlotAction;
     QAction *imported_responsePlotAction;
+    QAction *importedcircuit_responsePlotAction;
     QAction *ideal_mappedTZ_responsePlotAction;
     QAction *zeropolePlotAction;
     QAction *mapped_zeropolePlotAction;
@@ -709,6 +715,48 @@ class ZeroPoleDialog : public QDialog
 
 };
 
+class IdealFilterDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     IdealFilterDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+
+ public slots:
+       void set();
+       void getPrjData();
+     void help();
+     void setJnum(int n);
+     void setCKnum(int n);
+     void setLKnum(int n);
+     void setGnum(int n);
+
+ public:
+     QSpinBox   *JnumSB;
+     QSpinBox   *CKnumSB;
+     QSpinBox   *LKnumSB;
+     QSpinBox   *GnumSB;
+     QTableWidget *resonFreqTW;
+     QTableWidget *impedanceTW;
+     QTableWidget *JinvTW;
+     QTableWidget *CKTW;
+     QTableWidget *LKTW;
+     QTableWidget *GTW;
+     QGroupBox *resonFreqBox;
+     QGroupBox *impedanceBox;
+     QGroupBox *JBox;
+     QGroupBox *CKBox;
+     QGroupBox *LKBox;
+     QGroupBox *GBox;
+
+     QVBoxLayout *mainLayout;
+
+     QPushButton *setButton;
+     QPushButton *closeButton;
+     
+     void setResonNum(int n);
+};
+
 
 class FilterDesignDialog : public QDialog
 {
@@ -727,6 +775,8 @@ class FilterDesignDialog : public QDialog
       void updateSymmResponse(int state);
       void updatePredistOptim(int state);
       void updatePredistorted(int state);
+      void updateCustomIdealFilter(int state);
+      void setIdealFilter();
 //      void updateParType(int i);
 
  public:
@@ -734,7 +784,7 @@ class FilterDesignDialog : public QDialog
       QComboBox  *filterTypeChooser;
       QComboBox  *filterTopologyChooser;
       QCheckBox *symmResponseCB;
-      QCheckBox *symmFilterCB;
+      QCheckBox *customIdealFilterCB;
       QCheckBox *predistortedFilterCB;
       QCheckBox *predistFilterOptimCB;
       QCheckBox *symmetricTuningCB;
@@ -748,12 +798,14 @@ class FilterDesignDialog : public QDialog
       QLineEdit *optimTrustRLineEdit;
       QLineEdit *portImpedanceLineEdit;
       QLineEdit *QfactorLineEdit;
+      QLineEdit *targetQfactorLineEdit;
       QCheckBox *inductiveSkinCB;
       QSpinBox   *txZerosNumSB;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
       QTableWidget *txZeros;
       MainWindow * mainw;
+      QPushButton *setIdealCircButton;
       QPushButton *setButton;
       QPushButton *startButton;
       QPushButton *closeButton;

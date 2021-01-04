@@ -46,6 +46,7 @@ set ( PostProc_MOCS
 	plotter.h
 	)
 
+
 if((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
 
 FIND_PACKAGE(BISON)
@@ -83,6 +84,21 @@ target_link_libraries (PostProc
 		       Qt5::OpenGL)
 endif(${QT_VERSION} EQUAL 5)
 
+
+set (filtmat2jc_SRCS
+	filtmat2jc.cpp
+      )
+add_executable ( filtmat2jc ${filtmat2jc_SRCS})
+target_link_libraries (filtmat2jc OStools ${Boost_LIBRARIES} )
+
+install(TARGETS filtmat2jc  DESTINATION bin)
+
+set(updateFiltmat_SRCS
+    updateFiltmat.cpp
+    )
+add_executable(updateFiltmat ${updateFiltmat_SRCS})
+target_link_libraries (updateFiltmat OStools ${Boost_LIBRARIES} )
+install(TARGETS updateFiltmat DESTINATION bin)
 
 
 #BISON_TARGET(touchstoneParser touchstone.y   ${CMAKE_CURRENT_BINARY_DIR}/touchstone_parser.cpp COMPILE_FLAGS "-p touchstone")

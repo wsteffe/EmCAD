@@ -57,7 +57,7 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   if(MSVC)
      target_link_libraries ( 
 	emcad_mesh
-	Mesher CAD DataBase
+	Mesher CAD OStools DataBase
 	optimized ${GMSH_LIBRARY}
 	debug ${GMSH_LIBRARY_DEB}
 	optimized ${LAPACK_LIBRARIES}
@@ -73,7 +73,7 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   elseif(MINGW)
      target_link_libraries ( 
 	emcad_mesh 
-	Mesher CAD DataBase
+	Mesher CAD OStools DataBase
 	${GMSH_LIBRARY}
 	${LAPACK_LIBRARIES}
 	${GMSH_DEPS_LIBRARIES}
@@ -87,7 +87,7 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   else(MSVC)
      target_link_libraries ( 
 	emcad_mesh 
-	Mesher CAD DataBase
+	Mesher CAD OStools DataBase
 	${GMSH_LIBRARY}
 	${LAPACK_LIBRARIES}
 	${GMSH_DEPS_LIBRARIES}

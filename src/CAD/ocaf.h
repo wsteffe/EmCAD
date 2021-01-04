@@ -99,6 +99,7 @@ class ProjectStatus
  int partTypes;
  int partMaterials;
  int linePorts;
+ int wgPorts;
  ProjectStatus();
  void save(const char*filename);
  int read(const char*filename);
@@ -380,7 +381,7 @@ class MwOCAF
   void closeLabel(TDF_Label label);
   void setSelectedLabels();
   void checkWires();
-  void heal(Handle(ShapeBuild_ReShape) &reshape);
+  void heal();
   void imprint();
   void evalBBox();
   void evalSize(double size[3]);
@@ -421,12 +422,14 @@ class MwOCAF
   void saveImportedStruct(const char *dir, bool compIsAss);
   bool savePartsIF();
   void addToComponentLists(std::set<std::string, std::less<std::string> > *componentlist=NULL,
-		          std::set<std::string, std::less<std::string> > *wgcomponentlist=NULL
+		           std::map<std::string, std::vector<std::string>, std::less<std::string> > *wgcomponentlist=NULL
 		          );
  public:
   void initFEPdataStruct();
   void loadGlobalMat(const char* wkprojpath, bool onlyIfModified=false);
   void workopen(const char* wkprojpath, int subcomp=0);
+  int read_prjstatus();
+  void save_prjstatus();
   void worksave();
   void setDisabledVolumes();
   void addPorts(std::map<std::string, int, std::less<std::string> > &ports, std::map<std::string, double, std::less<std::string> > &portloads);
@@ -453,7 +456,7 @@ class MwOCAF
   }
   bool  importSTEP_OR_DXC( char* fileName, bool update );
 
-  DB::EmProblem EmP;
+  DB::EmProblem *EmP;
   std::string projectDir;
   Handle(TDocStd_Document) mainDoc;
   TDF_Label            theShapes;
@@ -505,7 +508,7 @@ class MwOCAF
       if(PECedge(EI)) return 1;
       typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
       for (std::set<std::string, std::less<std::string> > ::iterator bit=edgeData[EI-1].BrCond.begin(); bit!= edgeData[EI-1].BrCond.end(); bit++){
-	 DB::Material* mat= EmP.FindMaterial(bit->c_str());
+	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
 	 if(mat) if(mat->Sresistance>0 || mat->Sinductance>0) return 1;
       }
       return 0;

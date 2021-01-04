@@ -223,12 +223,21 @@ EmProblem::EmProblem(){
   if(!mat){
     mat =new DB::Material();
     strcpy(mat->name,"PEC");
+    mat->color[0]=75;  mat->color[1]=79; mat->color[2]=93; mat->color[3]=255;
     addMaterial(mat);
   }
   mat=FindMaterial("PMC");
   if(!mat){
     mat =new DB::Material();
     strcpy(mat->name,"PMC");
+    mat->color[0]=0;  mat->color[1]=64; mat->color[2]=0; mat->color[3]=255;
+    addMaterial(mat);
+  }
+  mat=FindMaterial("Vacuum");
+  if(!mat){
+    mat =new DB::Material();
+    strcpy(mat->name,"Vacuum");
+    mat->color[0]=188;  mat->color[1]=255; mat->color[2]=231; mat->color[3]=255;
     addMaterial(mat);
   }
   mat=FindMaterial("PML");

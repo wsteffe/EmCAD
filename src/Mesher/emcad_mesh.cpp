@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 
     int assType= COMPONENT;
     double meshsize=0;
+    double sharedMeshRef=2.0;
     int meshpercircle=0;
     int subCompI=0;
     std::string subprojDir;
@@ -89,6 +90,10 @@ int main(int argc, char **argv)
        else if ( !strcmp(argv[i], "-meshpercircle")  ) { 
          i++; 
          meshpercircle=(int) atoi(argv[i++]);
+       }
+       else if ( !strcmp(argv[i], "-sharedmeshref")  ) { 
+         i++; 
+         sharedMeshRef=(double) atof(argv[i++]);
        }
        else if ( !strcmp(argv[i], "-subcomp")  ) { 
          i++; 
@@ -137,12 +142,12 @@ int main(int argc, char **argv)
          bool mesh3D=!ocaf->subCompNum;
          bool meshIF=false;
          if(mesh3D) MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
-         if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, meshpercircle, partitionDir.c_str(),outDir.c_str());
+         if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
         } else {
          bool mesh3D=!ocaf->subCompNum && mesh3DonClient;
          bool meshIF=ocaf->subCompNum;
          if( mesh3D  )                     MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
-         if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, meshpercircle, partitionDir.c_str(),outDir.c_str());
+         if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
         }
         subCompNum=ocaf->subCompNum;
         ocaf->closeDoc();
@@ -159,7 +164,7 @@ int main(int argc, char **argv)
          bool meshIF=false;
          bool meshWG=true;
          if(mesh3D) MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
-	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, meshpercircle, partitionDir.c_str(),outDir.c_str());
+	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
          ocaf->closeDoc();
          delete ocaf;
       }
@@ -169,7 +174,7 @@ int main(int argc, char **argv)
       bool mesh3D=false;
       bool meshWG=false;
       bool meshIF=true;
-      MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, 1.1*meshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
+      MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, subprojDir.c_str(),outDir.c_str());
       ocaf->closeDoc();
       delete ocaf;
  }

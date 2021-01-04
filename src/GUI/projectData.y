@@ -75,8 +75,8 @@ char	*sval;
 
 %token DEF MAINASSNAME VARFILEPATH S2PFILEPATH NETWORK LENGTH FREQ UNIT EXP MESH REFINE ENERGY WAVELENGTH LOCAL MESHING3D ANA BAND NUM MOR
 %token RESPONSE SYMMETRIC PARAMETER TYPE TOPOLOGY PART XSCALE YSCALE AUTO ZERO POLE WINDOW CURVE CIRCLE
-%token IDEAL FILTER PASS KRYLOV ORDER RETURNLOSS OUTBAND MAPPING TUNING METHOD SOURCE ITERMAX AUTOMATIC DESIGN MAPPED TX ZEROS
-%token PORT IMPEDANCE QFACTOR UNIFORM INDUCTIVE SKIN LOSSY PREDISTORTED OPTIMIZE ILOSSPP TRUSTR
+%token IDEAL CANONICAL FILTER CUSTOM PASS KRYLOV ORDER RETURNLOSS OUTBAND MAPPING TUNING METHOD SOURCE ITERMAX AUTOMATIC DESIGN MAPPED TX ZEROS
+%token PORT IMPEDANCE TARGET QFACTOR UNIFORM INDUCTIVE SKIN LOSSY PREDISTORTED OPTIMIZE ILOSSPP TRUSTR
 %token CUTOFF RATIO RECOMPUTE JACOBIAN ERRORT ONLY TRANSVERSEJ XTOL GRADDX
 %token REMESH FIRST DECOMPOSITION MATERIAL MODELIZATION COMPONENT SAVE REDUCTION RELOAD NEEDED DONE CHANGED
 %token tMIN tMAX
@@ -272,8 +272,8 @@ Mesh:
             }
         |  REFINE FREQ BAND SFFloat SFFloat
             {
-              prjData.refFreqBand[0]=$4;
-              prjData.refFreqBand[1]=$5;
+//              prjData.refFreqBand[0]=$4;
+//              prjData.refFreqBand[1]=$5;
             }
          | MESH tMIN ENERGY RATIO SFFloat
             {
@@ -340,9 +340,17 @@ FreqAna:
             {
               prjData.idealFilterType=$4;
             }
+        |  CANONICAL FILTER TOPOLOGY INTEGER
+            {
+              prjData.canonicalFilterTopology=$4;
+            }
         |  IDEAL FILTER TOPOLOGY INTEGER
             {
-              prjData.idealFilterTopology=$4;
+              prjData.canonicalFilterTopology=$4;
+            }
+        |  CUSTOM IDEAL FILTER INTEGER
+            {
+              prjData.customIdealFilter=$4;
             }
         |  FILTER MAPPING METHOD INTEGER
             {
@@ -488,6 +496,10 @@ FilterDesign:
         |  FILTER QFACTOR SFFloat
             {
               prjData.filterQfactor = $3;
+            }
+        |  FILTER TARGET QFACTOR SFFloat
+            {
+              prjData.filterTargetQfactor = $4;
             }
         |  FILTER INDUCTIVE SKIN INTEGER
             {

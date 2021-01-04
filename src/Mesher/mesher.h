@@ -34,7 +34,7 @@
 namespace MESHER {
 
 
-void meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, int meshpercircle, const char* dirName, const char* modelDir=NULL);
+void meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, double sharedMeshRef, int meshpercircle, const char* dirName, const char* modelDir=NULL);
 void addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir);
 };
 

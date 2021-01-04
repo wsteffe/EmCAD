@@ -110,7 +110,8 @@ class TreeWidget : public QTreeWidget
       void setLastEntered(QTreeWidgetItem * qitem, int column ) {lastEntered=(TreeWidgetItem*) qitem;}
       void about();
       void setCurrentItem(QTreeWidgetItem * qitem, int column );
-      void openComp();
+      void openCompAndPartition();
+      void openCompOrPartition();
       void atImportedPartProperties();
       void assignLayer();
       void assignMaterial();
@@ -157,7 +158,8 @@ class TreeWidget : public QTreeWidget
 
    private:
       QAction *aboutAction;
-      QAction *openCompAction;
+      QAction *openCompOrPartitionAction;
+      QAction *openCompAndPartitionAction;
       QAction *assignLayerAction;
       QAction *assignMaterialAction;
       QAction *showWgModesAction;
@@ -347,6 +349,7 @@ class DefineMaterialDialog : public QDialog
       int w,h;
       QDoubleValidator *dvalidator;
       QDoubleValidator *roughQvalidator;
+      QDoubleValidator *lossFacValidator;
 
       TreeWidget *treeWidget;
 

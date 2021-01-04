@@ -1038,13 +1038,13 @@ void ViewWidget::InitViewer( )
 #endif
 
        myViewer->SetLightOff();
-       Handle(V3d_AmbientLight) L1 = new V3d_AmbientLight(myViewer,Quantity_NOC_WHITE) ;
+       Handle(V3d_AmbientLight) L1 = new V3d_AmbientLight(Quantity_NOC_WHITE) ;
        myViewer->SetLightOn(L1);
-       Handle(V3d_DirectionalLight) L2 = new V3d_DirectionalLight(myViewer,V3d_XnegYnegZneg,Quantity_NOC_WHITE) ;
+       Handle(V3d_DirectionalLight) L2 = new V3d_DirectionalLight(V3d_XnegYnegZneg,Quantity_NOC_WHITE) ;
        myViewer->SetLightOn(L2);
-       Handle(V3d_DirectionalLight) L3 = new V3d_DirectionalLight(myViewer,V3d_XnegYnegZpos,Quantity_NOC_WHITE) ;
+       Handle(V3d_DirectionalLight) L3 = new V3d_DirectionalLight(V3d_XnegYnegZpos,Quantity_NOC_WHITE) ;
        myViewer->SetLightOn(L3);
-       Handle(V3d_DirectionalLight) L5 = new V3d_DirectionalLight(myViewer,V3d_XnegYpos,Quantity_NOC_WHITE) ;
+       Handle(V3d_DirectionalLight) L5 = new V3d_DirectionalLight(V3d_XnegYpos,Quantity_NOC_WHITE) ;
        myViewer->SetLightOn(L5);
 
 //	myViewer->SetDefaultVisualization(Quantity_NOC_GRAY50);

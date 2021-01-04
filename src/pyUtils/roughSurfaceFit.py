@@ -102,13 +102,15 @@ mu0= 4*math.pi*1e-7
 #Ki=6*math.pi*a**2*Ni/Ahex
 #Fi=1/(math.pi*a**2*mu0*mur*sigma)
 
-
 def ferror(variables) :
       [Ki,Fi] = variables
       ferror_cfac=1+ Ki/(1+cmath.sqrt(Fi/(2*matFreq*1j)))
       eq1=np.real(ferror_cfac)-np.imag(ferror_cfac)-lossFactor
       eq2=45*math.pi/180+cmath.phase(ferror_cfac)-math.atan(impedanceQ)
       return [eq1,eq2]
+
+#import pdb
+#pdb.set_trace()
 
 [Ki,Fi]=fsolve(ferror,[lossFactor, 10*f2])
 

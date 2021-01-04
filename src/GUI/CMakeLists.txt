@@ -78,7 +78,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 if(${QT_VERSION} EQUAL 4)
   target_link_libraries ( emcad 
-	CAD DataBase PostProc
+	CAD OStools DataBase PostProc
 	${QT_QTCORE_LIBRARY} 
 	${QT_QTGUI_LIBRARY}  
 	${QT_OPENGL_LIBRARY}
@@ -93,7 +93,7 @@ endif(${QT_VERSION} EQUAL 4)
 if(${QT_VERSION} EQUAL 5)
   if(MSVC)
     target_link_libraries (emcad 
-	CAD DataBase PostProc
+	CAD OStools DataBase PostProc
 	optimized ${OCC_LIBRARIES}
 	debug ${OCC_LIBRARIES_DEB}
 	${QWT_LIBRARY}
@@ -107,7 +107,7 @@ if(${QT_VERSION} EQUAL 5)
      )
   elseif(MINGW)
     target_link_libraries (emcad 
-	CAD DataBase PostProc
+	CAD OStools DataBase PostProc
 	${OCC_LIBRARIES}
 	${QWT_LIBRARY}
 	${OCC_3PARTIES_LIBRARIES}
@@ -120,7 +120,7 @@ if(${QT_VERSION} EQUAL 5)
      )
   else(MSVC)
     target_link_libraries (emcad 
-	CAD DataBase PostProc
+	CAD OStools DataBase PostProc
 	${OCC_LIBRARIES}
 	${QWT_LIBRARY}
 	${OCC_3PARTIES_LIBRARIES}

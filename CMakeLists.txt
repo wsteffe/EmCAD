@@ -20,7 +20,7 @@
 project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
-set(EmCAD_VERSION_MINOR 4)
+set(EmCAD_VERSION_MINOR 5)
 set(EmCAD_VERSION_PATCH 0)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
@@ -41,10 +41,6 @@ set(internalPython 0)
 set(useSymbolicLinks 0)
 set(useGmshTetrahedra 1)
 
-
-#if(MINGW)
-#  add_definitions(-DUSEBOOSTLOCK)
-#endif()
 
 set(CASROOT $ENV{CASROOT} CACHE STRING FILEPATH)
 if(NOT ${CASROOT} STREQUAL "")
@@ -159,7 +155,6 @@ if(MINGW)
 	"FreeImage"
 	"FreeImagePlus"
         "freetype"
-	"libgl2ps"
   )
   set(OCC_3PARTIES_DLLS)
   set(OCC_3PARTIES_DLLS_DEB)
@@ -740,7 +735,7 @@ if(WIN32)
 #    endforeach(DLL)
  
  #***  Removing Administrator level from NSIS.template.in:
- set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake-3.17/Modules/Internal/CPack/NSIS.template.in")
+ set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake-3.19/Modules/Internal/CPack/NSIS.template.in")
  set(PROJECT_NSIS_TEMPLATE "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}/NSIS.template.in")
  file(READ ${CMAKE_NSIS_TEMPLATE} FILE_CONTENT)
  set (SEARCH_REGEX "Require administrator access")

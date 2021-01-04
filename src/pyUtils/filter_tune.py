@@ -24,6 +24,7 @@ from PyQt5 import QtWidgets, QtCore
 import numpy, math
 import scipy.optimize as optim
 import json
+import openpyxl
 
 
 from enum import Enum
@@ -147,6 +148,13 @@ class Tuner(QtCore.QObject):
 
         self.ideal_fname=self.ideal_cktname+'_xpar.txt'
         self.mapped_fname=self.mapped_cktname+'_xpar.txt'
+        self.mapped_dfname=self.mapped_cktname+'.done'
+
+        var_fname_split=self.var_fname.split(".")
+        self.var_ott_fname=var_fname_split[0]+"_ott."+var_fname_split[1]
+
+
+
 
 
     signal_status0 = QtCore.pyqtSignal(['QString'])
@@ -239,21 +247,47 @@ class Tuner(QtCore.QObject):
         values=[]
 #        import pdb
 #        pdb.set_trace()
-        with open(fname) as data_file:
+        if fname.endswith('.txt'):
+          with open(fname) as data_file:
             for line in data_file:
                 lsplit=line.rstrip('\r\n').split(sep)
                 names.append(lsplit[0])
                 values.append(float(lsplit[1]))
+        elif fname.endswith('.xlsx'):
+            wb=openpyxl.load_workbook(fname)
+            sheet =wb.get_sheet_by_name('Sheet1')
+            for rowNum in range(2, sheet.max_row+1): # skip the first row
+                parType = sheet.cell(row=rowNum, column=1).value
+                if parType=='Variables':
+                    names.append(sheet.cell(row=rowNum, column=2).value)
+                    values.append(float(sheet.cell(row=rowNum, column=3).value))
+            wb.close()
         return names, numpy.array(values)
 
 
-    def writeTable(self,fname,names, values, sep=":"):
-        f=open(fname, 'w')
-        for i in range(len(names)):
+    def writeTable(self,fname,names, values, sep=":", fname0="-"):
+        if fname.endswith('.txt'):
+          f=open(fname, 'w')
+          for i in range(len(names)):
             f.write(names[i]+sep)
             f.write('{:10.{precision}f}'.format(values[i],precision=self.x_number_of_decimals) +"\r\n")
 #           f.write(str(values[i])+"\r\n")
-        f.close()
+          f.close()
+        elif fname.endswith('.xlsx'):
+            if fname0=="-":
+              wb=openpyxl.load_workbook(fname)
+            else:
+              wb=openpyxl.load_workbook(fname0)
+            sheet =wb.get_sheet_by_name('Sheet1')
+            i=0
+            for rowNum in range(2, sheet.max_row+1): # skip the first row
+                parType = sheet.cell(row=rowNum, column=1).value
+                if parType=='Variables':
+                    sheet.cell(row=rowNum, column=3).value ='{:10.{precision}f}'.format(values[i],precision=self.x_number_of_decimals)
+                    sheet.cell(row=rowNum, column=4).value ='{:10.{precision}f}'.format(values[i],precision=self.x_number_of_decimals)
+                    i=i+1
+            wb.save(fname)
+            wb.close()
 
     def make_dict(self,names, values):
         d={}
@@ -284,8 +318,10 @@ class Tuner(QtCore.QObject):
 
 
     def updatedMap(self):
+        if not os.path.exists(self.mapped_dfname):
+           return False
         var_t=os.path.getmtime(self.var_fname)
-        map_t=os.path.getmtime(self.mapped_fname)
+        map_t=os.path.getmtime(self.mapped_dfname)
         return map_t>var_t
 
     def touchMap(self):
@@ -459,12 +495,14 @@ class Tuner(QtCore.QObject):
             if dx_norm>self.graddx:
                 derr=err-err0
                 jact=broyden1_updateJaco(jact, derr, dx)
+                dJt=jact.tolist()
+                self.writeJaco(dJt)
             err_norm=numpy.linalg.norm(err)
             if(err_norm<err_norm_min):
                  err_norm_min=err_norm
                  self.xott=numpy.copy(x)
-                 self.writeTable(self.var_fname+'_ott',self.varnames,self.xott,"\t")
-                 self.writeError('error.json'+'_ott',err.tolist())
+                 self.writeTable(self.var_ott_fname,self.varnames,self.xott,"\t", self.var_fname)
+                 self.writeError('error_ott.json',err.tolist())
         self.status0('Tuner task terminated')
         self.status1('Max iter reached')
 

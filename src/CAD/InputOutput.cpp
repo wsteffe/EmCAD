@@ -217,22 +217,18 @@ void  importSTEP( Handle(TDocStd_Document) doc, char* fileName,  char *lengthUni
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_AdvancedBrepShapeRepresentation) ) ){
               Handle(StepShape_AdvancedBrepShapeRepresentation) REP = Handle(StepShape_AdvancedBrepShapeRepresentation)::DownCast(enti);
               entityName =REP->Name()->String();
-//              entityName =TCollection_AsciiString("REMOVE");
 	      t=4;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_ManifoldSurfaceShapeRepresentation) ) ){
               Handle(StepShape_ManifoldSurfaceShapeRepresentation) REP = Handle(StepShape_ManifoldSurfaceShapeRepresentation)::DownCast(enti);
               entityName =REP->Name()->String();
-//              entityName =TCollection_AsciiString("REMOVE");
 	      t=5;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepShape_GeometricallyBoundedSurfaceShapeRepresentation) ) ){
               Handle(StepShape_GeometricallyBoundedSurfaceShapeRepresentation) REP = Handle(StepShape_GeometricallyBoundedSurfaceShapeRepresentation)::DownCast(enti);
               entityName =REP->Name()->String();
-//              entityName =TCollection_AsciiString("REMOVE");
 	      t=6;
 	    } else if ( enti->IsKind( STANDARD_TYPE(StepGeom_CompositeCurve) ) ){
               Handle(StepGeom_CompositeCurve) REP = Handle(StepGeom_CompositeCurve)::DownCast(enti);
               entityName =REP->Name()->String();
-//              entityName =TCollection_AsciiString("REMOVE");
 	      t=7;
 	    }
 	    if(entityName.IsEmpty()) continue;
@@ -246,24 +242,24 @@ void  importSTEP( Handle(TDocStd_Document) doc, char* fileName,  char *lengthUni
             if((t==7) && (S.ShapeType()!=TopAbs_WIRE)) continue;
 	    TDF_Label label;
 	    if ( ! shapeTool->Search ( S, label, Standard_True, Standard_True) ) continue;
-            TopoDS_Shape SS = shapeTool->GetShape(label);
+            TopoDS_Shape labelShape = shapeTool->GetShape(label);
 //            TDF_Label label=shapeTool->FindShape( S,Standard_False); 
 //	    if(label.IsNull()) continue;
-            Handle(TDataStd_Name)  nameAtt;  TCollection_AsciiString name;
+            Handle(TDataStd_Name)  nameAtt;  TCollection_AsciiString labelName;
             if(!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)){
-		   nameAtt= TDataStd_Name::Set(label,name);
+		   nameAtt= TDataStd_Name::Set(label,labelName);
             }
-            name=nameAtt->Get();
+            labelName=nameAtt->Get();
 	    TopoDS_Shape S0 = S;
 	    TopLoc_Location loc;
             S0.Location (loc);
-	    if(isValidMultibodyPartName(name)){
+	    if(isValidMultibodyPartName(labelName)){
 	        if(!multiBodyShapesMap.IsBound(S0)) multiBodyShapesMap.Bind(S0,label);
 	    }
-            if(name==entityName) continue;
+            if(labelName==entityName) continue;
 	    if(isValidMultibodyPartName(entityName)){
-	      if(isCompName(name)){
-		if(SS.ShapeType()!=TopAbs_COMPOUND){
+	      if(isCompName(labelName)){
+		if(labelShape.ShapeType()!=TopAbs_COMPOUND){
 	         TopoDS_Compound  C;
 	         BRep_Builder builder;
                  builder.MakeCompound(C);
@@ -301,8 +297,6 @@ void  importIGES( Handle(TDocStd_Document) doc, char* fileName )
         }
 }
 
-
-FSD_File *fileDriver=NULL;
 
 
 bool openShape( const char* fileName, TopoDS_Shape &shape)
@@ -389,7 +383,7 @@ bool openShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
 bool saveShape( const char* fileName, TopoDS_Shape shape)
 {
 
-    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+    const opencascade::handle<Storage_BaseDriver> fileDriver(new FSD_File());
    // Try to open the file driver for writing
     Storage_Error aStatus = fileDriver->Open(TCollection_ExtendedString(fileName), Storage_VSWrite);
     if (aStatus != Storage_VSOk) return false;
@@ -411,7 +405,7 @@ bool saveShape( const char* fileName, TopoDS_Shape shape)
     Handle(StdStorage_Root) root = new StdStorage_Root(name, pHShape);
     data->RootData()->AddRoot(root);
     
-    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    Storage_Error error = StdStorage::Write(fileDriver, data);
     if (error != Storage_VSOk ) return false;
     fflush(NULL);
     fileDriver->Close();
@@ -425,7 +419,7 @@ bool saveShape( const char* fileName, TopoDS_Shape shape)
 bool saveShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
 {
 
-    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+    const opencascade::handle<Storage_BaseDriver> fileDriver(new FSD_File());
     Storage_Error aStatus = fileDriver->Open(TCollection_ExtendedString(fileName), Storage_VSWrite);
     if (aStatus != Storage_VSOk) return false;
 
@@ -448,7 +442,7 @@ bool saveShapes( const char* fileName, TopTools_IndexedMapOfShape &shapes)
       data->RootData()->AddRoot(root);
     }
 //---------
-    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    Storage_Error error = StdStorage::Write(fileDriver, data);
     if (error != Storage_VSOk ) return false;
     fflush(NULL);
     fileDriver->Close();
@@ -532,18 +526,18 @@ bool openLocation( const char* fileName,  TopLoc_Location  &loc)
     // Check file type
     if ( FSD_File::IsGoodFileType( fileName ) != Storage_VSOk )  return false;
 
-    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+    const opencascade::handle<Storage_BaseDriver> fileDriver(new FSD_File());
    // Try to open the file driver for writing
     try {
      OCC_CATCH_SIGNALS
-     PCDM_ReadWriter::Open (*fileDriver, TCollection_ExtendedString(fileName), Storage_VSRead);
+     PCDM_ReadWriter::Open (fileDriver, TCollection_ExtendedString(fileName), Storage_VSRead);
     } 
     catch (Standard_Failure& e) {
       return false;
     }
 
     Handle(StdStorage_Data) data;
-    Storage_Error error = StdStorage::Read(*fileDriver, data);
+    Storage_Error error = StdStorage::Read(fileDriver, data);
     if (error != Storage_VSOk ) return false;
 
     fileDriver->Close();
@@ -567,11 +561,11 @@ bool openLocation( const char* fileName,  TopLoc_Location  &loc)
 bool saveLocation( const char* fileName,  TopLoc_Location loc)
 {
 
-    NCollection_Handle<Storage_BaseDriver> fileDriver(new FSD_File());
+    const opencascade::handle<Storage_BaseDriver> fileDriver(new FSD_File());
    // Try to open the file driver for writing
     try {
      OCC_CATCH_SIGNALS
-     PCDM_ReadWriter::Open (*fileDriver, TCollection_ExtendedString(fileName), Storage_VSWrite);
+     PCDM_ReadWriter::Open (fileDriver, TCollection_ExtendedString(fileName), Storage_VSWrite);
     } 
     catch (Standard_Failure& e) {
       return false;
@@ -595,7 +589,7 @@ bool saveLocation( const char* fileName,  TopLoc_Location loc)
     Handle(StdStorage_Root) root = new StdStorage_Root(name, pItemLoc);
     data->RootData()->AddRoot(root);
     
-    Storage_Error error = StdStorage::Write(*fileDriver, data);
+    Storage_Error error = StdStorage::Write(fileDriver, data);
     if (error != Storage_VSOk ) return false;
     fflush(NULL);
     fileDriver->Close();

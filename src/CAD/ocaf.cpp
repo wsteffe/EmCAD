@@ -71,6 +71,8 @@
 
 #include <ShapeFix_Shape.hxx>
 #include <ShapeFix_Wireframe.hxx>
+#include <ShapeUpgrade_ShapeDivideClosed.hxx>
+#include <ShapeUpgrade_ShapeDivideClosedEdges.hxx>
 #include <ShapeAnalysis_Wire.hxx>
 #include <BRepTools_ReShape.hxx>
 #include <BRep_Builder.hxx>
@@ -168,6 +170,7 @@ ProjectStatus::ProjectStatus(){
    partTypes=0;
    partMaterials=0;
    linePorts=1;
+   wgPorts=1;
 }
 int ProjectStatus::defined(){return geometry*partTypes*partMaterials*linePorts;}
 void ProjectStatus::save(const char*filename){
@@ -176,6 +179,7 @@ void ProjectStatus::save(const char*filename){
    fprintf(fid, "%d\n", partTypes);
    fprintf(fid, "%d\n", partMaterials);
    fprintf(fid, "%d\n", linePorts);
+   fprintf(fid, "%d\n", wgPorts);
    fclose(fid);
 }
 int ProjectStatus::read(const char*filename){
@@ -185,6 +189,7 @@ int ProjectStatus::read(const char*filename){
    fscanf(fid, "%d\n", &partTypes);
    fscanf(fid, "%d\n", &partMaterials);
    fscanf(fid, "%d\n", &linePorts);
+   fscanf(fid, "%d\n", &wgPorts);
    fclose(fid);
    return 1;
 }
@@ -232,6 +237,8 @@ MwOCAF::MwOCAF(Handle(AIS_InteractiveContext) aContext){
 //   partVertexRenum=NULL;
    hasUPIF=false;
    myContext=aContext;
+
+   EmP=new DB::EmProblem();
 }
 
 void  curveTangent(Handle(Geom_Curve) GC, gp_Pnt GP, gp_Vec &T)
@@ -349,6 +356,7 @@ MwOCAF::~MwOCAF()
   if(faceData)             { delete [] faceData;   faceData=NULL;}
   if(edgeData)             { delete [] edgeData;   edgeData=NULL;}
   if(vertexData)           { delete [] vertexData; vertexData=NULL;}
+  if(EmP)     delete EmP;
 }
 
 
@@ -632,7 +640,7 @@ int MwOCAF::isPart(TDF_Label label){
   if(!getLabelName(label, name)) return false;
 //  bool itis=isComponent(label) || isSolid(label);
   bool itis=isValidPartName(name);
-  if(itis) itis=itis && EmP.FindVolume(name.ToCString());
+  if(itis) itis=itis && EmP->FindVolume(name.ToCString());
   return itis;
 }
 
@@ -839,7 +847,7 @@ DB::Volume * MwOCAF::getLabelVol(TDF_Label label){
       Handle(TDataStd_Name)  nameAtt;
       if (!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)) return NULL;
       TCollection_AsciiString name=nameAtt->Get();
-      return EmP.FindVolume(name.ToCString());
+      return EmP->FindVolume(name.ToCString());
 }
 
 DB::Volume * MwOCAF::getLabelUpperVol(TDF_Label label, DB::EmProblem *upperEmP){
@@ -898,7 +906,7 @@ void MwOCAF::assignMatColor(TDF_Label label){
      if(vol->type==SPLITTER || vol->type==GRID) colName=Quantity_NOC_SEAGREEN;
      if(vol->type==WAVEGUIDE) colName=Quantity_NOC_RED;
      else{
-       DB::Material* mat = EmP.FindMaterial(vol->material);
+       DB::Material* mat = EmP->FindMaterial(vol->material);
        if(mat){
 	 Quantity_Parameter r=mat->color[0]/255.0;
 	 Quantity_Parameter g=mat->color[1]/255.0;
@@ -918,7 +926,7 @@ void MwOCAF::assignMatColor(TDF_Label label){
   Quantity_Color col=Quantity_Color(Quantity_NOC_SALMON4);
   DB::Volume *vol=getLabelVol(label);
   if(vol){
-      DB::Material* mat = EmP.FindMaterial(vol->material);
+      DB::Material* mat = EmP->FindMaterial(vol->material);
       if(mat){
 	 Quantity_Parameter r=mat->color[0]/255.0;
 	 Quantity_Parameter g=mat->color[1]/255.0;
@@ -1349,13 +1357,13 @@ void MwOCAF::checkWires(){
 
 }
 
-void MwOCAF::heal(Handle(ShapeBuild_ReShape) &reshape){
+void MwOCAF::heal(){
 
 //----
 //  initial healing:
-  TopoDS_Compound   healedShape;
+  TopoDS_Compound   compoundShape;
   BRep_Builder builder;
-  builder.MakeCompound(healedShape);
+  builder.MakeCompound(compoundShape);
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
       TDF_Label label1 = it.Value();
@@ -1366,33 +1374,32 @@ void MwOCAF::heal(Handle(ShapeBuild_ReShape) &reshape){
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
       TDF_Label label = refAtt->Get();
       TopoDS_Shape S = shapeTool->GetShape(label);
-      if(!S.IsNull()) builder.Add(healedShape, S);
+      if(!S.IsNull()) builder.Add(compoundShape, S);
   }
-  Handle(ShapeFix_Shape)     SFS= new ShapeFix_Shape();
-  reshape = new ShapeBuild_ReShape();
-  reshape->Apply(healedShape);
-  SFS->Init(healedShape);
-  SFS->SetContext(reshape);
-  SFS->SetPrecision(1.e-4);
-  SFS->SetMaxTolerance(1.e-4);
-  SFS->FixWireTool()->FixRemovePCurveMode() =1;
-  SFS->FixWireTool()->FixReorderMode()=1,
-  SFS->FixWireTool()->FixSmallMode() =1;
-  SFS->FixWireTool()->FixConnectedMode()=1,
-  SFS->FixWireTool()->ModifyTopologyMode() =false;
-  SFS->FixFaceTool()->FixSmallAreaWireMode() =1;
-  SFS->Perform();
 
-  Handle(ShapeFix_Wireframe) SFW = new ShapeFix_Wireframe;
-  SFW->SetContext(reshape);
-  SFW->Load(SFS->Shape());
-  SFW->SetPrecision(1.e-4);
-  SFW->SetMaxTolerance(1.e-4);
-  SFW->ModeDropSmallEdges() = Standard_True;
-  SFW->FixSmallEdges();
-  SFW->FixWireGaps();
 /*
+  ShapeUpgrade_ShapeDivideClosed SDCF(compoundShape);
+  SDCF.Perform();
+  Handle(ShapeBuild_ReShape) SDCF_context=SDCF.GetContext();
+
+  TopoDS_Shape result=SDCF_context->Apply(compoundShape);
 */
+
+  ShapeFix_Shape SFS(compoundShape);
+  SFS.FixShellTool()->FixOrientationMode()=Standard_True;
+  SFS.FixFaceTool()->FixOrientationMode()=Standard_True;
+  SFS.FixFaceTool()->FixMissingSeamMode() =Standard_True;
+  SFS.FixWireTool()->ModifyTopologyMode() =Standard_True;
+  SFS.Perform();
+  Handle(ShapeBuild_ReShape) SFS_context=SFS.Context();
+
+  TopoDS_Shape result=compoundShape;
+  if(SFS.Status(ShapeExtend_DONE)) result=SFS.Shape();
+
+  ShapeUpgrade_ShapeDivideClosedEdges SDCE(result);
+  SDCE.Perform();
+  Handle(ShapeBuild_ReShape) SDCE_context=SDCE.GetContext();
+  
 
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
@@ -1405,7 +1412,8 @@ void MwOCAF::heal(Handle(ShapeBuild_ReShape) &reshape){
      TDF_Label label = refAtt->Get();
      TopoDS_Shape S = shapeTool->GetShape(label);
      if(!S.IsNull()) {
-           TopoDS_Shape newS=reshape->Apply(S);
+           TopoDS_Shape S1=SFS_context->Apply(S); if(S1.IsNull()) S1=S;
+           TopoDS_Shape newS=SDCE_context->Apply(S1); if(newS.IsNull()) newS=S1;
            if(!newS.IsNull() && !newS.IsEqual(S)){ 
 	     TDF_Label newlabel=replaceLabelShape(label,newS);
 	     displayLabelShape(newlabel, true);
@@ -1414,6 +1422,15 @@ void MwOCAF::heal(Handle(ShapeBuild_ReShape) &reshape){
      } 
   }
 
+  if(hasUPIF){
+    for (int I = 1; I <=UPIFsubshapes.Extent() ; I++)
+    {
+       TopoDS_Shape S =UPIFsubshapes.FindKey(I);
+       TopoDS_Shape S1=SFS_context->Apply(S); if(S1.IsNull()) S1=S;
+       TopoDS_Shape newS=SDCE_context->Apply(S1); if(newS.IsNull()) newS=S1;
+       if(!newS.IsNull() && !newS.IsEqual(S)) UPIFsubshapes.Substitute(I,newS);
+    }
+  }
 
 }
 
@@ -1604,11 +1621,13 @@ void MwOCAF::imprint(){
 
 } //skip all imprinting:
 
+//  heal();
+  
   if(!hasUPIF){
 //     makeTheCompSolid();
 //     makeSolid(theCompSolid,theMergedSolid);
      makeIF(theIF);
-     if(EmP.assemblyType==COMPONENT) makeSplitFaces();
+     if(EmP->assemblyType==COMPONENT) makeSplitFaces();
   }
 
    resetShapeTool();
@@ -1893,8 +1912,8 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
      if(!cylGrid){
        DB::Transform *invt = new DB::Transform();
        strcpy(invt->name,vol->name);
-       EmP.insertInvariant(invt);
-       invt=EmP.FindInvariant(vol->name);
+       EmP->insertInvariant(invt);
+       invt=EmP->FindInvariant(vol->name);
        if(hasCircle){
 	 invt->rotAngle=(circle_u2-circle_u1)/(planeNum-1);
 	 invt->rotAxis[0]=Circ_Dir.X();
@@ -2132,13 +2151,13 @@ void MwOCAF::split(){
         std::string emRPath=std::string("../model.em");
         if(!FileExists(partition_emPath.c_str())) createLink(emPRath.c_str(), partition_emPath.c_str());
   #else
-    if(EmP.level==0) {
+    if(EmP->level==0) {
         FILE *fid= fopen(partition_emPath.c_str(), "w");
-        fprintf(fid, "Level  %d\n", EmP.level+1);
-        fprintf(fid, "AssemblyType  %d\n", EmP.assemblyType);
-        fprintf(fid, "DefaultBoundCond  \"%s\"\n", EmP.defaultBC);
-        if(!EmP.stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP.stepFilePath.c_str());
-        EmP.save(fid);
+        fprintf(fid, "Level  %d\n", EmP->level+1);
+        fprintf(fid, "AssemblyType  %d\n", EmP->assemblyType);
+        fprintf(fid, "DefaultBoundCond  \"%s\"\n", EmP->defaultBC);
+        if(!EmP->stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP->stepFilePath.c_str());
+        EmP->save(fid);
         fclose(fid);	
     } else if(!FileExists(partition_emPath.c_str())) createLink(emPath.c_str(), partition_emPath.c_str());
   #endif
@@ -2246,8 +2265,10 @@ void MwOCAF::split(){
      TopoDS_Shape S = shapeTool->GetShape(label);
 //     TopoDS_Shape S = shapeTool->GetShape(label1);
      TopoDS_Shape newS;
-     if(vol->type==DIELECTRIC ) if(PSmap.IsBound(S)){
-         const TopTools_ListOfShape &RSlist = PSmap.Find(S);
+     if(vol->type==DIELECTRIC ) {
+         TopTools_ListOfShape RSlist;
+	 if(PSmap.IsBound(S)) RSlist= PSmap.Find(S);
+	 else(RSlist.Append(S));
          if(!RSlist.IsEmpty()) {
 	     if(S.ShapeType()==TopAbs_SOLID){
                 TopoDS_CompSolid  newCompS;
@@ -2508,7 +2529,11 @@ void MwOCAF::split(){
       for (int FI=1; FI<=NSFNum; FI++) {
 	  int VI1=noSplitfaceSolids[2*(FI-1)+0];
 	  int VI2=noSplitfaceSolids[2*(FI-1)+1];
-	  if(VI1>0 && VI2>0 && solidCompMap[VI1-1]!=solidCompMap[VI2-1]) {changed=1; solidCompMap[VI2-1]=solidCompMap[VI1-1];}
+	  if(VI1>0 && VI2>0 && solidCompMap[VI1-1]!=solidCompMap[VI2-1]) {
+		  changed=1; 
+		  int Icomp=min(solidCompMap[VI1-1],solidCompMap[VI2-1]);
+		  solidCompMap[VI1-1]=solidCompMap[VI2-1]=Icomp;
+	  }
       }
    }
    std::map<int,int> renum;
@@ -2796,7 +2821,7 @@ void MwOCAF::makePartsIndexedSubShapes()
      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) return;
      TDF_Label label = refAtt->Get();
      bool skip=false;
-     if(EmP.assemblyType==COMPONENT){
+     if(EmP->assemblyType==COMPONENT){
       DB::Volume *vol=getLabelVol(label);
       if(vol) skip=(vol->type==WAVEGUIDE || vol->type==LINEPORT || vol->type==BOUNDARYCOND || vol->type==SPLITTER  || vol->type==GRID);
      }
@@ -3009,16 +3034,16 @@ void MwOCAF::makeFaceAdjCells(TDF_Label label){
       if(!strncmp(volName.ToCString(),"WGP",3)) partName=remove_SUB(partName);
       partName+=TCollection_AsciiString("__")+volName ;
     } else  partName=volName;
-    if(EmP.assemblyType==NET || vol->type==DIELECTRIC || vol->type==WAVEGUIDE)  
-    for (TopExp_Explorer it(S.Oriented(TopAbs_FORWARD),TopAbs_FACE); it.More(); it.Next()){
+    if(EmP->assemblyType==NET || vol->type==DIELECTRIC || vol->type==WAVEGUIDE)  
+    for (TopExp_Explorer it(S,TopAbs_FACE); it.More(); it.Next()){
             TopoDS_Shape F = it.Current();
             int si=(F.Orientation()==TopAbs_FORWARD) ? 1 : 0; //first part is where face normal enters
             F.Orientation(TopAbs_FORWARD);
             int FI=indexedFaces->FindIndex(F);
             if(FI){
 		 if(S.ShapeType()==TopAbs_SOLID) assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
+		 else if(vol->type==WAVEGUIDE && faceAdjParts[2*(FI-1)+si]!=TCollection_AsciiString("-")) si=1-si;
 		 assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
-//		 if(faceAdjParts[2*(FI-1)+si]!=TCollection_AsciiString("-")) si=1-si;
 		 faceAdjParts[2*(FI-1)+si]=partName;
             }
     }
@@ -3042,7 +3067,7 @@ void MwOCAF::makeFaceAdjCells(){
       if(S.IsNull())  continue;
       if(S.ShapeType()==TopAbs_SOLID) makeFaceAdjCells(label);
    }
-   if(EmP.assemblyType==NET) return;
+   if(EmP->assemblyType==NET) return;
 // then waveguides are processed
    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
    {
@@ -3075,13 +3100,13 @@ void MwOCAF::readFEproperties(){
    if(!vertexData) vertexData=new VertexData[PNum];
 
    for (int FI = 1; FI <= FNum; FI++)  {
-	   faceData[FI-1].level= isPartition() ? EmP.level+1 : EmP.level;
+	   faceData[FI-1].level= isPartition() ? EmP->level+1 : EmP->level;
    }
    for (int EI = 1; EI <= ENum; EI++)  {
-	   edgeData[EI-1].level= isPartition() ? EmP.level+1 : EmP.level;
+	   edgeData[EI-1].level= isPartition() ? EmP->level+1 : EmP->level;
    }
    for (int PI = 1; PI <= PNum; PI++)  {
-	   vertexData[PI-1].level= isPartition() ? EmP.level+1 : EmP.level;
+	   vertexData[PI-1].level= isPartition() ? EmP->level+1 : EmP->level;
    }
 
 
@@ -3097,24 +3122,12 @@ void MwOCAF::readFEproperties(){
 	FPath=(internal) ? projectDir+std::string ("/interfaces/F")+tag
 	                 : projectDir+std::string ("/../interfaces/F")+tag;
         FPath=nativePath(FPath);
-#ifdef USEBOOSTLOCK
-	file_lock fin_lock((FPath+std::string(".lock")).c_str());
-	try {fin_lock.lock_sharable();}
-	catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
         FILE *fin=fopen(FPath.c_str(),"r");
         assert(fin);
-#ifndef USEBOOSTLOCK
     	assert(setLock(fin,"r")==0);
-#endif
         faceData[FI-1].read(fin);
-#ifndef USEBOOSTLOCK
 	assert(releaseLock(fin)==0);
-#endif
         fclose(fin);
-#ifdef USEBOOSTLOCK
-	fin_lock.unlock();
-#endif
       }
    }
    for (int EI =1; EI <= ENum; EI++){
@@ -3129,24 +3142,12 @@ void MwOCAF::readFEproperties(){
 	EPath=(internal) ? projectDir+std::string ("/interfaces/E")+tag
 	                 : projectDir+std::string ("/../interfaces/E")+tag;
         EPath=nativePath(EPath);
-#ifdef USEBOOSTLOCK
-	file_lock fin_lock((EPath+std::string(".lock")).c_str());
-	try {fin_lock.lock_sharable();}
-	catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
         FILE *fin=fopen(EPath.c_str(),"r");
         assert(fin);
-#ifndef USEBOOSTLOCK
     	assert(setLock(fin,"r")==0);
-#endif
 	edgeData[EI-1].read(fin);
-#ifndef USEBOOSTLOCK
 	assert(releaseLock(fin)==0);
-#endif
         fclose(fin);
-#ifdef USEBOOSTLOCK
-	fin_lock.unlock();
-#endif
     }
    }
    for (int PI =1; PI <= PNum; PI++) {
@@ -3161,24 +3162,12 @@ void MwOCAF::readFEproperties(){
 	PPath=(internal) ? projectDir+std::string ("/interfaces/P")+tag
 	                 : projectDir+std::string ("/../interfaces/P")+tag;
         PPath=nativePath(PPath);
-#ifdef USEBOOSTLOCK
-	file_lock fin_lock((PPath+std::string(".lock")).c_str());
-	try {fin_lock.lock_sharable();}
-	catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
         FILE *fin=fopen(PPath.c_str(),"r");
         assert(fin);
-#ifndef USEBOOSTLOCK
     	assert(setLock(fin,"r")==0);
-#endif
 	vertexData[PI-1].read(fin);
-#ifndef USEBOOSTLOCK
 	assert(releaseLock(fin)==0);
-#endif
         fclose(fin);
-#ifdef USEBOOSTLOCK
-	fin_lock.unlock();
-#endif
       }
     }
 
@@ -3202,7 +3191,7 @@ void MwOCAF::storeSolidInDB(const TDF_Label &label){
        strcpy(vol->material, cstr);
        free(cstr);
    }
-   EmP.insertVolume(vol);
+   EmP->insertVolume(vol);
 }
 void MwOCAF::storeSolidsInDB(){
  if(thePartsLabels->Length()>0)
@@ -3303,6 +3292,18 @@ void  copySubAss(
      for (TDF_ChildIterator it(label2ref, Standard_False); it.More(); it.Next()) {
         TDF_Label sublabel2 = it.Value();
         TopoDS_Shape subS2 = STool2->GetShape(sublabel2);
+        Handle(TDataStd_Name) sub2NameAtt;
+        if(!sublabel2.FindAttribute(TDataStd_Name::GetID(),sub2NameAtt)) continue;
+        TCollection_AsciiString sub2Name=sub2NameAtt->Get();
+        if(sub2Name.IsEmpty()){ 
+          TDF_Label rsublabel2;
+          Handle(TDataStd_Name) rsub2NameAtt;
+	  if(STool2->GetReferredShape(sublabel2,rsublabel2)) 
+	    if(rsublabel2.FindAttribute(TDataStd_Name::GetID(),rsub2NameAtt)){
+             TCollection_AsciiString rsub2Name=rsub2NameAtt->Get();
+             if(!(rsub2Name.IsEmpty())) sub2NameAtt->Set(rsub2Name);
+	    }   
+        }
         LabelAttributes subattr;
         copyLabelAttributes(subattr, sublabel2, ColTool2, layTool2);
 	if((isCompName(subattr.name) || isNetName(subattr.name)) && !subS2.IsNull()){
@@ -3517,16 +3518,29 @@ bool MwOCAF::closeDoc()
   if(mainDoc->CanClose()!=CDM_CCS_OK) return false;
   Handle(XCAFApp_Application) XCAFapp=XCAFApp_Application::GetApplication();
   XCAFapp->Close(mainDoc);
+  if(EmP) {delete EmP; EmP=NULL;}
   return true;
 }
 
 
 int loadModel(MwOCAF* ocaf, const char *fName, bool update=false);
+int loadProblem(DB::EmProblem* EmP, const char *fName);
+
+void saveProblem(DB::EmProblem *emp, std::string filePath)
+{
+   FILE *fid= fopen(nativePath(filePath).c_str(), "w");
+   fprintf(fid, "Level  %d\n", emp->level);
+   fprintf(fid, "AssemblyType  %d\n", emp->assemblyType);
+   fprintf(fid, "DefaultBoundCond  \"%s\"\n", emp->defaultBC);
+   if(!emp->stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", emp->stepFilePath.c_str());
+   emp->save(fid);
+   fclose(fid);
+}
 
 
 void MwOCAF::loadGlobalMat(const char* wkprojpath, bool onlyIfModified){
  std::string matFileName=wkprojpath;
- for (int i = 0; i < EmP.level; ++i) matFileName+="/..";
+ for (int i = 0; i < EmP->level; ++i) matFileName+="/..";
  matFileName+="/Data/materials.mat";
  matFileName=nativePath(matFileName);
  bool matFileExists=FileExists(matFileName.c_str());
@@ -3544,10 +3558,12 @@ void MwOCAF::loadGlobalMat(const char* wkprojpath, bool onlyIfModified){
 void MwOCAF::workopen(const char* wkprojpath, int subcomp)
 {
 //        mutex.lock();
+        if(EmP) delete EmP;
+        EmP=new DB::EmProblem();
         char tag[10]; if(subcomp) sprintf(tag,"_%d",subcomp); else sprintf(tag,"");
-        EmP.occFilePath=wkprojpath; EmP.occFilePath+="/model";  EmP.occFilePath+=tag;
-        if(USEXMLXCAF) EmP.occFilePath+=".xml";
-	else           EmP.occFilePath+=".dxc";
+        EmP->occFilePath=wkprojpath; EmP->occFilePath+="/model";  EmP->occFilePath+=tag;
+        if(USEXMLXCAF) EmP->occFilePath+=".xml";
+	else           EmP->occFilePath+=".dxc";
         projectDir=wkprojpath;
 	if(!subcomp){
          std::string prjstatusFileName=projectDir+"/model.status";
@@ -3556,20 +3572,20 @@ void MwOCAF::workopen(const char* wkprojpath, int subcomp)
 	}
         std::string emFileName=projectDir; emFileName+="/model"; emFileName+=".em";
         emFileName=nativePath(emFileName);
-	EmP.occFilePath=nativePath(EmP.occFilePath);
+	EmP->occFilePath=nativePath(EmP->occFilePath);
         if(FileExists(emFileName.c_str())) loadModel(this, emFileName.c_str(), false);
-        if(FileExists(EmP.occFilePath.c_str())){
-	   openDoc(EmP.occFilePath.c_str());
+        if(FileExists(EmP->occFilePath.c_str())){
+	   openDoc(EmP->occFilePath.c_str());
 	   subComp=subcomp;
-	   EmP.hasGeo=true;
+	   EmP->hasGeo=true;
 	}
         std::string UPIFfileName=projectDir+".brep";
         UPIFfileName=nativePath(UPIFfileName);
 	if(FileExists(UPIFfileName.c_str())) openUPIF(UPIFfileName.c_str());
 	hasDownIF=false;
-	if(EmP.assemblyType==NET) hasDownIF=openParts();
-	if(EmP.assemblyType==NET) readPartsStatus();
-	else if(EmP.assemblyType==COMPONENT) setPartsStatus();
+	if(EmP->assemblyType==NET) hasDownIF=openParts();
+	if(EmP->assemblyType==NET) readPartsStatus();
+	else if(EmP->assemblyType==COMPONENT &!subComp) setPartsStatus();
 	std::string IFfileName=projectDir+"/model.brep";
         IFfileName=nativePath(IFfileName);
         hasIF=FileExists(IFfileName.c_str());
@@ -3578,23 +3594,28 @@ void MwOCAF::workopen(const char* wkprojpath, int subcomp)
         if(subcomp) readSubPartitionMap();
 }
 
+int MwOCAF::read_prjstatus(){
+   std::string prjstatusFileName=projectDir; prjstatusFileName+="/model.status";
+   prjstatusFileName=nativePath(prjstatusFileName);
+   if(FileExists(prjstatusFileName.c_str())){ prjStatus.read(prjstatusFileName.c_str()); return 1;}
+   else return 0;
+}
+
+void MwOCAF::save_prjstatus(){
+   std::string prjstatusFileName=projectDir; prjstatusFileName+="/model.status";
+   prjstatusFileName=nativePath(prjstatusFileName);
+   prjStatus.save(prjstatusFileName.c_str());
+}
+
 void MwOCAF::worksave()
 {
    save();
-   std::string prjstatusFileName=projectDir; prjstatusFileName+="/model.status";
-   prjstatusFileName=nativePath(prjstatusFileName);
-   if(!subComp) prjStatus.save(prjstatusFileName.c_str());
-   std::string emFileName=projectDir; emFileName+="/model.em";
-   FILE *fid= fopen(nativePath(emFileName).c_str(), "w");
-   fprintf(fid, "Level  %d\n", EmP.level);
-   fprintf(fid, "AssemblyType  %d\n", EmP.assemblyType);
-   fprintf(fid, "DefaultBoundCond  \"%s\"\n", EmP.defaultBC);
-   if(!EmP.stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP.stepFilePath.c_str());
-   EmP.save(fid);
-   fclose(fid);
+   if(!subComp) save_prjstatus();
+   std::string emFilePath=projectDir; emFilePath+="/model.em";
+   saveProblem(EmP,emFilePath);
    std::string asstypeFileName=projectDir; asstypeFileName+="/assemblyType";
    FILE *assfid= fopen(nativePath(asstypeFileName).c_str(), "w");
-   fprintf(assfid, "%d\n", EmP.assemblyType);
+   fprintf(assfid, "%d\n", EmP->assemblyType);
    fprintf(assfid, "%d\n", subCompNum);
    fclose(assfid);
    worksaveNeeded=false;
@@ -3818,22 +3839,35 @@ void MwOCAF::readPartsStatus()
 
 void MwOCAF::setPartsStatus()
 {
-   if (theParts.IsNull()) { prjStatus.geometry=false; return;}
+   if (theParts.IsNull()) { prjStatus.geometry=0; return;}
    prjStatus.partTypes=true;
-   if(EmP.assemblyType==COMPONENT) prjStatus.partMaterials=true;
+   int has_prjstatus=read_prjstatus();
+   int partTypes=1;
+   int partMaterials=1;
+   int wgPorts=1;
    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
    {
      TDF_Label label1 = it.Value();
      Handle(TDataStd_Name)  nameAtt;
      if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
      TCollection_AsciiString partName=nameAtt->Get();
-     DB::Volume* vol = EmP.FindVolume(partName.ToCString());
+     DB::Volume* vol = EmP->FindVolume(partName.ToCString());
      if(!vol) continue;
      vol->defined=1;
-     if(vol->type==UNDEFINED) {prjStatus.partTypes=false; vol->defined=0;}
-     if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND)  
-	     if(!strcmp(vol->material,"?")) {prjStatus.partMaterials=false; vol->defined=0; }
+     if(vol->type==UNDEFINED) {partTypes=0; vol->defined=0;}
+     if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND) if(!strcmp(vol->material,"?")) {partMaterials=0; vol->defined=0; }
      if(vol->type==GRID) vol->defined=vol->gridNum>0 ? 1: 0;
+     if(vol->type==WAVEGUIDE) {vol->defined=vol->TEMportsNum+vol->TEportsNum+vol->TMportsNum>0; if(!vol->defined) wgPorts=0;}
+   }
+   if(!has_prjstatus 
+      || prjStatus.partTypes!=partTypes 
+      || EmP->assemblyType==COMPONENT && prjStatus.partMaterials!=partMaterials 
+      || EmP->assemblyType==COMPONENT && prjStatus.wgPorts!=wgPorts)
+   {
+	 prjStatus.partTypes=partTypes;
+	 if(EmP->assemblyType==COMPONENT) prjStatus.partMaterials=partMaterials;
+	 if(EmP->assemblyType==COMPONENT) prjStatus.wgPorts=wgPorts;
+	 save_prjstatus();
    }
 }
 
@@ -3875,7 +3909,8 @@ void TransformShape(TopoDS_Shape &S, gp_Trsf T)
 
 
 
-void putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label access){
+int putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label access){
+ int modified=0;
  TDF_Label Parts = XCAFDoc_DocumentTool::DocLabel(access).FindChild(6,Standard_True);
  for (TDF_ChildIterator it(Parts,Standard_False); it.More(); it.Next()) 
  {
@@ -3888,6 +3923,7 @@ void putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TD
      TCollection_AsciiString partName=nameAtt->Get();
      DB::Volume *vol=emP->FindVolume(partName.ToCString());
      if(!vol) {
+	   modified=1;
 	   vol = new DB::Volume();
 	   strcpy(vol->name,partName.ToCString());
 	   emP->insertVolume(vol);
@@ -3896,11 +3932,15 @@ void putVolumesInDB_(DB::EmProblem *emP, Handle(XCAFDoc_ShapeTool) shapeTool, TD
 	   else vol->type=defaultPartType(partName);
      }
  }
-
+ return modified;
 }
 
 void MwOCAF::putVolumesInDB(){
-  putVolumesInDB_(&EmP, shapeTool, mainDoc->Main());
+  int modified=putVolumesInDB_(EmP, shapeTool, mainDoc->Main());
+  if(modified){
+   std::string emFilePath=projectDir; emFilePath+="/model.em";
+   saveProblem(EmP,emFilePath);
+  }
 }
 
 inline void setModified(const char *dir){
@@ -3966,7 +4006,9 @@ void MwOCAF::saveImportedStruct(const char *dir,
 
    int assemblyType=0;
    DB::EmProblem *subEmP=new DB::EmProblem();
-   strcpy(subEmP->defaultBC,EmP.defaultBC);
+   subEmP->level=level;
+   strcpy(subEmP->defaultBC,EmP->defaultBC);
+   if(level==0) subEmP->stepFilePath=EmP->stepFilePath;
 
    if(isCompName(assName) || isValidMultibodyPartName(assName))
       assemblyType=subEmP->assemblyType=COMPONENT;
@@ -3981,8 +4023,10 @@ void MwOCAF::saveImportedStruct(const char *dir,
 
 // Copy the subassembly structure into the subdocument:
    copySubAss(subShapeTool,subColTool,subLayTool,subShapes, shapeTool, colorTool,layerTool, ass, assLoc, assemblyType);
-   putVolumesInDB_(subEmP, subShapeTool, subDoc->Main());
-
+   std::string emFilePath=dir; emFilePath+="/model.em";
+   if(FileExists(emFilePath.c_str())) loadProblem(subEmP, emFilePath.c_str());
+   int modified=putVolumesInDB_(subEmP, subShapeTool, subDoc->Main());
+   if(modified) saveProblem(subEmP,emFilePath);
 // set subass name attribute into the related parts label:
    TDF_Label subPL = XCAFDoc_DocumentTool::DocLabel(subDoc->Main()).FindChild(6,Standard_True);
    TDataStd_Name::Set(subPL, assName);
@@ -4054,13 +4098,13 @@ void MwOCAF::saveImportedStruct(const char *dir,
    XCAFapp->Close(subDoc);
 
 // ** Writes initial model.em and assemblyType.
-   std::string  emFileName=std::string (dir)+std::string("/model.em");
-   if(!FileExists(emFileName.c_str())) { 
-       FILE *fid= fopen(nativePath(emFileName).c_str(), "w");
+   emFilePath=std::string (dir)+std::string("/model.em");
+   if(!FileExists(emFilePath.c_str())) { 
+       FILE *fid= fopen(nativePath(emFilePath).c_str(), "w");
        fprintf(fid, "Level  %d\n", level);
        fprintf(fid, "AssemblyType  %d\n", assemblyType);
        fprintf(fid, "DefaultBoundCond  \"%s\"\n", subEmP->defaultBC);
-       if(addImport) if(!EmP.stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP.stepFilePath.c_str());
+       if(addImport) if(!EmP->stepFilePath.empty()) fprintf(fid, "\nImport  \"%s\"\n\n", EmP->stepFilePath.c_str());
        subEmP->save(fid);
        fclose(fid);
        std::string asstypeFileName=std::string(dir)+std::string("/assemblyType");
@@ -4074,8 +4118,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
 // Recursion on sublevels
    TDF_Label rass=ass;
    TopLoc_Location subAssLoc=assLoc;
-   if(shapeTool->IsReference(ass)){
-      shapeTool->GetReferredShape(ass,rass);
+   if(shapeTool->GetReferredShape(ass,rass)){
       TopLoc_Location loc= shapeTool->GetLocation(ass);
       subAssLoc=assLoc.Multiplied(loc);
    }
@@ -4086,6 +4129,7 @@ void MwOCAF::saveImportedStruct(const char *dir,
      TCollection_AsciiString subAssName=nameAtt->Get();
      std::string partDir=std::string (dir)+std::string ("/")+subAssName.ToCString();
      partDir=nativePath(partDir);
+     if(!FileExists(partDir.c_str())) createdir(partDir.c_str());;
      saveImportedStruct(partDir.c_str(), level+1, subAssName.ToCString(), subAssLoc, label);
    }
 }
@@ -4125,7 +4169,7 @@ void MwOCAF::saveImportedStruct(
 
 
 void MwOCAF::addToComponentLists( std::set<std::string, std::less<std::string> > *componentlist,
-		                  std::set<std::string, std::less<std::string> > *wgcomponentlist
+		                  std::map<std::string, std::vector<std::string>, std::less<std::string> > *wgcomponentlist
 		                 )
 {
    if(!isPartition()) return;
@@ -4135,13 +4179,17 @@ void MwOCAF::addToComponentLists( std::set<std::string, std::less<std::string> >
    if(componentlist) if(componentlist->find(cmp)==componentlist->end()) componentlist->insert(cmp);
    if(wgcomponentlist) for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
           TDF_Label label1 = it.Value();
+          Handle(TDF_Reference)  refAtt;
+          if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
+          TDF_Label label = refAtt->Get();
+          TopoDS_Shape S= shapeTool->GetShape(label);
+	  if(S.IsNull()) continue;
           Handle(TDataStd_Name)  nameAtt;
           if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
           TCollection_AsciiString partName=nameAtt->Get();
           DB::Volume *vol=getLabelVol(label1);
           if(vol) if(vol->type==WAVEGUIDE) {
-              if(wgcomponentlist->find(cmp)==wgcomponentlist->end()) wgcomponentlist->insert(cmp);
-	      break;
+              (*wgcomponentlist)[cmp].push_back(std::string(vol->name));
 	  }
     }
 }
@@ -4196,7 +4244,7 @@ bool MwOCAF::savePartsIF()
 
 void MwOCAF::addPorts(std::map<std::string, int, std::less<std::string> > &ports, std::map<std::string, double, std::less<std::string> > &portloads)
 {
-//   int I1=EmP.isTopLevel? I1 : extFaceNum+1;
+//   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
    int I=0;
    std::set<int> initializedF;
    TCollection_AsciiString assName; getAssName(assName);
@@ -4206,7 +4254,7 @@ void MwOCAF::addPorts(std::map<std::string, int, std::less<std::string> > &ports
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) return;
       TCollection_AsciiString volName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(volName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(volName.ToCString());
       if(vol->disabled) continue;
       if(vol->type!=WAVEGUIDE && vol->type!=LINEPORT) continue;
       TCollection_AsciiString partName=assName;
@@ -4258,7 +4306,7 @@ void MwOCAF::initFEPdataStruct(){
 // *******
 // Mapping of part entities to assembly entities:
   TopTools_IndexedMapOfShape  bdrFaces;
-    if(EmP.assemblyType==COMPONENT){
+    if(EmP->assemblyType==COMPONENT){
     makeTheCompSolid();
     makeSolid(theCompSolid,theMergedSolid);
     for(TopExp_Explorer exp(theMergedSolid,TopAbs_FACE); exp.More(); exp.Next()){
@@ -4321,7 +4369,7 @@ void MwOCAF::initFEPdataStruct(){
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) return;
       TCollection_AsciiString partName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(!vol) {std::cout <<"undefined item  \"" << partName.ToCString() << "\"" << std::endl; assert(false);}; 
       if(vol->type==SPLITTER || vol->type==GRID) continue;
       std::string partDir=projectDir+std::string("/")+partName.ToCString();
@@ -4335,11 +4383,11 @@ void MwOCAF::initFEPdataStruct(){
 	 FPath=nativePath(FPath);
 	 if(initializedF.find(FI)==initializedF.end()) if(!FileExists(FPath.c_str())){
 	     FaceData FD;
-	     FD.level=isPartition() ? EmP.level+1: EmP.level; 
+	     FD.level=isPartition() ? EmP->level+1: EmP->level; 
 	     FD.epsr=1.0; 
 	     FD.mur=1.0; 
 	     FD.meshref=1.0;
-	     FD.shared=FI>extFaceNum && EmP.assemblyType==NET;
+	     FD.shared=FI>extFaceNum && EmP->assemblyType==NET;
 	     FD.cmp1="-";  FD.cmp2="-";
              if(isPartition() and splitFaceCompMap.size()>=2*FI) if(splitFaceCompMap[2*(FI-1)+0] && splitFaceCompMap[2*(FI-1)+1]){
 	       char t[10];
@@ -4353,51 +4401,29 @@ void MwOCAF::initFEPdataStruct(){
 	     FD.name=cname;
              FD.sfname=std::string("-");
 	     FILE *fout=fopen(FPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
              assert(setLock(fout,"w")==0);
-#endif
 	     FD.write(fout);
 	     fflush(fout);
-#ifndef USEBOOSTLOCK
              assert(releaseLock(fout)==0);
-#endif
              fclose(fout);
 	     initializedF.insert(FI);
 	     FileSetTop(FPath);
-#ifdef USEBOOSTLOCK
-	     SetBoostLockFile(FPath);
-#endif
 	 }
-         if(EmP.assemblyType==NET){
+         if(EmP->assemblyType==NET){
 	    sprintf(tag,"%d",I);
             std::string  partFPath=partDir+std::string ("/interfaces/F")+tag;
 	    partFPath=nativePath(partFPath);
 	    createLink(FPath.c_str(), partFPath.c_str());
-#ifdef USEBOOSTLOCK
-	    createLink((FPath+std::string(".lock")).c_str(), (partFPath+std::string(".lock")).c_str());
-#endif
-#ifdef USEBOOSTLOCK
-	    file_lock fin_lock((FPath+std::string(".lock")).c_str());
-	    try {fin_lock.lock_sharable();}
-	    catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	    FILE* fin=fopen(FPath.c_str(),"r");
 	    if(!fin){
               std::cout<< "missing file :"<< FPath.c_str() <<std::endl;
 	      assert(false);
  	    }
 	    FaceData fd;
-#ifndef USEBOOSTLOCK
             assert(setLock(fin,"r")==0);
-#endif
 	    fd.read(fin);
-#ifndef USEBOOSTLOCK
             assert(releaseLock(fin)==0);
-#endif
 	    fclose(fin);
-#ifdef USEBOOSTLOCK
-	    fin_lock.unlock();
-#endif
             if(fd.shared){
 	     std::string partFPath_mwm  =partFPath+std::string(".mwm");
 	     std::string FPath_mwm=FPath+std::string(".mwm");
@@ -4405,30 +4431,18 @@ void MwOCAF::initFEPdataStruct(){
 	    }
 	 }
          // set faces boundary conditions:
-         DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+         DB::Volume *vol=EmP->FindVolume(partName.ToCString());
          if(vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE) {
 	   std::string bdrcond;
 	   if(vol->type==BOUNDARYCOND ) bdrcond=std::string(vol->material);
 	   if(vol->type==WAVEGUIDE ) bdrcond="WAVEGUIDE";
-#ifdef USEBOOSTLOCK
-	   file_lock fout_lock((FPath+std::string(".lock")).c_str());
-	   try {fout_lock.lock();}
-	   catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 
 	   FILE *fout=fopen(FPath.c_str(), "a");
-#ifndef USEBOOSTLOCK
            assert(setLock(fout,"a")==0);
-#endif
            fprintf(fout,"%s\n",bdrcond.c_str());
 	   fflush(fout);
-#ifndef USEBOOSTLOCK
            assert(releaseLock(fout)==0);
-#endif
            fclose(fout);
-#ifdef USEBOOSTLOCK
-	   fout_lock.unlock();
-#endif
          }
       }
    }
@@ -4443,7 +4457,7 @@ void MwOCAF::initFEPdataStruct(){
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       TCollection_AsciiString partName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(!vol) continue;
       if(vol->type==SPLITTER || vol->type==GRID) continue;
       std::string partDir=projectDir+std::string("/")+partName.ToCString();
@@ -4462,42 +4476,27 @@ void MwOCAF::initFEPdataStruct(){
 	     pd.epsr=1.0; 
 	     pd.mur=1.0; 
 	     pd.meshref=1.0; 
-	     pd.level=isPartition() ? EmP.level+1: EmP.level; 
+	     pd.level=isPartition() ? EmP->level+1: EmP->level; 
 	     char cname[20]; sprintf(cname,"L%dP%d",pd.level,PI);
 	     pd.name=cname;
 	     FILE *fout=fopen(PPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
              assert(setLock(fout,"w")==0);
-#endif
 	     pd.write(fout); 
 	     fflush(fout);
-#ifndef USEBOOSTLOCK
              assert(releaseLock(fout)==0);
-#endif
              fclose(fout);
 	     initializedP.insert(PI);
 	     FileSetTop(PPath);
-#ifdef USEBOOSTLOCK
-	     SetBoostLockFile(PPath);
-#endif
 	 }
-	 if(EmP.assemblyType!=COMPONENT){
+	 if(EmP->assemblyType!=COMPONENT){
             std::string  partPPath=partDir+std::string ("/interfaces/P"); 
 	    sprintf(tag,"%d",I); partPPath+=tag;
             partPPath=nativePath(partPPath);
 	    createLink(PPath.c_str(), partPPath.c_str());
-#ifdef USEBOOSTLOCK
-	    createLink((PPath+std::string(".lock")).c_str(), (partPPath+std::string(".lock")).c_str());
-#endif
 	 }
          // set points boundary conditions:
-	 DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+	 DB::Volume *vol=EmP->FindVolume(partName.ToCString());
 	 if(vol->type==BOUNDARYCOND) if(FileExists(PPath.c_str())){
-#ifdef USEBOOSTLOCK
-	   file_lock f_lock((PPath+std::string(".lock")).c_str());
-	   try {f_lock.lock();}
-	   catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	   FILE *fp=fopen(PPath.c_str(),"r+");
 //	   if(!in) continue;
 	   if(!fp){
@@ -4505,9 +4504,7 @@ void MwOCAF::initFEPdataStruct(){
 	     assert(false);
  	   }
 	   VertexData pd;
-#ifndef USEBOOSTLOCK
            assert(setLock(fp,"a")==0);
-#endif
 	   pd.read(fp);
 	   std::string str=std::string(vol->material);
 	   if(pd.BrCond.find(str)==pd.BrCond.end()){
@@ -4516,13 +4513,8 @@ void MwOCAF::initFEPdataStruct(){
 	      pd.write(fp); 
 	      fflush(fp);
 	   }	   
-#ifndef USEBOOSTLOCK
            assert(releaseLock(fp)==0);
-#endif
            fclose(fp);
-#ifdef USEBOOSTLOCK
-	   f_lock.unlock();
-#endif
 	 }
       }
    }
@@ -4541,7 +4533,7 @@ void MwOCAF::initFEPdataStruct(){
       Handle(TDF_Reference)  refAtt;
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
       TDF_Label label = refAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(!vol) continue;
       if(vol->type==SPLITTER || vol->type==GRID) continue;
       std::string partDir=projectDir+std::string("/")+partName.ToCString();
@@ -4590,7 +4582,7 @@ void MwOCAF::initFEPdataStruct(){
              TopoDS_Vertex V1,V2;
              TopExp::Vertices(E,V1,V2, CumOri);
 	     EdgeData ed;
-	     ed.level=isPartition() ? EmP.level+1: EmP.level; 
+	     ed.level=isPartition() ? EmP->level+1: EmP->level; 
              gp_Pnt P1 = BRep_Tool::Pnt(V1);
 	     ed.P1[0] =P1.X();
 	     ed.P1[1] =P1.Y();
@@ -4600,44 +4592,24 @@ void MwOCAF::initFEPdataStruct(){
 	     ed.meshref=1.0; 
 	     char cname[20]; sprintf(cname,"L%dE%d",ed.level,EI);
 	     ed.name=cname;
-#ifdef USEBOOSTLOCK
-	    file_lock fout_lock((EPath+std::string(".lock")).c_str());
-	    try {fout_lock.lock();}
-	    catch(interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	     FILE *fout=fopen(EPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
 	     assert(setLock(fout,"w")==0);
-#endif
 	     ed.write(fout);
 	     fflush(fout);
-#ifndef USEBOOSTLOCK
 	     assert(releaseLock(fout)==0);
-#endif
              fclose(fout);
-#ifdef USEBOOSTLOCK
-	     fout_lock.unlock();
-#endif
 	     initializedE.insert(EI);
 	     FileSetTop(EPath);
 	 }
-	 if(EmP.assemblyType==NET){
+	 if(EmP->assemblyType==NET){
             std::string partEPath=partDir+std::string("/interfaces/E"); 
 	    sprintf(tag,"%d",I); partEPath+=tag;
             partEPath=nativePath(partEPath);
 	    createLink(EPath.c_str(), partEPath.c_str());
-#ifdef USEBOOSTLOCK
-	    createLink((EPath+std::string(".lock")).c_str(), (partEPath+std::string(".lock")).c_str());
-#endif
 	 }
          // set edges boundary conditions:
-	 DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+	 DB::Volume *vol=EmP->FindVolume(partName.ToCString());
 	 if(vol->type==BOUNDARYCOND || vol->type==LINEPORT) if(FileExists(EPath.c_str())){
-#ifdef USEBOOSTLOCK
-	    file_lock fin_lock((EPath+std::string(".lock")).c_str());
-	    try {fin_lock.lock_sharable();}
-	    catch(interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	    FILE *fin=fopen(EPath.c_str(),"r");
 //	    if(!in) continue;
 	    if(!fin){
@@ -4645,17 +4617,10 @@ void MwOCAF::initFEPdataStruct(){
 	      assert(false);
  	    }
 	    EdgeData ed;
-#ifndef USEBOOSTLOCK
 	    assert(setLock(fin,"r")==0);
-#endif
 	    ed.read(fin);
-#ifndef USEBOOSTLOCK
       	    assert(releaseLock(fin)==0);
-#endif
             fclose(fin);
-#ifdef USEBOOSTLOCK
-	    fin_lock.unlock();
-#endif
 	    int edChanged=0;
 	    if(vol->type==BOUNDARYCOND) if(ed.BrCond.find(std::string(vol->material))==ed.BrCond.end()){
 	        ed.BrCond.insert(std::string(vol->material));
@@ -4682,50 +4647,26 @@ void MwOCAF::initFEPdataStruct(){
                     char tag[10]; sprintf(tag,"%d",PI);
                     std::string PPath=projectDir+std::string("/interfaces/P")+tag;
                     PPath=nativePath(PPath);
-#ifdef USEBOOSTLOCK
-	            file_lock f_lock((PPath+std::string(".lock")).c_str());
-	            try {f_lock.lock();}
-	            catch(interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
                     FILE *fp=fopen(PPath.c_str(),"r+");
 		    VertexData pd;
-#ifndef USEBOOSTLOCK
         	    assert(setLock(fp,"a")==0);
-#endif
 	            pd.read(fp);
 		    pd.singular=1;
 		    rewind(fp);
 	            pd.write(fp);
 	            fflush(fp);
-#ifndef USEBOOSTLOCK
 	            assert(releaseLock(fp)==0);
-#endif
                     fclose(fp);
-#ifdef USEBOOSTLOCK
-	            f_lock.unlock();
-#endif
 	          }
 	       }
 	     }
 	     if(edChanged){
-#ifdef USEBOOSTLOCK
-	        file_lock fout_lock((EPath+std::string(".lock")).c_str());
-	        try {fout_lock.lock();}
-	        catch(interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	        FILE *fout=fopen(EPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
 	        assert(setLock(fout,"w")==0);
-#endif
 	        ed.write(fout);
 	        fflush(fout);
-#ifndef USEBOOSTLOCK
 	        assert(releaseLock(fout)==0);
-#endif
                 fclose(fout);
-#ifdef USEBOOSTLOCK
-	        fout_lock.unlock();
-#endif
 	     }	   
 	  }
       }
@@ -4741,10 +4682,10 @@ void MwOCAF::setFEproperties()
 {
    using namespace boost::interprocess;
 
-   if(EmP.assemblyType!=COMPONENT) return;
+   if(EmP->assemblyType!=COMPONENT) return;
    if(subComp) return;
    
-//   int I1=EmP.isTopLevel? I1 : extFaceNum+1;
+//   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
    std::set<int> initializedF;
    std::set<int> initializedE;
    std::set<int> initializedP;
@@ -4757,9 +4698,9 @@ void MwOCAF::setFEproperties()
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       TCollection_AsciiString partName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
-      if(EmP.assemblyType==COMPONENT && vol->type!=DIELECTRIC && vol->type!=WAVEGUIDE  && vol->type!=BOUNDARYCOND) continue;
-      DB::Material* mat= EmP.FindMaterial(vol->material);
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
+      if(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC && vol->type!=WAVEGUIDE  && vol->type!=BOUNDARYCOND) continue;
+      DB::Material* mat= EmP->FindMaterial(vol->material);
       Handle(TDF_Reference)  refAtt;
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
       TDF_Label label = refAtt->Get();
@@ -4779,19 +4720,12 @@ void MwOCAF::setFEproperties()
 	 bool reset=initializedF.find(FI)==initializedF.end() && FileIsTop(FPath.c_str());
 	#endif
 	 FaceData FD;
-#ifdef USEBOOSTLOCK
-	 file_lock f_lock((FPath+std::string(".lock")).c_str());
-	 try {f_lock.lock();}
-	 catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
          FILE *fp=fopen(FPath.c_str(),"r+");
 	 if(!fp){
            std::cout<< "missing file :"<< FPath.c_str() <<std::endl;
 	   assert(false);
 	 }
-#ifndef USEBOOSTLOCK
          assert(setLock(fp,"a")==0);
-#endif
 	 FD.read(fp);
 	 if(reset){
 	    FD.epsr=FD.mur=FD.meshref=1.0;
@@ -4805,13 +4739,8 @@ void MwOCAF::setFEproperties()
 	 rewind(fp);
 	 FD.write(fp);
 	 fflush(fp);
-#ifndef USEBOOSTLOCK
 	 assert(releaseLock(fp)==0);
-#endif
          fclose(fp);
-#ifdef USEBOOSTLOCK
-	 f_lock.unlock();
-#endif
       }
       std::set<int> doneE;
       for(TopExp_Explorer exp(S,TopAbs_EDGE); exp.More(); exp.Next()){
@@ -4828,19 +4757,12 @@ void MwOCAF::setFEproperties()
          // set edges refraction index (maximum among adjiacent diel):
 	 bool reset=initializedE.find(EI)==initializedE.end() && FileIsTop(EPath.c_str());
 	 EdgeData ED;
-#ifdef USEBOOSTLOCK
-	 file_lock f_lock((EPath+std::string(".lock")).c_str());
-	 try {f_lock.lock();}
-	 catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
          FILE *fp=fopen(EPath.c_str(),"r+");
 	 if(!fp){
            std::cout<< "missing file :"<< EPath.c_str() <<std::endl;
 	   assert(false);
 	 }
-#ifndef USEBOOSTLOCK
 	 assert(setLock(fp,"a")==0);
-#endif
 	 ED.read(fp);
 	 if(reset){
 	     ED.epsr=ED.mur=ED.meshref=1.0;  
@@ -4854,13 +4776,8 @@ void MwOCAF::setFEproperties()
 	 rewind(fp);
 	 ED.write(fp);
 	 fflush(fp);
-#ifndef USEBOOSTLOCK
 	 assert(releaseLock(fp)==0);
-#endif
          fclose(fp);
-#ifdef USEBOOSTLOCK
-	 f_lock.unlock();
-#endif
       }
       std::set<int> doneP;
       for(TopExp_Explorer exp(S,TopAbs_VERTEX); exp.More(); exp.Next()){
@@ -4877,19 +4794,12 @@ void MwOCAF::setFEproperties()
          // set points refraction index (maximum among adjiacent diel):
 	 bool reset=initializedP.find(PI)==initializedP.end() && FileIsTop(PPath.c_str());
 	 VertexData PD;
-#ifdef USEBOOSTLOCK
-	 file_lock f_lock((PPath+std::string(".lock")).c_str());
-	 try {f_lock.lock();}
-	 catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
          FILE *fp=fopen(PPath.c_str(),"r+");
 	 if(!fp){
            std::cout<< "missing file :"<< PPath.c_str() <<std::endl;
 	   assert(false);
 	 }
-#ifndef USEBOOSTLOCK
 	 assert(setLock(fp,"a")==0);
-#endif
 	 PD.read(fp);
 	 if(reset){
 	    PD.epsr=PD.mur=PD.meshref=1.0; 
@@ -4903,13 +4813,8 @@ void MwOCAF::setFEproperties()
 	 rewind(fp);
 	 PD.write(fp);
 	 fflush(fp);
-#ifndef USEBOOSTLOCK
 	 assert(releaseLock(fp)==0);
-#endif
          fclose(fp);
-#ifdef USEBOOSTLOCK
-	 f_lock.unlock();
-#endif
       }
    }
 
@@ -4929,25 +4834,13 @@ void MwOCAF::setDefaultFEPBC() //Default Baoundary Condition:
         if(faceData[FI-1].BrCond.size()==0 && !faceData[FI-1].Shared()){
 	   FPath=projectDir+std::string ("/interfaces/F")+tag;
            FPath=nativePath(FPath);
-#ifdef USEBOOSTLOCK
-	   file_lock fout_lock((FPath+std::string(".lock")).c_str());
-	   try {fout_lock.lock();}
-	   catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
            FILE *fout=fopen(FPath.c_str(), "a");
-           faceData[FI-1].BrCond.insert(EmP.defaultBC);
-#ifndef USEBOOSTLOCK
+           faceData[FI-1].BrCond.insert(EmP->defaultBC);
 	   assert(setLock(fout,"a")==0);
-#endif
-           fprintf(fout,"%s\n",EmP.defaultBC);
+           fprintf(fout,"%s\n",EmP->defaultBC);
 	   fflush(fout);
-#ifndef USEBOOSTLOCK
 	   assert(releaseLock(fout)==0);
-#endif
            fclose(fout);
-#ifdef USEBOOSTLOCK
-	   fout_lock.unlock();
-#endif
 	}
     }
 
@@ -4977,24 +4870,12 @@ void MwOCAF::setDefaultFEPBC() //Default Baoundary Condition:
 	         }
               }
               if(changed){
-#ifdef USEBOOSTLOCK
-	         file_lock fout_lock((EPath+std::string(".lock")).c_str());
-	         try {fout_lock.lock();}
-	         catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	         FILE *fout=fopen(EPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
 	         assert(setLock(fout,"w")==0);
-#endif
 	         edgeData[EI-1].write(fout);
 	         fflush(fout);
-#ifndef USEBOOSTLOCK
 	         assert(releaseLock(fout)==0);
-#endif
                  fclose(fout);
-#ifdef USEBOOSTLOCK
-	         fout_lock.unlock();
-#endif
 	    }
         }
         for (TopExp_Explorer exp(F,TopAbs_VERTEX); exp.More(); exp.Next()){
@@ -5016,24 +4897,12 @@ void MwOCAF::setDefaultFEPBC() //Default Baoundary Condition:
 	         }
               }
               if(changed){
-#ifdef USEBOOSTLOCK
-	         file_lock fout_lock((PPath+std::string(".lock")).c_str());
-	         try {fout_lock.lock();}
-	         catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
 	         FILE *fout=fopen(PPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
 	         assert(setLock(fout,"w")==0);
-#endif
 	         vertexData[PI-1].write(fout);
 	         fflush(fout);
-#ifndef USEBOOSTLOCK
 	         assert(releaseLock(fout)==0);
-#endif
                  fclose(fout);
-#ifdef USEBOOSTLOCK
-	         fout_lock.unlock();
-#endif
 	     }
        }
     }
@@ -5045,7 +4914,7 @@ void MwOCAF::setDefaultFEPBC() //Default Baoundary Condition:
 
 void MwOCAF::setDisabledVolumes()
 {
-   if(EmP.assemblyType==COMPONENT)
+   if(EmP->assemblyType==COMPONENT)
    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
    {
    // link assembly faces to part faces 
@@ -5053,7 +4922,7 @@ void MwOCAF::setDisabledVolumes()
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       TCollection_AsciiString partName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(vol->type!=WAVEGUIDE) continue;
       Handle(TDF_Reference)  refAtt;
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
@@ -5072,14 +4941,10 @@ void MwOCAF::setDisabledVolumes()
            std::cout<< "missing file :"<< UFPath.c_str() <<std::endl;
 	   assert(false);
 	 }
-#ifndef USEBOOSTLOCK
  	 assert(setLock(fin,"r")==0);
-#endif
 	 FaceData FD;
 	 FD.read(fin);
-#ifndef USEBOOSTLOCK
-	assert(releaseLock(fin)==0);
-#endif
+	 assert(releaseLock(fin)==0);
          fclose(fin);
 	 if(FD.shared) {vol->disabled=1; break;}
       }
@@ -5176,7 +5041,7 @@ int MwOCAF::evalTEMnum(TopoDS_Shape S, bool intPort)
 
 void MwOCAF::setTEMnum()
 {
-//   int I1=EmP.isTopLevel? I1 : extFaceNum+1;
+//   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
    {
    // link assembly faces to part faces 
@@ -5184,7 +5049,7 @@ void MwOCAF::setTEMnum()
       Handle(TDataStd_Name)  nameAtt;
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) return;
       TCollection_AsciiString partName=nameAtt->Get();
-      DB::Volume *vol=EmP.FindVolume(partName.ToCString());
+      DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(vol->type!=WAVEGUIDE) continue;
       if(vol->disabled) continue;
       Handle(TDF_Reference)  refAtt;
@@ -5225,20 +5090,13 @@ void MwOCAF::setFaceComp(){
 	std::string UFPath=projectDir+std::string("/interfaces/F");
         char tag[10]; sprintf(tag,"%d",UFI); UFPath+=tag;
         UFPath=nativePath(UFPath);
-#ifdef USEBOOSTLOCK
-	file_lock f_lock((UFPath+std::string(".lock")).c_str());
-	try {f_lock.lock();}
-	catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
         FILE *fp=fopen(UFPath.c_str(),"r+");
 	if(!fp){
            std::cout<< "missing file :"<< UFPath.c_str() <<std::endl;
 	   assert(false);
 	}
 	FaceData FD;
-#ifndef USEBOOSTLOCK
 	assert(setLock(fp,"w")==0);
-#endif
 	FD.read(fp);
 	if(FD.cmp1==std::string("-")) FD.cmp1=assName.ToCString();
 	else if(FD.cmp2==std::string("-")) {
@@ -5248,13 +5106,8 @@ void MwOCAF::setFaceComp(){
 	rewind(fp);
 	FD.write(fp);
 	fflush(fp);
-#ifndef USEBOOSTLOCK
 	assert(releaseLock(fp)==0);
-#endif
         fclose(fp);
-#ifdef USEBOOSTLOCK
-	f_lock.unlock();
-#endif
     }
 }
 
@@ -5367,7 +5220,7 @@ void MwOCAF::setSuperFaces()
 {
      using namespace boost::interprocess;
      
-//   int I1=EmP.isTopLevel? I1 : extFaceNum+1;
+//   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
       std::vector<FaceData_ *> fdata;
       int ENum=indexedEdges->Extent();
       int      *tE=new int[ENum];
@@ -5384,9 +5237,7 @@ void MwOCAF::setSuperFaces()
            std::cout<< "missing file :"<< FPath.c_str() <<std::endl;
 	   assert(false);
 	}
-#ifndef USEBOOSTLOCK
     	assert(setLock(fin,"r")==0);
-#endif
 	FaceData_ *fd=new(FaceData_);
         fd->read(fin);
 	if(fd->cmp1!=fd->cmp2 && fd->cmp1!=std::string("-") && fd->cmp2!=std::string("-")){
@@ -5396,9 +5247,7 @@ void MwOCAF::setSuperFaces()
 	}else{
 	  delete fd;
 	}
-#ifndef USEBOOSTLOCK
 	assert(releaseLock(fin)==0);
-#endif
         fclose(fin);
       }
       int NF=fdata.size();
@@ -5455,23 +5304,11 @@ void MwOCAF::setSuperFaces()
          std::string FPath=projectDir+std::string ("/interfaces/F");
          char tag[10]; sprintf(tag,"%d",FI); FPath+=tag;
          FPath=nativePath(FPath);
-#ifdef USEBOOSTLOCK
-	 file_lock fout_lock((FPath+std::string(".lock")).c_str());
-	 try {fout_lock.lock();}
-	 catch (interprocess_exception& e) {std::cout <<e.what() << std::endl; assert(false);}
-#endif
          FILE *fout=fopen(FPath.c_str(),"w");
-#ifndef USEBOOSTLOCK
 	 assert(setLock(fout,"w")==0);
-#endif
          fdata[I-1]->write(fout);
-#ifndef USEBOOSTLOCK
 	 assert(releaseLock(fout)==0);
-#endif
          fclose(fout);
-#ifdef USEBOOSTLOCK
-	 fout_lock.unlock();
-#endif
       }
 
       for(int I = 1; I <= NF; I++) delete fdata[I-1];
@@ -5509,7 +5346,8 @@ void MwOCAF::checkSuperFacesTEMnum()
 
 void MwOCAF::makeIF(TopoDS_Shell &IF)
 {
-  TopTools_MapOfShape aMapOfFaces;
+  TopTools_IndexedMapOfShape IFaces;
+  std::vector<int> FOrient;
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
      TDF_Label label1 = it.Value();
      Handle(TDF_Reference)  refAtt;
@@ -5517,18 +5355,20 @@ void MwOCAF::makeIF(TopoDS_Shell &IF)
      TDF_Label label = refAtt->Get();
      bool skip=false;
      DB::Volume *vol=getLabelVol(label);
-     if(vol) skip=(EmP.assemblyType==COMPONENT && vol->type!=DIELECTRIC);
+     if(vol) skip=(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC);
      if(skip) continue;
      TopoDS_Shape S = shapeTool->GetShape(label);
      for (TopExp_Explorer ex1(S,TopAbs_FACE); ex1.More(); ex1.Next()){
          TopoDS_Shape F=ex1.Current();
+	 int Fsign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
          F.Orientation(TopAbs_FORWARD);
-         if(aMapOfFaces.Contains(F)) aMapOfFaces.Remove(F);
-         else aMapOfFaces.Add(F);
+	 int FI=IFaces.FindIndex(F);
+	 if(FI<1) {IFaces.Add(F); FOrient.push_back(0); FI=FOrient.size(); }
+         FOrient[FI-1]+=Fsign;
      }
   }
 
-  if(EmP.assemblyType==COMPONENT)  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
+  if(EmP->assemblyType==COMPONENT)  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
      TDF_Label label1 = it.Value();
      Handle(TDF_Reference)  refAtt;
      assert(label1.FindAttribute(TDF_Reference::GetID(),refAtt));
@@ -5539,16 +5379,19 @@ void MwOCAF::makeIF(TopoDS_Shell &IF)
       TopoDS_Shape S = shapeTool->GetShape(label);
       for (TopExp_Explorer ex1(S,TopAbs_FACE); ex1.More(); ex1.Next()){
         TopoDS_Shape F=ex1.Current();
+	int Fsign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
         F.Orientation(TopAbs_FORWARD);
-        if(aMapOfFaces.Contains(F)) aMapOfFaces.Remove(F);
+	int FI=IFaces.FindIndex(F);
+        if(FI>0) FOrient[FI-1]=0;
       }
      }
   }
   BRep_Builder builder;
   builder.MakeShell(IF);
-  for(TopTools_MapIteratorOfMapOfShape amapIter(aMapOfFaces);amapIter.More(); amapIter.Next()) {
-      TopoDS_Shape F=amapIter.Key();
-      builder.Add(IF,F);
+  for (int FI=1; FI <=IFaces.Extent(); FI++) if(abs(FOrient[FI-1])==1) {
+     TopoDS_Shape F =IFaces.FindKey(FI);
+     if(FOrient[FI-1]<0) F.Orientation(TopAbs_REVERSED);
+     builder.Add(IF,F);
   }
 
 }
@@ -5619,8 +5462,8 @@ void MwOCAF::makeSolid(const TopoDS_CompSolid& S, TopoDS_Solid &Solid)
 
 bool  MwOCAF::importSTEP_OR_DXC( char* fileName, bool update )
 {
-	EmP.stepFilePath=fileName;
-	EmP.hasGeo=true;
+	EmP->stepFilePath=fileName;
+	EmP->hasGeo=true;
         bool fileExist=FileExists(fileName);
 	if(update && !fileExist){
 	   stepFileNotFound e(fileName);
@@ -5634,7 +5477,7 @@ bool  MwOCAF::importSTEP_OR_DXC( char* fileName, bool update )
 		 setMissingNames();
 		 worksaveNeeded=true;
 		 reloaded=true;
-	} else  openDoc(nativePath(EmP.occFilePath).c_str());
+	} else  openDoc(nativePath(EmP->occFilePath).c_str());
 	return reloaded;
 }
 

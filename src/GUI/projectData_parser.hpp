@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.5.1.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,6 +30,9 @@
 
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
 
 #ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
 # define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
@@ -83,73 +87,75 @@ extern int projectDatadebug;
     CURVE = 293,
     CIRCLE = 294,
     IDEAL = 295,
-    FILTER = 296,
-    PASS = 297,
-    KRYLOV = 298,
-    ORDER = 299,
-    RETURNLOSS = 300,
-    OUTBAND = 301,
-    MAPPING = 302,
-    TUNING = 303,
-    METHOD = 304,
-    SOURCE = 305,
-    ITERMAX = 306,
-    AUTOMATIC = 307,
-    DESIGN = 308,
-    MAPPED = 309,
-    TX = 310,
-    ZEROS = 311,
-    PORT = 312,
-    IMPEDANCE = 313,
-    QFACTOR = 314,
-    UNIFORM = 315,
-    INDUCTIVE = 316,
-    SKIN = 317,
-    LOSSY = 318,
-    PREDISTORTED = 319,
-    OPTIMIZE = 320,
-    ILOSSPP = 321,
-    TRUSTR = 322,
-    CUTOFF = 323,
-    RATIO = 324,
-    RECOMPUTE = 325,
-    JACOBIAN = 326,
-    ERRORT = 327,
-    ONLY = 328,
-    TRANSVERSEJ = 329,
-    XTOL = 330,
-    GRADDX = 331,
-    REMESH = 332,
-    FIRST = 333,
-    DECOMPOSITION = 334,
-    MATERIAL = 335,
-    MODELIZATION = 336,
-    COMPONENT = 337,
-    SAVE = 338,
-    REDUCTION = 339,
-    RELOAD = 340,
-    NEEDED = 341,
-    DONE = 342,
-    CHANGED = 343,
-    tMIN = 344,
-    tMAX = 345
+    CANONICAL = 296,
+    FILTER = 297,
+    CUSTOM = 298,
+    PASS = 299,
+    KRYLOV = 300,
+    ORDER = 301,
+    RETURNLOSS = 302,
+    OUTBAND = 303,
+    MAPPING = 304,
+    TUNING = 305,
+    METHOD = 306,
+    SOURCE = 307,
+    ITERMAX = 308,
+    AUTOMATIC = 309,
+    DESIGN = 310,
+    MAPPED = 311,
+    TX = 312,
+    ZEROS = 313,
+    PORT = 314,
+    IMPEDANCE = 315,
+    TARGET = 316,
+    QFACTOR = 317,
+    UNIFORM = 318,
+    INDUCTIVE = 319,
+    SKIN = 320,
+    LOSSY = 321,
+    PREDISTORTED = 322,
+    OPTIMIZE = 323,
+    ILOSSPP = 324,
+    TRUSTR = 325,
+    CUTOFF = 326,
+    RATIO = 327,
+    RECOMPUTE = 328,
+    JACOBIAN = 329,
+    ERRORT = 330,
+    ONLY = 331,
+    TRANSVERSEJ = 332,
+    XTOL = 333,
+    GRADDX = 334,
+    REMESH = 335,
+    FIRST = 336,
+    DECOMPOSITION = 337,
+    MATERIAL = 338,
+    MODELIZATION = 339,
+    COMPONENT = 340,
+    SAVE = 341,
+    REDUCTION = 342,
+    RELOAD = 343,
+    NEEDED = 344,
+    DONE = 345,
+    CHANGED = 346,
+    tMIN = 347,
+    tMAX = 348
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
 union YYSTYPE
 {
-#line 66 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y" /* yacc.c:1909  */
+#line 66 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 151 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.hpp" /* yacc.c:1909  */
-};
+#line 157 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.hpp"
 
+};
 typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
