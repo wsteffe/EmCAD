@@ -17,15 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+cmake_minimum_required( VERSION 3.21.0 )
 project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
-set(EmCAD_VERSION_MINOR 5)
+set(EmCAD_VERSION_MINOR 7)
 set(EmCAD_VERSION_PATCH 0)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
 
-cmake_minimum_required( VERSION 2.8.11 )
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
@@ -65,7 +65,6 @@ else(MSVC)
  SET(CMAKE_CXX_FLAGS_RELEASE   "-O2")
  SET(CMAKE_CXX_FLAGS_DEBUG     "-O0  -g")
  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
- SET(CMAKE_Fortran_FLAGS "-fcray-pointer")
 endif(MSVC)
 
 if(MSVC)
@@ -107,7 +106,7 @@ endif(SIZEOF_VOID_P EQUAL 8)
 
 find_package(PythonLibs 3 REQUIRED)
 if(WIN32)
-find_file(PYTHON_DLL NAMES libpython3.8.dll)
+find_file(PYTHON_DLL NAMES libpython3.10.dll)
 endif(WIN32)
 message(STATUS "PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
 message(STATUS "PYTHON_DLL = ${PYTHON_DLL}")
@@ -118,6 +117,10 @@ if(LINUX OR MSYS)
 # find_package (PythonLibs 2.7 REQUIRED)
 endif(LINUX OR MSYS)
 
+if((${CMAKE_SYSTEM_NAME} MATCHES "Linux"))
+ add_definitions( -DHAVE_XLIB )
+endif()
+
 
 #find Boost
 set(Boost_USE_MULTITHREAD ON)
@@ -126,7 +129,7 @@ if(WIN32)
  add_definitions( -DBOOST_ALL_NO_LIB )
 endif(WIN32)
 #add_definitions(-DBOOST_FILESYSTEM_VERSION=2)
-FIND_PACKAGE( Boost COMPONENTS system filesystem date_time REQUIRED)
+FIND_PACKAGE( Boost COMPONENTS system filesystem graph date_time REQUIRED)
 FIND_PACKAGE( Threads REQUIRED )
 
 set(OCC_3PARTIES_LIBRARIES)
@@ -152,9 +155,7 @@ endif(MSVC)
 
 if(MINGW)
   set(OCC_3PARTIES_LIBRARIES_REQUIRED
-	"FreeImage"
-	"FreeImagePlus"
-        "freetype"
+	  #        "freetype"
   )
   set(OCC_3PARTIES_DLLS)
   set(OCC_3PARTIES_DLLS_DEB)
@@ -340,7 +341,7 @@ if(WIN32 OR MINGW)
     find_library(GMSH_LIBRARY_DEB gmshd PATHS ${GMSHLIB} PATH_SUFFIXES Debug)
     find_library(GMSH_LIBRARY gmsh PATHS ${GMSHLIB} PATH_SUFFIXES Release)
   elseif(MINGW)
-    find_library(GMSH_LIBRARY libgmsh PATHS ${GMSHLIB} PATH_SUFFIXES lib)
+    find_library(GMSH_LIBRARY gmsh PATHS ${GMSHLIB} PATH_SUFFIXES lib)
   else(MSVC)
     find_library(GMSH_LIBRARY gmsh PATHS ${GMSHLIB} )
   endif(MSVC)
@@ -359,13 +360,13 @@ if(WIN32 OR MINGW)
     if(${GMSH_SOURCES} STREQUAL "GMSH_SOURCES-NOTFOUND")
       message( SEND_ERROR " GModel.h NOTFOUND")
     else(${GMSH_SOURCES} STREQUAL "GMSH_SOURCES-NOTFOUND")
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Common)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Geo)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Mesh)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Numeric)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Contrib)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Contrib/ANN)
-      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/Post)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/src/common)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/src/geo)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/src/mesh)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/src/numeric)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/contrib)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/contrib/ANN)
+      list(APPEND GMSH_INCLUDES ${GMSH_SOURCES}/src/post)
     endif(${GMSH_SOURCES} STREQUAL "GMSH_SOURCES-NOTFOUND")
   endif(${GMSH_LIBRARY} STREQUAL "GMSH_LIBRARY-NOTFOUND")
   if(WIN32)
@@ -619,9 +620,9 @@ message (STATUS "Qt5Widgets_VERSION = ${Qt5Widgets_VERSION_STRING}" )
 
 #Find Qwt
 if(WIN32)
-  find_library (QWT_LIBRARY qwt)
-  find_file (QWT_DLL NAMES qwt.dll)
-  find_path (QWT_INCLUDE_DIR qwt_plot.h PATH_SUFFIXES qwt)
+  find_library (QWT_LIBRARY qwt-qt5)
+  find_file (QWT_DLL NAMES qwt-qt5.dll)
+  find_path (QWT_INCLUDE_DIR qwt_plot.h PATH_SUFFIXES qwt-qt5)
 else(WIN32)
   find_library(QWT_LIBRARY qwt-qt5 REQUIRED)
   find_path (QWT_INCLUDE_DIR qwt_plot.h PATHS /usr/include PATH_SUFFIXES qwt)
@@ -735,7 +736,7 @@ if(WIN32)
 #    endforeach(DLL)
  
  #***  Removing Administrator level from NSIS.template.in:
- set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake-3.19/Modules/Internal/CPack/NSIS.template.in")
+ set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake/Modules/Internal/CPack/NSIS.template.in")
  set(PROJECT_NSIS_TEMPLATE "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}/NSIS.template.in")
  file(READ ${CMAKE_NSIS_TEMPLATE} FILE_CONTENT)
  set (SEARCH_REGEX "Require administrator access")
@@ -758,7 +759,7 @@ set(WELCOME_FILE ${CMAKE_CURRENT_SOURCE_DIR}/WELCOME.txt)
 set(LICENSE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CREDITS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/CREDITS.txt)
 
-set(CPACK_PACKAGE_VENDOR "Walter steffè")
+set(CPACK_PACKAGE_VENDOR "Walter Steffe")
 set(CPACK_PACKAGE_VERSION_MAJOR ${EmCAD_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${EmCAD_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${EmCAD_VERSION_PATCH})

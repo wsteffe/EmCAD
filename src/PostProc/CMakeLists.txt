@@ -91,14 +91,26 @@ set (filtmat2jc_SRCS
 add_executable ( filtmat2jc ${filtmat2jc_SRCS})
 target_link_libraries (filtmat2jc OStools ${Boost_LIBRARIES} )
 
-install(TARGETS filtmat2jc  DESTINATION bin)
 
 set(updateFiltmat_SRCS
     updateFiltmat.cpp
     )
 add_executable(updateFiltmat ${updateFiltmat_SRCS})
 target_link_libraries (updateFiltmat OStools ${Boost_LIBRARIES} )
-install(TARGETS updateFiltmat DESTINATION bin)
+
+
+#if(WIN32)
+ # install(TARGETS filtmat2jc updateFiltmat RUNTIME_DEPENDENCY_SET PostProcDep DESTINATION bin)
+ # install(RUNTIME_DEPENDENCY_SET PostProcDep  DESTINATION bin PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" POST_EXCLUDE_REGEXES ".*system32/.*\\.dll")
+#endif(WIN32)
+
+install(TARGETS filtmat2jc updateFiltmat DESTINATION bin)
+if(WIN32)
+ install(FILES $<TARGET_RUNTIME_DLLS:updateFiltmat> TYPE BIN)
+ install(FILES $<TARGET_RUNTIME_DLLS:filtmat2jc> TYPE BIN)
+endif(WIN32)
+
+
 
 
 #BISON_TARGET(touchstoneParser touchstone.y   ${CMAKE_CURRENT_BINARY_DIR}/touchstone_parser.cpp COMPILE_FLAGS "-p touchstone")

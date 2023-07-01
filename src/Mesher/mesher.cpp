@@ -26,6 +26,7 @@
 //#include "fmesh.h"
 #include "OStools.h"
 #include "GmshConfig.h"
+#include "GmshMessage.h"
 #include "gmsh.h"
 #include "GmshGlobal.h"
 #include "GModel.h"
@@ -62,6 +63,7 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
+#include <BRepTools_WireExplorer.hxx>
 #include <TCollection_AsciiString.hxx>
 
 #include <BRep_Builder.hxx>
@@ -897,78 +899,141 @@ void mesher_setSingularEdges(GModel *gm, MwOCAF* ocaf)
 	     FDsign=-1;
      }
      bool isSheet =false;
-     if(bdrname==TCollection_AsciiString("-")) if(vol1) if(vol2) if(vol1->type==DIELECTRIC) if(vol2->type==DIELECTRIC) isSheet=true;
+     if(bdrname!=TCollection_AsciiString("-")) if(vol1) if(vol2) if(vol1->type==DIELECTRIC) if(vol2->type==DIELECTRIC) isSheet=true;
      if(isSheet){
-        for(TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
-	    TopoDS_Edge E=TopoDS::Edge(exp.Current());
+        for(TopExp_Explorer exp(F,TopAbs_WIRE); exp.More(); exp.Next()){
+          TopoDS_Wire W=TopoDS::Wire(exp.Current());
+          for(BRepTools_WireExplorer wexp(W); wexp.More(); wexp.Next()){
+	    TopoDS_Edge E=wexp.Current();
 	    E.Orientation(TopAbs_FORWARD);
             int EI=ocaf->indexedEdges->FindIndex(E);
 	    Emult[EI]++;
+	  }
         }
-	for (IntMapIt it=Emult.begin(); it!= Emult.end(); it++) if(Emult[(*it).second]==1) ocaf->edgeData[Emult[(*it).first]-1].singular=true;
      }
      if(isBoundaryFace) {
 	 Handle(Geom_Surface) gs = BRep_Tool::Surface(TopoDS::Face(F));
-         for(TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
-	    TopoDS_Edge E=TopoDS::Edge(exp.Current());
-            TopoDS_Vertex V1,V2;
-            TopExp::Vertices(E,V1,V2, false);
-            gp_Pnt GP1 = BRep_Tool::Pnt(V1);
-            gp_Vec SN1=supNormal(gs, GP1);
-            gp_Vec FN1=SN1*FDsign;
-            int ECsign=(E.Orientation()==TopAbs_FORWARD)? 1:-1;
+         for(TopExp_Explorer exp(F,TopAbs_WIRE); exp.More(); exp.Next()){
+	 TopoDS_Wire W = TopoDS::Wire(exp.Current());
+	 BRepTools_WireExplorer wexp;
+         for (wexp.Init(W); wexp.More(); wexp.Next()) {
+	     TopoDS_Edge E=wexp.Current();
+             int EFsign=(E.Orientation()==TopAbs_FORWARD)? 1:-1;
+	     E.Orientation(TopAbs_FORWARD);
+             TopoDS_Vertex V1,V2;
+             TopExp::Vertices(E,V1,V2, false);
+             gp_Pnt GP1 = BRep_Tool::Pnt(V1);
+             gp_Vec FN=supNormal(gs, GP1);
+             double u1,u2;
+             Handle(Geom_Curve) gec=BRep_Tool::Curve(E, u1, u2);
+             gp_Pnt CP1; gp_Vec ET1;
+	     gec->D1(u1, CP1,ET1); ET1/=ET1.Magnitude(); ET1*=EFsign;
+             gp_Vec BN=ET1.Crossed(FN);
+	     gp_Vec DN=FN*FDsign;
+             int EI=ocaf->indexedEdges->FindIndex(E);
+	     if(Enormals.find(EI)==Enormals.end()){
+                  Enormals[EI]=std::pair<gp_Vec, gp_Vec >(DN,BN);
+	     } else {
+                  Enormals[EI].first+=DN;
+                  Enormals[EI].second+=BN;
+		  double dd=Enormals[EI].first.Dot(Enormals[EI].second);
+		  if(dd>0.2 ) ocaf->edgeData[EI-1].singular=1;
+             }
+	 }
+         }
+     }
+  }
+  for (IntMapIt it=Emult.begin(); it!= Emult.end(); it++) if(Emult[(*it).second]==1) ocaf->edgeData[Emult[(*it).first]-1].singular=2;
+
+}
+
+void mesher_setSingularVertices(GModel *gm, MwOCAF* ocaf,
+		    double meshsize, std::list<int> &mshFieldList)
+{
+  std::map<int,int> Pmult;
+  typedef std::map<int,int>::const_iterator IntMapIt;
+  std::map<int,std::pair<gp_Vec, gp_Vec > > Pnormals;
+  for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+     GFace *gf=*fit;
+     if(gf->meshAttributes.method==MESH_NONE) continue;
+     TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+     F.Orientation(TopAbs_FORWARD);
+     int FI=ocaf->indexedFaces->FindIndex(F);
+     if(!ocaf->faceData[FI-1].Shared()&&ocaf->faceData[FI-1].BrCond.find(std::string("WAVEGUIDE"))==ocaf->faceData[FI-1].BrCond.end()) continue;
+     Handle(Geom_Surface) gs = BRep_Tool::Surface(TopoDS::Face(F));
+     for(TopExp_Explorer exp(F,TopAbs_WIRE); exp.More(); exp.Next()){
+        TopoDS_Wire W=TopoDS::Wire(exp.Current());
+        for(BRepTools_WireExplorer wexp(W); wexp.More(); wexp.Next()){
+	    TopoDS_Edge E=wexp.Current();
+            int Esign=(E.Orientation()==TopAbs_FORWARD)? 1:-1;
 	    E.Orientation(TopAbs_FORWARD);
+            int EI=ocaf->indexedEdges->FindIndex(E);
+	    if(ocaf->edgeData[EI-1].BrCond.size()==0) continue;
+            TopoDS_Vertex V1,V2;
+            TopExp::Vertices(E,V1,V2, true);
+            int VI1=ocaf->indexedVertices->FindIndex(V1);
+            int VI2=ocaf->indexedVertices->FindIndex(V2);
+	    Pmult[VI1]++;
+	    Pmult[VI2]++;
+	    gp_Pnt GP1 = BRep_Tool::Pnt(V1);
+	    gp_Pnt GP2 = BRep_Tool::Pnt(V2);
+            gp_Vec SN1=supNormal(gs, GP1);
+            gp_Vec SN2=supNormal(gs, GP2);
             double u1,u2;
             Handle(Geom_Curve) gec=BRep_Tool::Curve(E, u1, u2);
             gp_Pnt CP1; gp_Vec ET1;
-	    gec->D1(u1, CP1,ET1); ET1*=ECsign;
-            gp_Vec BN1=ET1.Crossed(SN1);
-            int EI=ocaf->indexedEdges->FindIndex(E);
-	    if(Enormals.find(EI)==Enormals.end()){
-                  Enormals[EI]=std::pair<gp_Vec, gp_Vec >(FN1,BN1);
+            gp_Pnt CP2; gp_Vec ET2;
+	    gec->D1(u1,CP1,ET1); ET1/=ET1.Magnitude();
+	    gec->D1(u2,CP2,ET2); ET2/=ET2.Magnitude();
+            gp_Vec BN1=SN1.Crossed(ET1)*Esign;
+            gp_Vec BN2=SN2.Crossed(ET2)*Esign;
+	    if(Pnormals.find(VI1)==Pnormals.end()){
+                  Pnormals[VI1]=std::pair<gp_Vec, gp_Vec >(-ET1,BN1);
 	    } else {
-                  Enormals[EI].first+=FN1;
-                  Enormals[EI].second+=BN1;
-		  if(Enormals[EI].first.Dot(Enormals[EI].second) >0.05 ) 
-			  ocaf->edgeData[EI-1].singular=true;
+                  Pnormals[VI1].first-=ET1;
+                  Pnormals[VI1].second+=BN1;
+		  double dd=Pnormals[VI1].first.Dot(Pnormals[VI1].second);
+		  if(dd>0.2 ) ocaf->vertexData[VI1-1].singular=1;
+            }
+	    if(Pnormals.find(VI2)==Pnormals.end()){
+                  Pnormals[VI2]=std::pair<gp_Vec, gp_Vec >(ET2,BN2);
+	    } else {
+                  Pnormals[VI2].first+=ET2;
+                  Pnormals[VI2].second+=BN2;
+		  double dd=Pnormals[VI2].first.Dot(Pnormals[VI2].second);
+		  if(dd>0.2 ) ocaf->vertexData[VI2-1].singular=1;
             }
 	 }
      }
   }
+  for (IntMapIt it=Pmult.begin(); it!= Pmult.end(); it++) if(Pmult[(*it).second]==1) ocaf->vertexData[Pmult[(*it).first]-1].singular=2;
 
-}
 
-void mesher_setSingularVertices(GModel *gm,
-	            TopTools_IndexedMapOfShape *indexedVertices,
-		    double meshsize,  VertexData  *vertexData,
-		    std::list<int> &mshFieldList)
-{
   std::list<int> Vl;
   for(GModel::viter it = gm->firstVertex(); it != gm->lastVertex(); it++){
 	  GVertex *gv=(*it); 
           TopoDS_Shape V=* (TopoDS_Shape *) gv->getNativePtr();
-          int VI=indexedVertices->FindIndex(V);
-	  if (vertexData[VI-1].singular && vertexData[VI-1].onWG())  Vl.push_back(gv->tag());
+          int VI=ocaf->indexedVertices->FindIndex(V);
+	  if (ocaf->vertexData[VI-1].singular)  Vl.push_back(gv->tag());
   }
   if(!Vl.size()) return;
   FieldManager *fields = gm->getFields();
   int fieldTag1=fields->newId(); 
-  Field *attractor=fields->newField(fieldTag1, "Attractor");
-  FieldOption *option = attractor->options["NodesList"]; 
-  option->list(Vl);
-  attractor->options["NNodesByEdge"]->numericalValue(100);
+  Field *distance=fields->newField(fieldTag1, "Distance");
+  distance->options["PointsList"]->list(Vl);; 
   int fieldTag=fields->newId(); mshFieldList.push_back(fieldTag);
   Field *thsld=fields->newField(fieldTag, "Threshold");
-  thsld->options["IField"]->numericalValue(fieldTag1);
-  thsld->options["LcMax"]->numericalValue(meshsize);
+  thsld->options["InField"]->numericalValue(fieldTag1);
   if(mesh_aniso){
         thsld->options["DistMin"]->numericalValue(meshsize*0.6);
         thsld->options["DistMax"]->numericalValue(meshsize*2.5);
-	thsld->options["LcMin"]->numericalValue(meshsize/3);
+        thsld->options["SizeMin"]->numericalValue(meshsize/3);
+        thsld->options["SizeMax"]->numericalValue(meshsize);
   }else{
-        thsld->options["DistMin"]->numericalValue(meshsize*0.6);
-        thsld->options["DistMax"]->numericalValue(meshsize*3.0);
-        thsld->options["LcMin"]->numericalValue(meshsize*0.3);
+        thsld->options["DistMin"]->numericalValue(meshsize/10);
+        thsld->options["DistMax"]->numericalValue(meshsize);
+        thsld->options["SizeMin"]->numericalValue(meshsize/10);
+        thsld->options["SizeMax"]->numericalValue(meshsize);
   }
 }
 
@@ -986,17 +1051,15 @@ void mesher_setRefinedVertices(GModel *gm,
   if(!Vl.size()) return;
   FieldManager *fields = gm->getFields();
   int fieldTag1=fields->newId();
-  Field *attractor=fields->newField(fieldTag1, "Attractor");
-  FieldOption *option = attractor->options["NodesList"]; 
-  option->list(Vl);
-  attractor->options["NNodesByEdge"]->numericalValue(100);
+  Field *distance=fields->newField(fieldTag1, "Distance");
+  distance->options["PointsList"]->list(Vl);
   int fieldTag=fields->newId(); mshFieldList.push_back(fieldTag);
   Field *thsld=fields->newField(fieldTag, "Threshold");
-  thsld->options["IField"]->numericalValue(fieldTag1);
+  thsld->options["InField"]->numericalValue(fieldTag1);
   thsld->options["DistMin"]->numericalValue(0);
   thsld->options["DistMax"]->numericalValue(meshsize*0.3);
-  thsld->options["LcMin"]->numericalValue(meshsize*0.3);
-  thsld->options["LcMax"]->numericalValue(meshsize);
+  thsld->options["SizeMin"]->numericalValue(meshsize*0.3);
+  thsld->options["SizeMax"]->numericalValue(meshsize);
 }
 
 class myVertex{
@@ -1181,7 +1244,7 @@ class myElement{
     mat[2][1] = _nodes[2]->z() - _nodes[0]->z();
     mat[2][2] = _nodes[3]->z() - _nodes[0]->z();
   }
-  double meanEdge() const
+  double meanEdgeSize() const
   {
     double l12,l13,l23,l14,l24,l34;
     if(_nodes.size() >=2){
@@ -1194,7 +1257,9 @@ class myElement{
       l13 = _nodes[0]->distance(*_nodes[2]);
       std::pair<int,int> p23(min(_nodes[1]->tag(),_nodes[2]->tag()),max(_nodes[1]->tag(),_nodes[2]->tag()));
       l23 = _nodes[1]->distance(*_nodes[2]);
-      if(_nodes.size()==3) return 3/(1/l12+1/l13+1/l23);
+      if(_nodes.size()==3) return (l12+l13+l23)/3;
+//      if(_nodes.size()==3) return 3/(1/l12+1/l13+1/l23);
+//      if(_nodes.size()==3) return sqrt(3/(1/(l12*l12)+1/(l13*l13)+1/(l23*l23)));
     }
     if(_nodes.size() >= 4){
       std::pair<int,int> p14(min(_nodes[0]->tag(),_nodes[3]->tag()),max(_nodes[0]->tag(),_nodes[3]->tag()));
@@ -1203,7 +1268,104 @@ class myElement{
       l24 = _nodes[1]->distance(*_nodes[3]);
       std::pair<int,int> p34(min(_nodes[2]->tag(),_nodes[3]->tag()),max(_nodes[2]->tag(),_nodes[3]->tag()));
       l34 = _nodes[2]->distance(*_nodes[3]);
-      return 6/(1/l12+1/l13+1/l23+1/l14+1/l24+1/l34);
+      return (l12+l13+l23+l14+l24+l34)/6;
+//      return 6/(1/l12+1/l13+1/l23+1/l14+1/l24+1/l34);
+//      return sqrt(6/(1/(l12*l12)+1/(l13*l13)+1/(l23*l23)+1/(l14*l14)+1/(l24*l24)+1/(l34*l34)));
+    }
+  }
+  double meanDihedralEdgeSize(int i) const
+  {
+    double l12,l13,l23,l14,l24,l34;
+    int iV=i+1;
+    if(_nodes.size() >= 4){
+      if(iV==1||iV==2){
+       std::pair<int,int> p12(min(_nodes[0]->tag(),_nodes[1]->tag()),max(_nodes[0]->tag(),_nodes[1]->tag()));
+       l12 = _nodes[0]->distance(*_nodes[1]);
+      } else l12=0;
+      if(iV==1||iV==3){
+       std::pair<int,int> p13(min(_nodes[0]->tag(),_nodes[2]->tag()),max(_nodes[0]->tag(),_nodes[2]->tag()));
+       l13 = _nodes[0]->distance(*_nodes[2]);
+      } else l13=0;
+      if(iV==2||iV==3){
+       std::pair<int,int> p23(min(_nodes[1]->tag(),_nodes[2]->tag()),max(_nodes[1]->tag(),_nodes[2]->tag()));
+       l23 = _nodes[1]->distance(*_nodes[2]);
+      } else l23=0;
+      if(iV==1||iV==4){
+       std::pair<int,int> p14(min(_nodes[0]->tag(),_nodes[3]->tag()),max(_nodes[0]->tag(),_nodes[3]->tag()));
+       l14 = _nodes[0]->distance(*_nodes[3]);
+      } else l14=0;
+      if(iV==2||iV==4){
+       std::pair<int,int> p24(min(_nodes[1]->tag(),_nodes[3]->tag()),max(_nodes[1]->tag(),_nodes[3]->tag()));
+       l24 = _nodes[1]->distance(*_nodes[3]);
+      } else l24=0;
+      if(iV==3||iV==4){
+       std::pair<int,int> p34(min(_nodes[2]->tag(),_nodes[3]->tag()),max(_nodes[2]->tag(),_nodes[3]->tag()));
+       l34 = _nodes[2]->distance(*_nodes[3]);
+      } else l34=0;
+      return (l12+l13+l23+l14+l24+l34)/3;
+    } else return 0;
+  }
+  double minDihedralEdgeSize(int i) const
+  {
+    int iV=i+1;
+    if(_nodes.size() >= 4){
+      double retval=-1;
+      if(iV==1||iV==2){
+       std::pair<int,int> p12(min(_nodes[0]->tag(),_nodes[1]->tag()),max(_nodes[0]->tag(),_nodes[1]->tag()));
+       double l12 = _nodes[0]->distance(*_nodes[1]);
+       retval=retval<0 ? l12 : min(retval,l12);
+      }
+      if(iV==1||iV==3){
+       std::pair<int,int> p13(min(_nodes[0]->tag(),_nodes[2]->tag()),max(_nodes[0]->tag(),_nodes[2]->tag()));
+       double l13 = _nodes[0]->distance(*_nodes[2]);
+       retval=retval<0 ? l13 : min(retval,l13);
+      };
+      if(iV==2||iV==3){
+       std::pair<int,int> p23(min(_nodes[1]->tag(),_nodes[2]->tag()),max(_nodes[1]->tag(),_nodes[2]->tag()));
+       double l23 = _nodes[1]->distance(*_nodes[2]);
+       retval=retval<0 ? l23 : min(retval,l23);
+      }
+      if(iV==1||iV==4){
+       std::pair<int,int> p14(min(_nodes[0]->tag(),_nodes[3]->tag()),max(_nodes[0]->tag(),_nodes[3]->tag()));
+       double l14 = _nodes[0]->distance(*_nodes[3]);
+       retval=retval<0 ? l14 : min(retval,l14);
+      }
+      if(iV==2||iV==4){
+       std::pair<int,int> p24(min(_nodes[1]->tag(),_nodes[3]->tag()),max(_nodes[1]->tag(),_nodes[3]->tag()));
+       double l24 = _nodes[1]->distance(*_nodes[3]);
+       retval=retval<0 ? l24 : min(retval,l24);
+      }
+      if(iV==3||iV==4){
+       std::pair<int,int> p34(min(_nodes[2]->tag(),_nodes[3]->tag()),max(_nodes[2]->tag(),_nodes[3]->tag()));
+       double l34 = _nodes[2]->distance(*_nodes[3]);
+       retval=retval<0 ? l34 : min(retval,l34);
+      }
+      return retval;
+    } else return 0;
+  }
+  double maxEdgeSize() const
+  {
+    double l12,l13,l23,l14,l24,l34;
+    if(_nodes.size() >=2){
+      std::pair<int,int> p12(min(_nodes[0]->tag(),_nodes[1]->tag()),max(_nodes[0]->tag(),_nodes[1]->tag()));
+      l12 = _nodes[0]->distance(*_nodes[1]);
+      if(_nodes.size()==2) return l12;
+    }
+    if(_nodes.size() >= 3){
+      std::pair<int,int> p13(min(_nodes[0]->tag(),_nodes[2]->tag()),max(_nodes[0]->tag(),_nodes[2]->tag()));
+      l13 = _nodes[0]->distance(*_nodes[2]);
+      std::pair<int,int> p23(min(_nodes[1]->tag(),_nodes[2]->tag()),max(_nodes[1]->tag(),_nodes[2]->tag()));
+      l23 = _nodes[1]->distance(*_nodes[2]);
+      if(_nodes.size()==3) return max(l12,max(l13,l23));
+    }
+    if(_nodes.size() >= 4){
+      std::pair<int,int> p14(min(_nodes[0]->tag(),_nodes[3]->tag()),max(_nodes[0]->tag(),_nodes[3]->tag()));
+      l14 = _nodes[0]->distance(*_nodes[3]);
+      std::pair<int,int> p24(min(_nodes[1]->tag(),_nodes[3]->tag()),max(_nodes[1]->tag(),_nodes[3]->tag()));
+      l24 = _nodes[1]->distance(*_nodes[3]);
+      std::pair<int,int> p34(min(_nodes[2]->tag(),_nodes[3]->tag()),max(_nodes[2]->tag(),_nodes[3]->tag()));
+      l34 = _nodes[2]->distance(*_nodes[3]);
+      return max(l12,max(l13,max(l23,max(l14,max(l24,l34)))));
     }
   }
   double volume()
@@ -1213,11 +1375,23 @@ class myElement{
     getMat(mat);
     return det3x3(mat)/6.;
   }
-  double refTetSize(std::map< std::size_t, double> &refmap){
+/*
+  double meanRefTetSize(std::map< std::size_t, double> &refmap){
      double tetref=refmap[tag()];
-     double tetsize=meanEdge()/tetref;
+     double tetsize=meanEdgeSize()/tetref;
      return tetsize;
   }
+  double meanRefTetSize(std::map< std::size_t, double> &refmap){
+     double tetref=refmap[tag()];
+     double tetsize=pow(volume()*6*sqrt(2.0),1.0/3) /tetref;
+     return tetsize;
+  }
+  double maxRefTetSize(std::map< std::size_t, double> &refmap){
+     double tetref=refmap[tag()];
+     double tetsize=maxEdgeSize()/tetref;
+     return tetsize;
+  }
+*/
 };
 
 
@@ -1365,40 +1539,42 @@ class myMesh{
 
 
 
-void computeNodeSizeField2(const myMesh &mesh,
-		      std::map< std::pair<int,int>, double> &refmap,
-                      std::map<std::size_t, double> &sf_node
-		      )
-{
-  std::map<std::size_t, int> nodeTetCounter;
-  for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) if(it->second->nodes().size()==4){
-     double Psize[4]; it->second->meanRefEdge(refmap, Psize);
-     for (int i=0; i<4; i++){
-       int iP=it->second->nodes()[i]->tag();
-       if(sf_node.find(iP)==sf_node.end()){ sf_node[iP]=1/Psize[i]; nodeTetCounter[iP]=1;}
-       else                               { sf_node[iP]+=1/Psize[i]; nodeTetCounter[iP]++;}
-     }
-  }
-  for(std::map<std::size_t, double>::const_iterator it = sf_node.begin(); it != sf_node.end(); it++){
-	 int iP=it->first;
-	 sf_node[iP]=nodeTetCounter[iP]/sf_node[iP];
-  }
-}
-
-
 
 void computeNodeSizeField(const myMesh &mesh,
 		      std::map< std::size_t, double> &refmap,
                       std::map<std::size_t, double> &sf_node
 		      )
 {
+  std::map<std::size_t, int> sf_counter;
+//  std::map<std::size_t, double> ref_node;
   for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) if(it->second->nodes().size()==4){
-     double tetsize=it->second->refTetSize(refmap);
+//     double tetsize=it->second->meanEdgeSize()/(refmap[it->second->tag()]);
      for (int i=0; i<4; i++){
+       assert(refmap[it->second->tag()]>0);
+       double tetref=refmap[it->second->tag()];
+       double tetsize=it->second->meanDihedralEdgeSize(i)/tetref;
+//       double tetsize=it->second->meanDihedralEdgeSize(i);
        int iP=it->second->nodes()[i]->tag();
+//       ref_node[iP]=(ref_node.find(iP)==ref_node.end()) ? tetref: max(tetref,ref_node[iP]);
        sf_node[iP]=(sf_node.find(iP)==sf_node.end()) ? tetsize: min(tetsize,sf_node[iP]);
+/*
+       if(ref_node.find(iP)==ref_node.end()){
+         ref_node[iP]=tetref; sf_node[iP]=tetsize;
+       } else {
+         ref_node[iP]+=tetref; sf_node[iP]+=tetsize;
+       }
+*/
+/*
+       if(sf_counter.find(iP)==sf_counter.end()){
+         sf_counter[iP]=1; sf_node[iP]=tetsize/tetref;
+       } else {
+         sf_counter[iP]+=1; sf_node[iP]+=tetsize/tetref;
+       }
+*/
      }
   }
+//  for(std::map<std::size_t, int>::const_iterator it = sf_counter.begin(); it != sf_counter.end(); it++)  sf_node[it->first]/=it->second;
+//  for(std::map<std::size_t, double>::const_iterator it = ref_node.begin(); it != ref_node.end(); it++)  sf_node[it->first]/=(it->second);
 }
 
 
@@ -1410,16 +1586,16 @@ void computeNodeSizeField2(const myMesh &mesh,
   std::map<std::size_t, int> nodeTetCounter;
   for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) if(it->second->nodes().size()==4){
      double tetvol=it->second->volume();
-     double tetsize=it->second->refTetSize(refmap);
      for (int i=0; i<4; i++){
+       double tetsize=it->second->meanDihedralEdgeSize(i)/(refmap[it->second->tag()]);
        int iP=it->second->nodes()[i]->tag();
-       if(sf_node.find(iP)==sf_node.end()){ sf_node[iP]=1/(tetsize*tetsize); nodeTetCounter[iP]=1;}
-       else                               { sf_node[iP]+=1/(tetsize*tetsize); nodeTetCounter[iP]++;}
+       if(sf_node.find(iP)==sf_node.end()){ sf_node[iP]=tetsize; nodeTetCounter[iP]=1;}
+       else                               { sf_node[iP]+=tetsize; nodeTetCounter[iP]++;}
      }
   }
   for(std::map<std::size_t, double>::const_iterator it = sf_node.begin(); it != sf_node.end(); it++){
 	 int iP=it->first;
-	 sf_node[iP]=1.0/sqrt(sf_node[iP]/nodeTetCounter[iP]);
+	 sf_node[iP]=sf_node[iP]/nodeTetCounter[iP];
   }
 }
 
@@ -1438,7 +1614,7 @@ void computeElementSizeField(const myMesh &mesh,
 		      std::map<std::size_t, double> &refmap)
 {
   for(std::map<std::size_t, myElement*>::const_iterator it = mesh.elements().begin(); it != mesh.elements().end(); it++) 
-	  if(it->second->nodesNum()==4) sf_ele[it->first] = it->second->refTetSize(refmap);
+	  if(it->second->nodesNum()==4) sf_ele[it->first] = it->second->meanEdgeSize()/(refmap[it->second->tag()]);
 }
 
 void getKeysValues(const std::map<std::size_t, double> &f,
@@ -1492,14 +1668,9 @@ void read_meshref(std::string &mshrefFilePath, std::map<std::size_t, double> &re
 }
 
 
-int mesher_setMeshSizeView(std::string mshFilePath)
+int mesher_setMeshSizeView(GModel *gm0, std::string mshFilePath)
 {
-
-  gmsh::model::add("backgroundmesh");
-  gmsh::model::setCurrent("backgroundmesh");
-  GModel *gm0=GModel::current();
   gm0->readMSH(mshFilePath+".msh");
-
   myMesh mesh(gm0);
   
   std::string mshrefFilePath=mshFilePath+".mshref";
@@ -1609,18 +1780,22 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 	      double edgeRef=refri*edgeData[EI-1].meshref;
 	      int mshrefI=10*edgeRef+0.2;
 	      double emeshSize=10*meshsize/mshrefI;
-	      if(mesh3D) if (edgeData[EI-1].singular) emeshSize*=0.7;
-	      ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,emeshSize/edgeRef);
+	      if(mesh3D) if (edgeData[EI-1].singular){
+	           int singmshrefI=10*edgeRef*edgeData[EI-1].singular+0.2;
+		   singElist[singmshrefI].push_back(ge->tag());
+	      }
+	      ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,emeshSize);
+             /*	      
 	      GVertex * v1=ge->getBeginVertex();
 	      GVertex * v2=ge->getEndVertex();
 	      v1->setPrescribedMeshSizeAtVertex(min(v1->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
 	      v2->setPrescribedMeshSizeAtVertex(min(v2->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
-
+	     */
       }
       if(!useEdgeAttractor) return;
       typedef std::map<int, std::list<int> >::const_iterator ElistIt;
-//     if(mesh_aniso)   
-      if(true)   
+      if(mesh_aniso)   
+//      if(true)   
 	      for (ElistIt it=singElist.begin(); it!= singElist.end(); it++){
 	  int mshrefI=(*it).first;
 	  double emeshSize=10*meshsize/mshrefI;
@@ -1642,16 +1817,16 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 	  double emeshSize=10*meshsize/mshrefI;
 	  {
 	     int fieldTag1=fields->newId();
-             Field *attractor=fields->newField(fieldTag1, "Attractor");
-             attractor->options["EdgesList"]->list((*it).second);
-             attractor->options["NNodesByEdge"]->numericalValue(50);
+             Field *distance=fields->newField(fieldTag1, "Distance");
+             distance->options["EdgesList"]->list((*it).second);
+             distance->options["Sampling"]->numericalValue(50);
 	     int fieldTag=fields->newId(); mshFieldList.push_back(fieldTag);
              Field *thsld=fields->newField(fieldTag, "Threshold");
              thsld->options["IField"]->numericalValue(fieldTag1);
-             thsld->options["DistMin"]->numericalValue(0);
-             thsld->options["DistMax"]->numericalValue(2*meshsize);
-             thsld->options["LcMin"]->numericalValue(emeshSize*0.5);
-             thsld->options["LcMax"]->numericalValue(meshsize);
+             thsld->options["DistMin"]->numericalValue(meshsize/2);
+             thsld->options["DistMax"]->numericalValue(meshsize);
+             thsld->options["SizeMin"]->numericalValue(meshsize/4);
+             thsld->options["SizeMax"]->numericalValue(meshsize);
 	  }
       }
 
@@ -1663,11 +1838,11 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 void mesher_setBackgroundField(GModel *gm, std::list<int> &mshFieldList){
       if(mshFieldList.size()>0){
           FieldManager *fields = gm->getFields();
-//          Field *bkgfield= mesh_aniso ?  fields->newField(1, "MinAniso") : fields->newField(1, "Min");
           int fieldTag;
           if(mshFieldList.size()>1){
            fieldTag=fields->newId();
-           Field *bkgfield= fields->newField(fieldTag, "MinAniso");
+//           Field *bkgfield= fields->newField(fieldTag, "MinAniso");
+           Field *bkgfield= mesh_aniso ?  fields->newField(fieldTag, "MinAniso") : fields->newField(fieldTag, "Min");
            bkgfield->options["FieldsList"]->list(mshFieldList);
 	  } else fieldTag=*(mshFieldList.begin());
           fields->setBackgroundFieldId(fieldTag);
@@ -1696,13 +1871,15 @@ void mesher_setRegionMeshAttribute(GModel *gm, MwOCAF* ocaf,
 
 void mesher_setFaceMeshAttribute(GModel *gm,
 	            TopTools_IndexedMapOfShape *indexedFaces,
-		    double meshsize, double sharedMeshRef, FaceData  *faceData
+		    double meshsize, double sharedMeshRef, FaceData  *faceData,
+		    bool onlyOnWG=false
 	      )
 {
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
               GFace *gf=*fit;
               TopoDS_Shape F=* (TopoDS_Shape *) gf->getNativePtr();
               int FI=indexedFaces->FindIndex(F);
+	      if(onlyOnWG && !faceData[FI-1].Shared()) continue;
 	      double refri=sqrt(faceData[FI-1].epsr * faceData[FI-1].mur);
 	      gf->meshAttributes.meshSize = meshsize/(refri*faceData[FI-1].meshref);
 	      if(faceData[FI-1].shared){
@@ -1711,10 +1888,12 @@ void mesher_setFaceMeshAttribute(GModel *gm,
                      for (std::vector<GEdge*>::const_iterator eit=Fedges.begin(); eit!=Fedges.end(); ++eit){
                        GEdge *ge=*eit;
 		       ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,gf->meshAttributes.meshSize);
+		       /*
 	               GVertex * v1=ge->getBeginVertex();
 	               GVertex * v2=ge->getEndVertex();
 	               v1->setPrescribedMeshSizeAtVertex(min(v1->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
 	               v2->setPrescribedMeshSizeAtVertex(min(v2->prescribedMeshSizeAtVertex(),ge->meshAttributes.meshSize));
+		       */
                      }
 	      }
       }
@@ -1776,6 +1955,59 @@ void laplaceSmoothing(GFace *gf);
 
 
 
+void writeIFmap(GModel *gm,  MwOCAF* ocaf, const char* dirName){
+
+  std::string intIFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
+  std::string extIFfileName=std::string(dirName)+std::string("/../interfaces/IF.map");
+  FILE *fIntIF=NULL;
+  FILE *fExtIF=NULL;
+  std::set<int> intUFIset,extUFIset;
+  {
+   for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+    GFace *gf=*fit;
+    TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+    F.Orientation(TopAbs_FORWARD);
+    int FI=ocaf->indexedFaces->FindIndex(F);
+    if(!FI) continue;
+    if(ocaf->faceData[FI-1].sfname==std::string("-")) continue;
+    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
+    int UUFI=UFI;
+    int internal=ocaf->splitFacesMap[UFI-1]==0;
+    if(!internal) UUFI=ocaf->splitFacesMap[UFI-1];
+    if(internal) intUFIset.insert(UFI);
+    else         extUFIset.insert(UUFI);
+   }
+   int intIFfaceNum=intUFIset.size();
+   int extIFfaceNum=extUFIset.size();
+   fIntIF=fopen(nativePath(intIFfileName).c_str(), "w");
+   fExtIF=fopen(nativePath(extIFfileName).c_str(), "w");
+   fprintf(fIntIF, "%d  faceNum \n", intIFfaceNum );
+   fprintf(fExtIF, "%d  faceNum \n", extIFfaceNum );
+  }
+  intUFIset.clear();
+  extUFIset.clear();
+
+  for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+    GFace *gf=*fit;
+    TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+    int Ssign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
+    F.Orientation(TopAbs_FORWARD);
+    int FI=ocaf->indexedFaces->FindIndex(F);
+    if(!FI) continue;
+    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
+    int internal=1;
+    if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
+    int UUFI=UFI;
+    if(ocaf->isPartition()) if(ocaf->splitFacesMap[UFI-1]) UUFI=ocaf->splitFacesMap[UFI-1];
+    if(ocaf->faceData[FI-1].sfname!=std::string("-") ){
+	if(internal)   if(intUFIset.find(UFI)==intUFIset.end())  {fprintf(fIntIF, "%d  %s\n", UFI,  ocaf->faceData[FI-1].sfname.c_str()); intUFIset.insert(UFI);}
+	if(!internal)  if(extUFIset.find(UUFI)==extUFIset.end()) {fprintf(fExtIF, "%d  %s\n", UUFI, ocaf->faceData[FI-1].sfname.c_str()); extUFIset.insert(UUFI);}
+    }
+  }
+  fclose(fIntIF); fclose(fExtIF);
+}
+
+
 void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, double sharedMeshRef, int meshpercircle, const char* dirName, const char* modelDir)
 {
     bool CHECK=false;
@@ -1791,13 +2023,6 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
     TCollection_AsciiString assName; ocaf->getAssName(assName);
     std::string mshFilePath=std::string(modelDir)+"/"+std::string(assName.ToCString());
     mshFilePath=nativePath(mshFilePath);
-
-    gmsh::initialize();
-
-    std::string mshrefFilePath=mshFilePath+".mshref";
-    int meshSizeViewTag=-1;
-    if(FileExists(mshrefFilePath.c_str()))
-       meshSizeViewTag=mesher_setMeshSizeView(mshFilePath);
 
 //------------------
 
@@ -1869,6 +2094,18 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //      GmshSetOption("Mesh", "Algorithm", ALGO_2D_FRONTAL);
 
 
+      gmsh::initialize();
+      Msg::SetVerbosity(0);
+
+      std::string mshrefFilePath=mshFilePath+".mshref";
+      int meshSizeViewTag=-1;
+      if(FileExists(mshrefFilePath.c_str())){
+        gmsh::model::add("backgroundmesh");
+        gmsh::model::setCurrent("backgroundmesh");
+        GModel *gm0=GModel::current();
+        gm0->importOCCShape(&theShapes);
+        meshSizeViewTag=mesher_setMeshSizeView(gm0, mshFilePath);
+      }
       gmsh::model::add(assName.ToCString());
       gmsh::model::setCurrent(assName.ToCString());
       GModel *gm=GModel::current();
@@ -1882,21 +2119,28 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
       std::map< int, std::string > solidNames;
       if(mesh3D){
-       int SI=0;
-       for (TDF_ChildIterator it(ocaf->theParts,Standard_False); it.More(); it.Next()) {
+      int SI=0;
+      for (TDF_ChildIterator it(ocaf->theParts,Standard_False); it.More(); it.Next()) {
         TDF_Label label1 = it.Value();
         Handle(TDF_Reference)  refAtt;
         if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
         TDF_Label label = refAtt->Get();
         TopoDS_Shape S = ocaf->shapeTool->GetShape(label);
-        if(!S.IsNull()) if(S.ShapeType()==TopAbs_SOLID){
-          int VI=ocaf->indexedSolids->FindIndex(S);
-          DB::Volume *vol=ocaf->getLabelVol(label);
-	  solidNames[VI]=std::string(vol->name);
+        if(!S.IsNull()){
+           DB::Volume *vol=ocaf->getLabelVol(label);
+	   if(S.ShapeType()==TopAbs_SOLID){
+              int VI=ocaf->indexedSolids->FindIndex(S);
+	      solidNames[VI]=std::string(vol->name);
+	   } else if(S.ShapeType()==TopAbs_COMPSOLID || S.ShapeType()==TopAbs_COMPOUND) for (TopExp_Explorer exp(S,TopAbs_SOLID); exp.More(); exp.Next()){ 
+	      TopoDS_Shape Si=exp.Current();
+	      if(Si.ShapeType()==TopAbs_SOLID){
+                  int VIi=ocaf->indexedSolids->FindIndex(Si);
+	          solidNames[VIi]=std::string(vol->name);
+	      }
+           }
         }
-       }
       }
-
+      }
 //
       std::map< int, GEdge * > indexedGmshEdges;
       for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
@@ -1913,17 +2157,19 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 #if defined(GMSH3D)
 //      if(!mesh3D) meshsize_=meshsize*0.7;
 #endif
-//      if(mesh3D)  mesher_setSingularEdges(gm, ocaf);
-      mesher_setEdgeMeshAttribute(gm, mesh3D, ocaf->indexedEdges, meshsize, ocaf->edgeData,mshFieldList, 
-		                  useEdgeAttractor && meshSizeViewTag>=0);
-//      mesher_setGlobalAniso(gm, ocaf->indexedEdges, meshsize, 1.0, 1.0, 2.0, fieldNum, mshFieldList);
-      if(meshSizeViewTag<0)
-        mesher_setSingularVertices(gm, ocaf->indexedVertices, meshsize, ocaf->vertexData, mshFieldList);
+      if(mesh3D)  mesher_setSingularEdges(gm, ocaf);
+      if(meshSizeViewTag<0){
+         mesher_setEdgeMeshAttribute(gm, mesh3D, ocaf->indexedEdges, 0.9*meshsize, ocaf->edgeData,mshFieldList, useEdgeAttractor);
+//       mesher_setGlobalAniso(gm, ocaf->indexedEdges, meshsize, 1.0, 1.0, 2.0, fieldNum, mshFieldList);
+//         if(!mesh3D)  
+		 mesher_setSingularVertices(gm, ocaf, meshsize, mshFieldList);
+      }
       if(useFaceAttractor)
-       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize, sharedMeshRef, ocaf->faceData, mshFieldList);
-      else
-       mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, meshsize, sharedMeshRef, ocaf->faceData);
-
+         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshRef, ocaf->faceData, mshFieldList);
+      else{
+	 bool onlyOnWG=meshSizeViewTag>=0;
+         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshRef, ocaf->faceData, onlyOnWG);
+      }
       if(mesh3D) mesher_setRegionMeshAttribute(gm, ocaf, meshsize, solidNames);
 
 #if defined(MAKEMASTERS)
@@ -1951,26 +2197,31 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 	 CTX::instance()->mesh.algo2d=ALGO_2D_BAMG;
 //         CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
       else            
-//           CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
-//           CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
+//        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
+        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
+//        if(meshIF)  CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
+//        else        CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
          CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
-//         CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
-//         CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
       CTX::instance()->mesh.lcFromPoints=1;
       CTX::instance()->mesh.lcFromCurvature=1;
       CTX::instance()->mesh.lcExtendFromBoundary=0;
-      CTX::instance()->mesh.minCircPoints=meshpercircle;
-      CTX::instance()->mesh.minElementsPerTwoPi=meshpercircle;
+      if(meshIF){
+        CTX::instance()->mesh.minCircleNodes=meshpercircle;
+        CTX::instance()->mesh.lcFromCurvature=meshpercircle;
+      }else{
+        CTX::instance()->mesh.minCircleNodes=meshpercircle;
+        CTX::instance()->mesh.lcFromCurvature=meshpercircle;
+      }
       CTX::instance()->mesh.anisoMax=10000;
 //      CTX::instance()->mesh.refineSteps=2;
-      CTX::instance()->mesh.nbSmoothing=(meshSizeViewTag>=0)? 0 : 2;
+//      CTX::instance()->mesh.nbSmoothing=(meshSizeViewTag>=0)? 0 : 2;
+      CTX::instance()->mesh.nbSmoothing=2;
       CTX::instance()->mesh.smoothRatio=1.5;
       CTX::instance()->mesh.lcIntegrationPrecision=1.e-3;
       CTX::instance()->mesh.lcMax=meshsize;
       CTX::instance()->mesh.lcMin=meshsize/100;
 
 #if defined(GMSH3D)
-      CTX::instance()->mesh.lcExtendFromBoundary=0;
       if(mesh_aniso)
             CTX::instance()->mesh.algo3d=ALGO_3D_DELAUNAY;
 //            CTX::instance()->mesh.algo3d=ALGO_3D_FRONTAL;
@@ -1980,10 +2231,10 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //            CTX::instance()->mesh.algo3d= (meshSizeViewTag>=0)? ALGO_3D_DELAUNAY : ALGO_3D_FRONTAL;
 //          CTX::instance()->mesh.algo3d=ALGO_3D_HXT;
 //          CTX::instance()->mesh.algo3d=ALGO_3D_RTREE;
-      CTX::instance()->mesh.optimizeThreshold=0.5;
-      CTX::instance()->mesh.optimize=4;
+      CTX::instance()->mesh.optimizeThreshold=0.6;
+      CTX::instance()->mesh.optimize=5;
 //      CTX::instance()->mesh.optimizeNetgen=(meshSizeViewTag>=0)? 1 : 2;
-      CTX::instance()->mesh.optimizeNetgen=0;
+      CTX::instance()->mesh.optimizeNetgen=5;
 #endif
 
 /*
@@ -1996,8 +2247,12 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //      CTX::instance()->mesh.smoothRatio=0.0;
 //
 
-      if(meshSizeViewTag>=0) mesher_setMeshSizeField(gm, meshSizeViewTag, mshFieldList);
-      
+      if(meshSizeViewTag>=0){
+	 mesher_setMeshSizeField(gm, meshSizeViewTag, mshFieldList);
+         CTX::instance()->mesh.lcFromPoints=0;
+//         CTX::instance()->mesh.lcExtendFromBoundary=0;
+      }
+    
 
       mesher_setBackgroundField(gm, mshFieldList);
 
@@ -2041,6 +2296,7 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
 #if defined(GMSH3D)
 //      if(meshSizeViewTag>=0) CTX::instance()->mesh.nbSmoothing=0;
+      CTX::instance()->mesh.lcExtendFromBoundary=(meshSizeViewTag>=0)? 0 : 1;
       if(mesh3D) gm->mesh(3);
 #endif
 
@@ -2051,6 +2307,11 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
       gm->writeMSH(mshFilePath+".msh");
 
+      if(ocaf->isPartition()) writeIFmap(gm, ocaf, dirName);
+
+      if(mesh3D) addIF(ocaf, dirName, modelDir);
+      if(mesh3D) ocaf->setConductorMap();
+      
       print_mwm(gm, ocaf, meshIF, mesh3D, meshWG,
 		dirName, modelDir,
 		solidNames,
@@ -2073,71 +2334,101 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
 }
 
+
 void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
 {
+
+    TCollection_AsciiString assName; ocaf->getAssName(assName);
+    TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
+    TCollection_AsciiString compName=remove_SUB(assName);
+
+    FILE *fout=fopen(nativePath(modelFileName.ToCString()).c_str(), "w"); if(!fout) return;
 
     ocaf->regenerateIndexedSubShapes();
     ocaf->readFEproperties();
 
-    TCollection_AsciiString assName; ocaf->getAssName(assName);
-    TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
-
-    FILE *fout=fopen(nativePath(modelFileName.ToCString()).c_str(), "w"); if(!fout) return;
+    std::map<std::string,std::vector<int>, std::less<std::string> > WGIF_FI;
+    if(ocaf->isPartition()){
+     std::string IFfileName=std::string(dirName)+std::string("/../interfaces/IF.map");
+     FILE *fIFmap=fopen(nativePath(IFfileName).c_str(), "r");
+     int UFNum; char cstr[100];
+     fscanf(fIFmap, "%d", &UFNum);  fgets(cstr,100,fIFmap);
+     int FI; char str[100];
+     for (int i =0; i < UFNum; i++){ fscanf(fIFmap, "%d %s", &FI, str); WGIF_FI[std::string(str)].push_back(FI);}
+     fclose(fIFmap);
+    }
+    if(ocaf->isPartition()){
+     std::string IFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
+     FILE *fIFmap=fopen(nativePath(IFfileName).c_str(), "r");
+     int UFNum; char cstr[100];
+     fscanf(fIFmap, "%d", &UFNum);  fgets(cstr,100,fIFmap);
+     int FI; char str[100];
+     for (int i =0; i < UFNum; i++){ fscanf(fIFmap, "%d %s", &FI, str); WGIF_FI[std::string(str)].push_back(FI);}
+     fclose(fIFmap);
+    }
 
     std::map<std::string, int, std::less<std::string> > WGIF;
     typedef std::map<std::string, int, std::less<std::string> >::const_iterator WGIFIt;
 
-    int WGIFnum=0;
     for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++)  
 	if(ocaf->faceData[FI-1].Shared())
-            if(WGIF.find(ocaf->faceData[FI-1].sfname)==WGIF.end()) WGIF[ocaf->faceData[FI-1].sfname]=WGIFnum++;
+            if(WGIF.find(ocaf->faceData[FI-1].sfname)==WGIF.end()){
+                 int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
+                 int internal=1;
+                 if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
+		 WGIF[ocaf->faceData[FI-1].sfname]=internal;
+	    }
     for (WGIFIt it=WGIF.begin(); it!= WGIF.end(); it++){
-        fprintf(fout, "DEF %s  MWM_Volume {\n",  (*it).first.c_str());
-        fprintf(fout, "  type  WaveGuide\n");
-        fprintf(fout, "}\n\n");
-    }
+       std::string sfname=(*it).first;
+       fprintf(fout, "DEF %s  MWM_Volume {\n",  sfname.c_str());
+       fprintf(fout, "  type  WaveGuide\n");
+       fprintf(fout, "}\n\n");
+       bool internal=WGIF[sfname];
+       std::vector<int> FI=WGIF_FI[sfname];
+       for (int j=0; j<FI.size(); j++){
+         char fname[50]; sprintf(fname,"F%d",FI[j]);
+         std::string faceFileName=dirName;
+         if (internal) faceFileName+="/interfaces/";
+         else          faceFileName+="/../interfaces/";
+         faceFileName+=fname;
 
-    std::set<int> UFIset;
-    std::set<int> UUFIset;
-    for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++) if(ocaf->faceData[FI-1].Shared()){
-    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
-    int UUFI=UFI;
-    if(ocaf->isPartition()) if(ocaf->splitFacesMap[UFI-1])  UUFI=ocaf->splitFacesMap[UFI-1];
-    if(UUFI) if(UFIset.find(UFI)==UFIset.end() && UUFIset.find(UUFI)==UUFIset.end()) {
-      bool internal=1;
-      if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
-      std::string faceFileName=dirName;
-      char fname[50]; sprintf(fname,"F%d.mwm",UUFI);
-      if (internal) {faceFileName+="/interfaces/"; UFIset.insert(UFI);}
-      else          {faceFileName+="/../interfaces/"; UUFIset.insert(UUFI);}
-      faceFileName+=fname;
-      std::ifstream in;
-      in.open(faceFileName.c_str()); if(!in) continue;
-      fprintf(fout, "DEF UF%s  MWM_Surface {\n", ocaf->faceData[FI-1].name.c_str());
+         std::string mwmFileName=faceFileName+std::string(".mwm");
+         std::ifstream mwmin;
+         mwmin.open(mwmFileName.c_str()); if(!mwmin) continue;
+
+         FILE *fp=fopen(faceFileName.c_str(),"r+");
+         FaceData FD;
+         FD.read(fp);
+         fclose(fp);
+
+         fprintf(fout, "DEF UF%s  MWM_Surface {\n", FD.name.c_str());
 // Volumes Data associated with the UpperFace are the Current Component (indicated as '-') and the Superface.
 // The two volumes are ordered according to the UpperFace orientation.
-      int foreward= (ocaf->faceData[FI-1].cmp1 == std::string(assName.ToCString())) ? 1: 0;
-      if(foreward)
-       fprintf(fout, "  volumes  [\"-\", \"%s\"]\n",  ocaf->faceData[FI-1].sfname.c_str());
-      else
-       fprintf(fout, "  volumes  [\"%s\", \"-\"]\n",  ocaf->faceData[FI-1].sfname.c_str());
-      std::string str;
-      while (!getLine(in, str).eof()) fprintf(fout, "%s\n", str.c_str());
-      fprintf(fout, "\tcolor 0.878 0.000 0.000\n");
-      fprintf(fout, "}\n\n");
-      in.close();
+         int foreward;
+	 if(internal) foreward= (FD.cmp1 == std::string(assName.ToCString())) ? 1: 0;
+	 else         foreward= (FD.cmp1 == std::string(compName.ToCString())) ? 1: 0;
+         if(foreward)
+          fprintf(fout, "  volumes  [\"-\", \"%s\"]\n",  FD.sfname.c_str());
+         else
+          fprintf(fout, "  volumes  [\"%s\", \"-\"]\n",  FD.sfname.c_str());
+         fprintf(fout, "  cutoffRefinement  %f \n", FD.cutoffref);
+         std::string str;
+         while (!getLine(mwmin, str).eof()) fprintf(fout, "%s\n", str.c_str());
+         fprintf(fout, "\tcolor 0.878 0.000 0.000\n");
+         fprintf(fout, "}\n\n");
+         mwmin.close();
  /* ---*/
-      fprintf(fout, "DEF mat_%s  MWM_Material {\n",   ocaf->faceData[FI-1].name.c_str());
-      fprintf(fout, "   epsilonr          %g\n", ocaf->faceData[FI-1].epsr );
-      fprintf(fout, "   mur               %g\n", ocaf->faceData[FI-1].mur);
-      fprintf(fout, "}\n");
+         fprintf(fout, "DEF mat_%s  MWM_Material {\n",   FD.name.c_str());
+         fprintf(fout, "   epsilonr          %g\n", FD.epsr );
+         fprintf(fout, "   mur               %g\n", FD.mur);
+         fprintf(fout, "}\n");
 
-      fprintf(fout, "DEF UF%s  MWM_Volume {\n",  ocaf->faceData[FI-1].name.c_str());
-      fprintf(fout, "  type  Upperface\n");
-      fprintf(fout, "  material \"mat_%s\"\n",  ocaf->faceData[FI-1].name.c_str());
-      fprintf(fout, "}\n\n");
-     }
-     }
+         fprintf(fout, "DEF UF%s  MWM_Volume {\n",  FD.name.c_str());
+         fprintf(fout, "  type  Upperface\n");
+         fprintf(fout, "  material \"mat_%s\"\n",   FD.name.c_str());
+         fprintf(fout, "}\n\n");
+       }
+    }
      fflush(fout);
      #ifndef WNT
        int fd = fileno(fout);

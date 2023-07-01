@@ -19,7 +19,7 @@ def get_file_headers(username,password,folder,filename):
    params={"method": "head", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
       try:
-        r=requests.get(serverurl, headers=headers, params=params )
+        r=requests.get(serverurl, headers=headers, params=params, verify=False )
         r.raise_for_status()
         break
         time.sleep(1)
@@ -94,7 +94,7 @@ def upload_project_file_with_put(username,password,filename,folder):
    params={"method": "put", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
       try:
-         r=requests.get(serverurl, headers=headers, params=params )
+         r=requests.get(serverurl, headers=headers, params=params, verify=False )
          r.raise_for_status()
          break
          time.sleep(1)
@@ -108,7 +108,7 @@ def upload_project_file_with_put(username,password,filename,folder):
    for count in  range(1,nretry):
       try:
         with open(filename, 'rb') as data:
-          putr=requests.put(fileurl, data=data)
+          putr=requests.put(fileurl, data=data, verify=False)
           putr.raise_for_status()
           break
           time.sleep(1)
@@ -134,7 +134,7 @@ def upload_project_file(username,password,filename,folder, only_if_newer=False):
    params={"method": "post", "filename": filename, "folder": folder, "content-length": length}
    for count in  range(1,nretry):
       try:
-        r=requests.get(serverurl, headers=headers, params=params )
+        r=requests.get(serverurl, headers=headers, params=params, verify=False )
         r.raise_for_status()
         break
         time.sleep(1)
@@ -147,7 +147,7 @@ def upload_project_file(username,password,filename,folder, only_if_newer=False):
    content=json.loads(r.content.decode("ascii"))
    for count in  range(1,nretry):
       try:
-         postr=requests.post(content["url"], data=content["fields"],files={'file': open(filename, 'rb')})
+         postr=requests.post(content["url"], data=content["fields"],files={'file': open(filename, 'rb')}, verify=False)
          postr.raise_for_status()
          break
          time.sleep(1)
@@ -173,7 +173,7 @@ def download_signed_url(signedUrl):
    filename=url_filename(signedUrl)
    for count in  range(1,nretry):
      try:
-        getr=requests.get(signedUrl)
+        getr=requests.get(signedUrl, verify=False)
         getr.raise_for_status()
         break
         time.sleep(1)
@@ -206,7 +206,7 @@ def download_project_file(username,password,folder,filename,signedUrl=None):
    params={"method": "get", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
      try:
-        r=requests.get(serverurl, headers=headers, params=params )
+        r=requests.get(serverurl, headers=headers, params=params, verify=False )
         r.raise_for_status()
         break
         time.sleep(1)
@@ -230,7 +230,7 @@ def submit_job(username,password,folder,filename,job):
    params={"filename": filename, "folder": folder, "job": job}
    for count in  range(1,nretry):
      try:
-        r=requests.get(serverurl, headers=headers, params=params )
+        r=requests.get(serverurl, headers=headers, params=params, verify=False )
         r.raise_for_status()
         break
         time.sleep(1)

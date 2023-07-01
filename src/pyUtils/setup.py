@@ -31,9 +31,11 @@ setup(
         version = "1.0",
         description = "cx_Freeze script",
 	options = {"build_exe": build_exe_options},
+        py_modules=[],
         executables = [
 		       Executable("api_utils.py"),
 		       Executable("api_download.py"),
+		       Executable("api_upload_file.py"),
 		       Executable("api_submit.py"),
 		       Executable("filter_tune.py"),
 		       Executable("remove_dir.py"),

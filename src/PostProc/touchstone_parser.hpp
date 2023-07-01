@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -31,11 +31,12 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
-#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
-# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -44,51 +45,56 @@
 extern int touchstonedebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    INTEGER = 258,
-    FLOATING = 259,
-    STRING = 260,
-    PORTNAME = 261,
-    NUMBEROFPORTS = 262,
-    NUMBEROFFREQ = 263,
-    TWOPORTDATAORDER = 264,
-    ORDER_21_12 = 265,
-    ORDER_12_21 = 266,
-    NETWORKDATA = 267,
-    MATRIXFORMAT = 268,
-    FULL = 269,
-    OPTIONS = 270,
-    HZ = 271,
-    KHZ = 272,
-    MHZ = 273,
-    GHZ = 274,
-    tDB = 275,
-    tMA = 276,
-    tRI = 277,
-    tS = 278,
-    tY = 279,
-    tZ = 280,
-    tH = 281,
-    tG = 282,
-    tR = 283
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    INTEGER = 258,                 /* INTEGER  */
+    FLOATING = 259,                /* FLOATING  */
+    STRING = 260,                  /* STRING  */
+    PORTNAME = 261,                /* PORTNAME  */
+    NUMBEROFPORTS = 262,           /* NUMBEROFPORTS  */
+    NUMBEROFFREQ = 263,            /* NUMBEROFFREQ  */
+    TWOPORTDATAORDER = 264,        /* TWOPORTDATAORDER  */
+    ORDER_21_12 = 265,             /* ORDER_21_12  */
+    ORDER_12_21 = 266,             /* ORDER_12_21  */
+    NETWORKDATA = 267,             /* NETWORKDATA  */
+    MATRIXFORMAT = 268,            /* MATRIXFORMAT  */
+    FULL = 269,                    /* FULL  */
+    OPTIONS = 270,                 /* OPTIONS  */
+    HZ = 271,                      /* HZ  */
+    KHZ = 272,                     /* KHZ  */
+    MHZ = 273,                     /* MHZ  */
+    GHZ = 274,                     /* GHZ  */
+    tDB = 275,                     /* tDB  */
+    tMA = 276,                     /* tMA  */
+    tRI = 277,                     /* tRI  */
+    tS = 278,                      /* tS  */
+    tY = 279,                      /* tY  */
+    tZ = 280,                      /* tZ  */
+    tH = 281,                      /* tH  */
+    tG = 282,                      /* tG  */
+    tR = 283                       /* tR  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 73 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone.y"
+#line 73 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 92 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/PostProc/touchstone_parser.hpp"
+#line 98 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -99,6 +105,8 @@ typedef union YYSTYPE YYSTYPE;
 
 extern YYSTYPE touchstonelval;
 
+
 int touchstoneparse (void);
 
-#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */
+
+#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */

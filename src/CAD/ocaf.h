@@ -128,6 +128,7 @@ struct FaceData
   double epsr;
   double mur;
   double meshref;
+  double cutoffref;
   int shared;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
@@ -140,6 +141,7 @@ struct FaceData
    epsr=1;
    mur=1;
    meshref=1;
+   cutoffref=1;
    shared=0;
    BrCond.clear();
   }
@@ -160,6 +162,7 @@ struct FaceData
 	fscanf(fin,"%lf ",&epsr);
 	fscanf(fin,"%lf ",&mur);
 	fscanf(fin,"%lf ",&meshref);
+	fscanf(fin,"%lf ",&cutoffref);
         fscanf(fin,"%d ",&shared);
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
@@ -179,6 +182,7 @@ struct FaceData
 	fprintf(fout,"%f\n",epsr);
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
+	fprintf(fout,"%f\n",cutoffref);
 	fprintf(fout,"%d\n",shared);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
@@ -382,7 +386,7 @@ class MwOCAF
   void setSelectedLabels();
   void checkWires();
   void heal();
-  void imprint();
+  void imprint(int downImprint);
   void evalBBox();
   void evalSize(double size[3]);
   void makeSplitFaces();
@@ -419,7 +423,7 @@ class MwOCAF
   void setPartsStatus();
   void saveImportedStruct(const char *dir, int level, TCollection_AsciiString assName,
 	       	          TopLoc_Location assLoc, TDF_Label root, bool addImport=false);
-  void saveImportedStruct(const char *dir, bool compIsAss);
+  void saveImportedStruct(const char *dir);
   bool savePartsIF();
   void addToComponentLists(std::set<std::string, std::less<std::string> > *componentlist=NULL,
 		           std::map<std::string, std::vector<std::string>, std::less<std::string> > *wgcomponentlist=NULL
@@ -441,6 +445,7 @@ class MwOCAF
   void checkSuperFacesTEMnum();
   int evalTEMnum(TopoDS_Shape S, bool intPort=true);
   void setTEMnum();
+  void setConductorMap();
   void savePartitionMap();
   void readPartitionMap();
   void saveSubPartitionMap();
@@ -490,6 +495,8 @@ class MwOCAF
   std::vector<int>  subSplitFacesMap;
   std::vector<int>  subSplitEdgesMap;
   std::vector<int>  subSplitVerticesMap;
+  std::vector<int>  edgeConductorMap;
+  std::vector<int>  faceConductorMap;
 
   FaceData    *faceData;
   EdgeData    *edgeData;
@@ -498,16 +505,29 @@ class MwOCAF
 
   int  PECedge(int EI) {
       if (edgeData[EI-1].BrCond.find(std::string("PEC"))!=edgeData[EI-1].BrCond.end()) return 1;
-      if (WGedge(EI)) if(!PMCedge(EI)) if (edgeData[EI-1].BrCond.size()>1) return 1;
+      if (WGedge(EI)) if(ECedge(EI)) return 1;
       return 0;
   }
   int  PMCedge(int EI) {return edgeData[EI-1].BrCond.find(std::string("PMC"))==edgeData[EI-1].BrCond.end() ? 0:1;}
   int  LPedge(int EI)  {return edgeData[EI-1].LPname==std::string("-") ? 0:1;}
   int  WGedge(int EI)  {return edgeData[EI-1].BrCond.find(std::string("WAVEGUIDE"))==edgeData[EI-1].BrCond.end() ? 0:1;}
   int  ECedge(int EI) {
-      if(PECedge(EI)) return 1;
+      if (edgeData[EI-1].BrCond.find(std::string("PEC"))!=edgeData[EI-1].BrCond.end()) return 1;
       typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
       for (std::set<std::string, std::less<std::string> > ::iterator bit=edgeData[EI-1].BrCond.begin(); bit!= edgeData[EI-1].BrCond.end(); bit++){
+	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
+	 if(mat) if(mat->Sresistance>0 || mat->Sinductance>0) return 1;
+      }
+      return 0;
+  }
+  int  PECface(int FI) {
+      if (faceData[FI-1].BrCond.find(std::string("PEC"))!=faceData[FI-1].BrCond.end()) return 1;
+      return 0;
+  }
+  int  ECface(int FI) {
+      if (faceData[FI-1].BrCond.find(std::string("PEC"))!=faceData[FI-1].BrCond.end()) return 1;
+      typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
+      for (std::set<std::string, std::less<std::string> > ::iterator bit=faceData[FI-1].BrCond.begin(); bit!= faceData[FI-1].BrCond.end(); bit++){
 	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
 	 if(mat) if(mat->Sresistance>0 || mat->Sinductance>0) return 1;
       }
@@ -566,7 +586,7 @@ class MwOCAF
   Handle(TColStd_HArray1OfTransient)   shapeIndex2SubMesh;
 };
 
-
+TCollection_AsciiString remove_SUB(TCollection_AsciiString assName);
 
 #endif
 

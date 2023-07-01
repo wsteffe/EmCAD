@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -31,11 +31,12 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
-#ifndef YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
-# define YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
+#ifndef YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
+# define YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -44,92 +45,103 @@
 extern int modeldebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    INTEGER = 258,
-    FLOATING = 259,
-    STRING = 260,
-    NAME = 261,
-    IMPORT = 262,
-    ASSEMBLYTYPE = 263,
-    LEVEL = 264,
-    DEF = 265,
-    SET = 266,
-    CIRCUITNAME = 267,
-    DEFAULTBC = 268,
-    MWM_MATERIAL = 269,
-    TEMPORTSNUM = 270,
-    TEPORTSNUM = 271,
-    TMPORTSNUM = 272,
-    GRIDNUM = 273,
-    PML = 274,
-    INVARIANT = 275,
-    TRANSLATION = 276,
-    ROTATION = 277,
-    ANGLE = 278,
-    ORIGIN = 279,
-    AXIS = 280,
-    MWM_VOLUME = 281,
-    MWM_INVARIANT = 282,
-    MWM_UNITS = 283,
-    MWM_LINEPORT = 284,
-    LENGTH = 285,
-    FREQUENCY = 286,
-    BAND = 287,
-    SURFACE = 288,
-    RESISTANCE = 289,
-    INDUCTANCE = 290,
-    IMPEDANCE = 291,
-    LOSSFACTOR = 292,
-    QFACTOR = 293,
-    ROUGH = 294,
-    MESHREFINEMENT = 295,
-    COMPSOLID = 296,
-    VOLTYPE = 297,
-    EPSILONR = 298,
-    MUR = 299,
-    EPSLORENTZ = 300,
-    MULORENTZ = 301,
-    POLESRESIDUES = 302,
-    POLESNUM = 303,
-    ECONDUCTIVITY = 304,
-    HCONDUCTIVITY = 305,
-    ETANDELTA = 306,
-    HTANDELTA = 307,
-    MATERIAL = 308,
-    COLOR = 309,
-    VOLUMES = 310,
-    DISABLED = 311,
-    tDIELECTRIC = 312,
-    tHOLE = 313,
-    tBOUNDARYCONDITION = 314,
-    tWAVEGUIDE = 315,
-    tLINEPORT = 316,
-    tSPLITTER = 317,
-    tGRID = 318,
-    tCOMPONENT = 319,
-    tINTERFACE = 320,
-    tNET = 321,
-    tASSEMBLY = 322,
-    tUNDEFINED = 323,
-    SOLID = 324
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    INTEGER = 258,                 /* INTEGER  */
+    FLOATING = 259,                /* FLOATING  */
+    STRING = 260,                  /* STRING  */
+    NAME = 261,                    /* NAME  */
+    IMPORT = 262,                  /* IMPORT  */
+    ASSEMBLYTYPE = 263,            /* ASSEMBLYTYPE  */
+    LEVEL = 264,                   /* LEVEL  */
+    DEF = 265,                     /* DEF  */
+    SET = 266,                     /* SET  */
+    CIRCUITNAME = 267,             /* CIRCUITNAME  */
+    DEFAULTBC = 268,               /* DEFAULTBC  */
+    MWM_MATERIAL = 269,            /* MWM_MATERIAL  */
+    TEMPORTSNUM = 270,             /* TEMPORTSNUM  */
+    TEPORTSNUM = 271,              /* TEPORTSNUM  */
+    TMPORTSNUM = 272,              /* TMPORTSNUM  */
+    GRIDNUM = 273,                 /* GRIDNUM  */
+    PML = 274,                     /* PML  */
+    INVARIANT = 275,               /* INVARIANT  */
+    TRANSLATION = 276,             /* TRANSLATION  */
+    ROTATION = 277,                /* ROTATION  */
+    ANGLE = 278,                   /* ANGLE  */
+    ORIGIN = 279,                  /* ORIGIN  */
+    AXIS = 280,                    /* AXIS  */
+    MWM_VOLUME = 281,              /* MWM_VOLUME  */
+    MWM_INVARIANT = 282,           /* MWM_INVARIANT  */
+    MWM_UNITS = 283,               /* MWM_UNITS  */
+    MWM_LINEPORT = 284,            /* MWM_LINEPORT  */
+    LENGTH = 285,                  /* LENGTH  */
+    FREQUENCY = 286,               /* FREQUENCY  */
+    BAND = 287,                    /* BAND  */
+    SURFACE = 288,                 /* SURFACE  */
+    RESISTANCE = 289,              /* RESISTANCE  */
+    INDUCTANCE = 290,              /* INDUCTANCE  */
+    IMPEDANCE = 291,               /* IMPEDANCE  */
+    LOSSFACTOR = 292,              /* LOSSFACTOR  */
+    QFACTOR = 293,                 /* QFACTOR  */
+    SURFRATIO = 294,               /* SURFRATIO  */
+    BALLRADIUS = 295,              /* BALLRADIUS  */
+    ROUGH = 296,                   /* ROUGH  */
+    MODELTYPE = 297,               /* MODELTYPE  */
+    RZ = 298,                      /* RZ  */
+    RQ = 299,                      /* RQ  */
+    MESHREFINEMENT = 300,          /* MESHREFINEMENT  */
+    CUTOFFREFINEMENT = 301,        /* CUTOFFREFINEMENT  */
+    COMPSOLID = 302,               /* COMPSOLID  */
+    VOLTYPE = 303,                 /* VOLTYPE  */
+    EPSILONR = 304,                /* EPSILONR  */
+    MUR = 305,                     /* MUR  */
+    EPSLORENTZ = 306,              /* EPSLORENTZ  */
+    MULORENTZ = 307,               /* MULORENTZ  */
+    POLESRESIDUES = 308,           /* POLESRESIDUES  */
+    POLESNUM = 309,                /* POLESNUM  */
+    ECONDUCTIVITY = 310,           /* ECONDUCTIVITY  */
+    HCONDUCTIVITY = 311,           /* HCONDUCTIVITY  */
+    ETANDELTA = 312,               /* ETANDELTA  */
+    HTANDELTA = 313,               /* HTANDELTA  */
+    MATERIAL = 314,                /* MATERIAL  */
+    COLOR = 315,                   /* COLOR  */
+    VOLUMES = 316,                 /* VOLUMES  */
+    DISABLED = 317,                /* DISABLED  */
+    tDIELECTRIC = 318,             /* tDIELECTRIC  */
+    tHOLE = 319,                   /* tHOLE  */
+    tBOUNDARYCONDITION = 320,      /* tBOUNDARYCONDITION  */
+    tWAVEGUIDE = 321,              /* tWAVEGUIDE  */
+    tLINEPORT = 322,               /* tLINEPORT  */
+    tSPLITTER = 323,               /* tSPLITTER  */
+    tGRID = 324,                   /* tGRID  */
+    tCOMPONENT = 325,              /* tCOMPONENT  */
+    tINTERFACE = 326,              /* tINTERFACE  */
+    tNET = 327,                    /* tNET  */
+    tASSEMBLY = 328,               /* tASSEMBLY  */
+    tUNDEFINED = 329,              /* tUNDEFINED  */
+    SOLID = 330                    /* SOLID  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 97 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/DataBase/model.y"
+#line 97 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/DataBase/model.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 133 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/DataBase/model_parser.hpp"
+#line 145 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/DataBase/model_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -140,6 +152,8 @@ typedef union YYSTYPE YYSTYPE;
 
 extern YYSTYPE modellval;
 
+
 int modelparse (void);
 
-#endif /* !YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED  */
+
+#endif /* !YY_MODEL_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_DATABASE_MODEL_PARSER_HPP_INCLUDED  */

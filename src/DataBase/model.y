@@ -108,7 +108,8 @@ char	*sval;
 %token ASSEMBLYTYPE LEVEL
 %token DEF SET CIRCUITNAME DEFAULTBC
 %token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
-%token LENGTH FREQUENCY BAND SURFACE RESISTANCE INDUCTANCE IMPEDANCE LOSSFACTOR QFACTOR ROUGH MESHREFINEMENT COMPSOLID
+%token LENGTH FREQUENCY BAND SURFACE RESISTANCE INDUCTANCE IMPEDANCE LOSSFACTOR QFACTOR SURFRATIO BALLRADIUS ROUGH MODELTYPE RZ RQ
+%token MESHREFINEMENT CUTOFFREFINEMENT COMPSOLID
 %token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ POLESRESIDUES POLESNUM ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
 %token VOLUMES DISABLED
 %token tDIELECTRIC tHOLE tBOUNDARYCONDITION tWAVEGUIDE tLINEPORT tSPLITTER tGRID tCOMPONENT tINTERFACE tNET tASSEMBLY tUNDEFINED
@@ -403,8 +404,13 @@ MaterialElement
 	|  SURFACE INDUCTANCE       {Fbuff = NULL;}    SFFloat             {mat->Sinductance=$4; }
 	|  ROUGH SURFACE POLESNUM   {Fbuff = NULL;}    SFFloat             {mat->roughSurfFitPolesNum=$5; }
         |  ROUGH SURFACE FREQUENCY  {Fbuff = NULL;}    SFFloat             {mat->roughSurfFreq=$5; }
+	|  ROUGH SURFACE MODELTYPE  {Fbuff = NULL;}   SFFloat              {mat->roughSurfModelType=$5; }
         |  ROUGH SURFACE LOSSFACTOR {Fbuff = NULL;}    SFFloat             {mat->roughSurfLossFactor=$5;}
         |  ROUGH SURFACE IMPEDANCE QFACTOR {Fbuff = NULL;}    SFFloat      {mat->roughSurfImpedanceQ=$6;}
+        |  ROUGH SURFACE BALLRADIUS {Fbuff = NULL;}    SFFloat             {mat->roughSurfBallRadius=$5;}
+        |  ROUGH SURFACE SURFRATIO  {Fbuff = NULL;}    SFFloat             {mat->roughSurfSurfRatio=$5;}
+        |  ROUGH SURFACE RZ         {Fbuff = NULL;}    SFFloat             {mat->roughSurfRz=$5;}
+        |  ROUGH SURFACE RQ         {Fbuff = NULL;}    SFFloat             {mat->roughSurfRq=$5;}
         |  COLOR                    { Ibuff = &IntBuffer; Ibuff->reset();}	   MFInt32
             {
               IntBuffer.flush(&matColor); 
@@ -524,7 +530,7 @@ VolumeElement
                   vol->invariant =$3;
                 }
 	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
-	|  MESHREFINEMENT    {Fbuff = NULL;}    SFFloat      {vol->meshRefinement=$3; }
+	|  CUTOFFREFINEMENT  {Fbuff = NULL;}    SFFloat      {vol->cutoffRefinement=$3; }
 
 	|  COMPSOLID         {Ibuff = NULL;}    SFInt32      { }
 

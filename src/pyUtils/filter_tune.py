@@ -25,6 +25,8 @@ import numpy, math
 import scipy.optimize as optim
 import json
 import openpyxl
+from cvxopt import solvers
+from cvxopt import matrix
 
 
 from enum import Enum
@@ -46,14 +48,15 @@ def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
 
-def broyden1_updateJaco(jact, derr, dx):
+
+def goodBroydenUpdate(jact, derr, dx):
       nx=len(dx)
       ne=len(derr)
-      dxv=numpy.reshape(dx,(nx,1))
-      dxt=numpy.transpose(dxv)
-      derrt=numpy.transpose(numpy.reshape(derr,(ne,1)))
+      dxt=numpy.reshape(dx,(1,nx))
+      derrt=numpy.reshape(derr,(1,ne))
       derrt=derrt-numpy.dot(dxt,jact)
-      djact=numpy.dot(dxv,derrt)/(numpy.linalg.norm(dx)**2)
+      dxv=numpy.reshape(dx,(nx,1))
+      djact=numpy.dot(dxv,derrt)/numpy.dot(dx,dx)
       jact=jact+djact
       return jact
 
@@ -104,12 +107,6 @@ class Tuner(QtCore.QObject):
 
         self.x_number_of_decimals=-int(round(numpy.log10(self.xtol)))
 
-        self.graddx=5.e-2
-        for i,arg in enumerate(argv):
-            if arg=="-graddx":
-                argv.pop(i)
-                self.graddx=float(argv.pop(i))
-                break
 
         self.recomputeerror=False
         for i,arg in enumerate(argv):
@@ -179,10 +176,12 @@ class Tuner(QtCore.QObject):
         npar=len(self.ideal_par_names)
 #        import pdb
 #        pdb.set_trace()
-        if(nvar>=npar):
-            return 0
-        else:
+        if nvar==0:
             return 1
+        elif npar==0:
+            return 2
+        else:
+            return 0
 
     def init(self):
         self.varnames, self.xstart= self.readTable(self.var_fname, '\t')
@@ -247,7 +246,7 @@ class Tuner(QtCore.QObject):
         values=[]
 #        import pdb
 #        pdb.set_trace()
-        if fname.endswith('.txt'):
+        if fname.endswith('.txt') or fname.endswith('.csv'):
           with open(fname) as data_file:
             for line in data_file:
                 lsplit=line.rstrip('\r\n').split(sep)
@@ -266,7 +265,7 @@ class Tuner(QtCore.QObject):
 
 
     def writeTable(self,fname,names, values, sep=":", fname0="-"):
-        if fname.endswith('.txt'):
+        if fname.endswith('.txt') or fname.endswith('.csv'):
           f=open(fname, 'w')
           for i in range(len(names)):
             f.write(names[i]+sep)
@@ -363,7 +362,7 @@ class Tuner(QtCore.QObject):
         return err
 
     def evalJacoT(self,x):
-        dx=self.graddx
+        dx=self.trustd
         current_err=self.error(x)
         dJt=self.initial_jact.tolist()
         n0=len(dJt)
@@ -404,7 +403,6 @@ class Tuner(QtCore.QObject):
 
 
     def tune0(self):
-
 #        import pdb
 #        pdb.set_trace()
         err=numpy.copy(self.initial_err)
@@ -419,7 +417,6 @@ class Tuner(QtCore.QObject):
         nvar=len(self.xstart)
         npar=len(self.ideal_par_names)
 
-
         err_norm=numpy.linalg.norm(err)
         txt2='\nInitial Error Norm = '+'%12.8f'%err_norm+'\n'
         txt2=txt2+'Initial Errors: \n'
@@ -428,7 +425,6 @@ class Tuner(QtCore.QObject):
         self.status2(txt2)
 
         jact=numpy.copy(self.initial_jact)
-        k=min(nvar,npar)
         if len(jact)<nvar:
             jact=self.evalJacoT(self.xstart)
             if self.cntrl_break:
@@ -438,37 +434,20 @@ class Tuner(QtCore.QObject):
 #        invjact=numpy.linalg.inv(jact)
 #        invjact=numpy.transpose(invjact)
 
-        alpha=1.0
         x=numpy.copy(self.xstart)
         self.xott=numpy.copy(self.xstart)
         err_norm_min=err_norm
         for i in range(self.maxiter):
-            U, diag, V =numpy.linalg.svd(jact,full_matrices=0)
-            for j in range(k):
-                if(abs(diag[j])>1.e-10):
-                    diag[j]=1/diag[j]
-                else:
-                    diag[j]=0
-            diag1=numpy.copy(diag)
-            D=numpy.zeros((k,k))
-            D[:nvar,:nvar]=numpy.diag(diag1)
-            invjac=numpy.dot(U,numpy.dot(D,V))
-            dx=-alpha*(invjac.dot(err))
+            grad=matrix(jact.dot(err))
+            hess=matrix(jact.dot(numpy.transpose(jact)))
+            G=numpy.zeros((2*nvar,nvar))
+            numpy.fill_diagonal(G[:nvar,:nvar],1)
+            numpy.fill_diagonal(G[nvar:2*nvar,:nvar],-1)
+            G=matrix(G)
+            h=matrix([self.trustd for i in range(2*nvar)])
+            sol=solvers.qp(hess,grad,G,h)
+            dx=(numpy.array(sol['x'])).flatten()
             dx_norm=numpy.linalg.norm(dx,ord=numpy.inf)
-            if dx_norm>self.trustd:
-               dx=self.trustd/dx_norm*dx
-               dx_norm=self.trustd
-#            for j in range(k-2,-1,-1):
-#               for l in range(j+1,k):
-#                   if abs(diag1[l])>abs(diag1[j]):
-#                       diag1[l]=math.copysign(abs(diag1[j]),diag1[l])
-#               D=numpy.zeros((k,k))
-#               D[:nvar,:nvar]=numpy.diag(diag1)
-#               invjac=numpy.dot(U,numpy.dot(D,V))
-#               dx=-alpha*(invjac.dot(err))
-#               dx_norm=numpy.linalg.norm(dx,ord=numpy.inf)
-#               if dx_norm<self.trustd:
-#                  break
             if(dx_norm<self.xtol):
                 self.status0('Tuner task terminated')
                 self.status1('Variable displacement is less than xtol')
@@ -492,9 +471,9 @@ class Tuner(QtCore.QObject):
             #xcurrent holds last evalueted parameters
             self.writeError('error.json',err.tolist())
             self.xcurrent=numpy.copy(x)  
-            if dx_norm>self.graddx:
+            if dx_norm>self.trustd/2:
                 derr=err-err0
-                jact=broyden1_updateJaco(jact, derr, dx)
+                jact=goodBroydenUpdate(jact, derr, dx)
                 dJt=jact.tolist()
                 self.writeJaco(dJt)
             err_norm=numpy.linalg.norm(err)

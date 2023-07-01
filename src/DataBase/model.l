@@ -205,6 +205,11 @@ inductance			{ return INDUCTANCE; }
 impedance			{ return IMPEDANCE; }
 lossfactor			{ return LOSSFACTOR; }
 Qfactor			        { return QFACTOR; }
+surfRatio			{ return SURFRATIO; }
+ballRadius			{ return BALLRADIUS; }
+Rz			        { return RZ; }
+Rq			        { return RQ; }
+modelType			{ return MODELTYPE; }
 epsLorentz			{ return EPSLORENTZ; }
 muLorentz			{ return MULORENTZ; }
 polesResidues			{ return POLESRESIDUES; }
@@ -233,6 +238,7 @@ axis			        { return AXIS; }
 origin			        { return ORIGIN; }
 angle			        { return ANGLE; }
 meshRefinement			{ return MESHREFINEMENT; }
+cutoffRefinement		{ return CUTOFFREFINEMENT; }
 compSolid			{ return COMPSOLID; }
 disabled                        { return DISABLED; }
 volumes				{ return VOLUMES; }

@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -31,11 +31,12 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
-#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
-# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -44,116 +45,129 @@
 extern int projectDatadebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    INTEGER = 258,
-    FLOATING = 259,
-    STRING = 260,
-    NAME = 261,
-    DEF = 262,
-    MAINASSNAME = 263,
-    VARFILEPATH = 264,
-    S2PFILEPATH = 265,
-    NETWORK = 266,
-    LENGTH = 267,
-    FREQ = 268,
-    UNIT = 269,
-    EXP = 270,
-    MESH = 271,
-    REFINE = 272,
-    ENERGY = 273,
-    WAVELENGTH = 274,
-    LOCAL = 275,
-    MESHING3D = 276,
-    ANA = 277,
-    BAND = 278,
-    NUM = 279,
-    MOR = 280,
-    RESPONSE = 281,
-    SYMMETRIC = 282,
-    PARAMETER = 283,
-    TYPE = 284,
-    TOPOLOGY = 285,
-    PART = 286,
-    XSCALE = 287,
-    YSCALE = 288,
-    AUTO = 289,
-    ZERO = 290,
-    POLE = 291,
-    WINDOW = 292,
-    CURVE = 293,
-    CIRCLE = 294,
-    IDEAL = 295,
-    CANONICAL = 296,
-    FILTER = 297,
-    CUSTOM = 298,
-    PASS = 299,
-    KRYLOV = 300,
-    ORDER = 301,
-    RETURNLOSS = 302,
-    OUTBAND = 303,
-    MAPPING = 304,
-    TUNING = 305,
-    METHOD = 306,
-    SOURCE = 307,
-    ITERMAX = 308,
-    AUTOMATIC = 309,
-    DESIGN = 310,
-    MAPPED = 311,
-    TX = 312,
-    ZEROS = 313,
-    PORT = 314,
-    IMPEDANCE = 315,
-    TARGET = 316,
-    QFACTOR = 317,
-    UNIFORM = 318,
-    INDUCTIVE = 319,
-    SKIN = 320,
-    LOSSY = 321,
-    PREDISTORTED = 322,
-    OPTIMIZE = 323,
-    ILOSSPP = 324,
-    TRUSTR = 325,
-    CUTOFF = 326,
-    RATIO = 327,
-    RECOMPUTE = 328,
-    JACOBIAN = 329,
-    ERRORT = 330,
-    ONLY = 331,
-    TRANSVERSEJ = 332,
-    XTOL = 333,
-    GRADDX = 334,
-    REMESH = 335,
-    FIRST = 336,
-    DECOMPOSITION = 337,
-    MATERIAL = 338,
-    MODELIZATION = 339,
-    COMPONENT = 340,
-    SAVE = 341,
-    REDUCTION = 342,
-    RELOAD = 343,
-    NEEDED = 344,
-    DONE = 345,
-    CHANGED = 346,
-    tMIN = 347,
-    tMAX = 348
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    INTEGER = 258,                 /* INTEGER  */
+    FLOATING = 259,                /* FLOATING  */
+    STRING = 260,                  /* STRING  */
+    NAME = 261,                    /* NAME  */
+    DEF = 262,                     /* DEF  */
+    MAINASSNAME = 263,             /* MAINASSNAME  */
+    VARFILEPATH = 264,             /* VARFILEPATH  */
+    S2PFILEPATH = 265,             /* S2PFILEPATH  */
+    NETWORK = 266,                 /* NETWORK  */
+    LENGTH = 267,                  /* LENGTH  */
+    FREQ = 268,                    /* FREQ  */
+    UNIT = 269,                    /* UNIT  */
+    EXP = 270,                     /* EXP  */
+    MESH = 271,                    /* MESH  */
+    TET = 272,                     /* TET  */
+    SHARED = 273,                  /* SHARED  */
+    REFINE = 274,                  /* REFINE  */
+    RESONANCE = 275,               /* RESONANCE  */
+    ENERGY = 276,                  /* ENERGY  */
+    WAVELENGTH = 277,              /* WAVELENGTH  */
+    LOCAL = 278,                   /* LOCAL  */
+    MESHING3D = 279,               /* MESHING3D  */
+    ANA = 280,                     /* ANA  */
+    BAND = 281,                    /* BAND  */
+    NUM = 282,                     /* NUM  */
+    MOR = 283,                     /* MOR  */
+    RESPONSE = 284,                /* RESPONSE  */
+    SYMMETRIC = 285,               /* SYMMETRIC  */
+    PARAMETER = 286,               /* PARAMETER  */
+    TYPE = 287,                    /* TYPE  */
+    TOPOLOGY = 288,                /* TOPOLOGY  */
+    PART = 289,                    /* PART  */
+    XSCALE = 290,                  /* XSCALE  */
+    YSCALE = 291,                  /* YSCALE  */
+    AUTO = 292,                    /* AUTO  */
+    ZERO = 293,                    /* ZERO  */
+    POLE = 294,                    /* POLE  */
+    WINDOW = 295,                  /* WINDOW  */
+    CURVE = 296,                   /* CURVE  */
+    CIRCLE = 297,                  /* CIRCLE  */
+    IDEAL = 298,                   /* IDEAL  */
+    CANONICAL = 299,               /* CANONICAL  */
+    FILTER = 300,                  /* FILTER  */
+    CUSTOM = 301,                  /* CUSTOM  */
+    PASS = 302,                    /* PASS  */
+    KRYLOV = 303,                  /* KRYLOV  */
+    ORDER = 304,                   /* ORDER  */
+    RETURNLOSS = 305,              /* RETURNLOSS  */
+    OUTBAND = 306,                 /* OUTBAND  */
+    MAPPING = 307,                 /* MAPPING  */
+    TUNING = 308,                  /* TUNING  */
+    METHOD = 309,                  /* METHOD  */
+    SOURCE = 310,                  /* SOURCE  */
+    ITERMAX = 311,                 /* ITERMAX  */
+    AUTOMATIC = 312,               /* AUTOMATIC  */
+    DESIGN = 313,                  /* DESIGN  */
+    WITH = 314,                    /* WITH  */
+    MAPPED = 315,                  /* MAPPED  */
+    TX = 316,                      /* TX  */
+    ZEROS = 317,                   /* ZEROS  */
+    ADD = 318,                     /* ADD  */
+    CONJUGATE = 319,               /* CONJUGATE  */
+    PORT = 320,                    /* PORT  */
+    IMPEDANCE = 321,               /* IMPEDANCE  */
+    TARGET = 322,                  /* TARGET  */
+    QFACTOR = 323,                 /* QFACTOR  */
+    UNIFORM = 324,                 /* UNIFORM  */
+    INDUCTIVE = 325,               /* INDUCTIVE  */
+    SKIN = 326,                    /* SKIN  */
+    LOSSY = 327,                   /* LOSSY  */
+    PREDISTORTED = 328,            /* PREDISTORTED  */
+    OPTIMIZE = 329,                /* OPTIMIZE  */
+    ILOSSPP = 330,                 /* ILOSSPP  */
+    TRUSTR = 331,                  /* TRUSTR  */
+    CUTOFF = 332,                  /* CUTOFF  */
+    RATIO = 333,                   /* RATIO  */
+    RECOMPUTE = 334,               /* RECOMPUTE  */
+    JACOBIAN = 335,                /* JACOBIAN  */
+    ERRORT = 336,                  /* ERRORT  */
+    ONLY = 337,                    /* ONLY  */
+    TRANSVERSEJ = 338,             /* TRANSVERSEJ  */
+    XTOL = 339,                    /* XTOL  */
+    GRADDX = 340,                  /* GRADDX  */
+    REMESH = 341,                  /* REMESH  */
+    FIRST = 342,                   /* FIRST  */
+    DECOMPOSITION = 343,           /* DECOMPOSITION  */
+    MATERIAL = 344,                /* MATERIAL  */
+    MODELIZATION = 345,            /* MODELIZATION  */
+    COMPONENT = 346,               /* COMPONENT  */
+    SAVE = 347,                    /* SAVE  */
+    REDUCTION = 348,               /* REDUCTION  */
+    RELOAD = 349,                  /* RELOAD  */
+    NEEDED = 350,                  /* NEEDED  */
+    DONE = 351,                    /* DONE  */
+    CHANGED = 352,                 /* CHANGED  */
+    tMIN = 353,                    /* tMIN  */
+    tMAX = 354,                    /* tMAX  */
+    PLUSI = 355,                   /* PLUSI  */
+    MINUSI = 356                   /* MINUSI  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 66 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+#line 69 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 157 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.hpp"
+#line 171 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -164,6 +178,8 @@ typedef union YYSTYPE YYSTYPE;
 
 extern YYSTYPE projectDatalval;
 
+
 int projectDataparse (void);
 
-#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */
+
+#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */

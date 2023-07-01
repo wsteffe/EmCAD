@@ -26,6 +26,7 @@
 #include <sys/file.h>
 #include "OStools.h"
 #include <iostream>
+#include <string>
 
 void toUnix(std::string &str){
  if(str.size()) if (str[str.size() - 1] == '\r') str.resize(str.size() - 1);
@@ -121,6 +122,25 @@ bool removeAllFilesInDir(const char *dirname)
        vec v;                       // so we can sort them later
        copy(directory_iterator(p), directory_iterator(), back_inserter(v));
        for (vec::const_iterator it(v.begin()), it_end(v.end()); it != it_end; ++it) if (!is_directory(*it)) remove(*it);
+    }
+    return true;
+}
+bool removeAllFilesInDirStartingWith(const char *dirname, const char *start)
+{
+    path p(dirname);
+    if (!exists(p)){
+        fprintf(stderr, "Null Directory Error\n");
+        return false;
+    }
+    if (is_directory(p)){
+       typedef std::vector<path> vec;     // store paths,
+       vec v;                       // so we can sort them later
+       copy(directory_iterator(p), directory_iterator(), back_inserter(v));
+       for (vec::const_iterator it(v.begin()), it_end(v.end()); it != it_end; ++it) if (!is_directory(*it)){
+	    std::string strpath=it->string();
+            std::string strstart=start;
+	    if(strpath.substr(0,strstart.size())==strstart) remove(*it);
+       }
     }
     return true;
 }
@@ -233,31 +253,48 @@ int releaseLock(FILE * fh){
 
 #else
 
+#include <sys/file.h>
+int setLock(FILE * fh, const char *mode)
+{
+    int fd = fileno(fh);
+    if(mode[0]=='w'||mode[0]=='a') if (flock(fd, LOCK_EX) == -1) return -1;
+    else if(mode[0]=='r') if (flock(fd, LOCK_SH) == -1)  return -1;
+    return 0;
+}
 
+int releaseLock(FILE * fh){
+    int fd = fileno(fh);
+    if (flock(fd, LOCK_UN) == -1) return -1;
+    return 0;
+}
+
+
+
+/*
 #include <fcntl.h>
 int setLock(FILE * fh, const char *mode)
 {
     int fd = fileno(fh);
     struct flock fl;
-    fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-    fl.l_start  = 0;        /* Offset from l_whence         */
-    fl.l_len    = 0;        /* length, 0 = to EOF           */
-    fl.l_pid    = getpid(); /* our PID                      */
+    fl.l_whence = SEEK_SET; // SEEK_SET, SEEK_CUR, SEEK_END
+    fl.l_start  = 0;        // Offset from l_whence
+    fl.l_len    = 0;        // length, 0 = to EOF
+    fl.l_pid    = getpid(); // our PID 
     
     if(mode[0]=='w'||mode[0]=='a') {
-           fl.l_type= F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+           fl.l_type= F_WRLCK;  // F_RDLCK, F_WRLCK, F_UNLCK
 	   if(fcntl(fd, F_SETLKW, &fl) == -1){ 
 		 std::cerr << "ERROR: could not obtain write lock \n";
 		 return -1;
 	   }
     } else if(mode[0]=='r') {
-           fl.l_type= F_RDLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+           fl.l_type= F_RDLCK;  // F_RDLCK, F_WRLCK, F_UNLCK
 	   if(fcntl(fd, F_SETLKW, &fl) == -1){
 		 std::cerr << "ERROR: could not obtain read lock \n";
 		 return -1;
 	   }
     } else if(mode[0]=='0'){
-           fl.l_type= F_UNLCK;  /* tell it to unlock the region */
+           fl.l_type= F_UNLCK;  // tell it to unlock the region
 	   if(fcntl(fd, F_SETLK, &fl) == -1) {
 		 std::cerr << "ERROR: could not remove the lock \n";
 		 return -1;
@@ -270,6 +307,7 @@ int setLock(FILE * fh, const char *mode)
 }
 
 int releaseLock(FILE * fh){setLock(fh, "0");}
+*/
 
 
 #endif

@@ -64,7 +64,7 @@ int main(int argc, char **argv)
       if(downImprint){
         MwOCAF* ocaf=new MwOCAF();
         ocaf->workopen(subprojDir.c_str());
-        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
+        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint(downImprint);
         if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
         ocaf->initFEPdataStruct();
 	if(ocaf->EmP->assemblyType==COMPONENT){
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
       } else {
         MwOCAF* ocaf=new MwOCAF();
         ocaf->workopen(subprojDir.c_str());
-        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint();
+        if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint(downImprint);
         ocaf->saveIF();
         if(!ocaf->EmP->level) {
           if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();

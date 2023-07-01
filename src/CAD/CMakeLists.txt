@@ -78,6 +78,10 @@ add_executable ( emcad_imprint ${EMCAD_IMPRINT_SRCS})
 #SET_TARGET_PROPERTIES(emcad_mesher PROPERTIES LINK_FLAGS "-static")
 
 install(TARGETS emcad_imprint  DESTINATION bin)
+if(WIN32)
+  install(FILES $<TARGET_RUNTIME_DLLS:emcad_imprint> TYPE BIN)
+endif(WIN32)
+
 
 if(MSVC)
  SET_TARGET_PROPERTIES(emcad_imprint PROPERTIES LINK_FLAGS ${MINGW_LINK_FLAGS})
@@ -98,6 +102,15 @@ if(MSVC)
     ${OCC_3PARTIES_LIBRARIES}
     ${Boost_LIBRARIES}
    )
+elseif(MINGW)
+   target_link_libraries ( 
+    emcad_split CAD OStools DataBase
+    "-Wl,--start-group"
+    ${OCC_LIBRARIES}
+    ${OCC_3PARTIES_LIBRARIES}
+    ${Boost_LIBRARIES}
+    "-Wl,--end-group"
+   )
 else(MSVC)
    target_link_libraries ( 
     emcad_split CAD OStools DataBase
@@ -114,5 +127,9 @@ endif()
 #SET_TARGET_PROPERTIES(emcad_mesher PROPERTIES LINK_FLAGS "-static")
 
 install(TARGETS emcad_split  DESTINATION bin)
+if(WIN32)
+  install(FILES $<TARGET_RUNTIME_DLLS:emcad_split> TYPE BIN)
+endif(WIN32)
+
 
 

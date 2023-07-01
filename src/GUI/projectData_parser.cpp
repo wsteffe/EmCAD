@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.5.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -34,6 +34,10 @@
 /* C LALR(1) parser skeleton written by Richard Stallman, by
    simplifying the original so-called "semantic" parser.  */
 
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
 /* All symbols defined below should begin with yy or YY, to avoid
    infringing on user name space.  This should be done even for local
    variables, as they might otherwise be expanded by user macros.
@@ -41,14 +45,11 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* Identify Bison output, and Bison version.  */
+#define YYBISON 30802
 
-/* Identify Bison output.  */
-#define YYBISON 1
-
-/* Bison version.  */
-#define YYBISON_VERSION "3.5.1"
+/* Bison version string.  */
+#define YYBISON_VERSION "3.8.2"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -73,7 +74,7 @@
 #define yychar          projectDatachar
 
 /* First part of user prologue.  */
-#line 22 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+#line 22 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
 
 //debug:
 #define YYDEBUG 1
@@ -83,6 +84,7 @@
 #include "projectData.h"
 #include <Message.h>
 #include <vector>
+#include <complex>
 
 extern ProjectData prjData;
 
@@ -114,10 +116,12 @@ void projectData_msg(int type, char *fmt, ...);
 
 namespace ProjData {
  std::vector<double>  *Fbuff=NULL;
+ std::vector<std::complex<double> >  *Cbuff=NULL;
+ std::vector<double>  Fvec; 
 }
 
 
-#line 121 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 125 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -140,149 +144,142 @@ namespace ProjData {
 #  endif
 # endif
 
-/* Enabling verbose error messages.  */
-#ifdef YYERROR_VERBOSE
-# undef YYERROR_VERBOSE
-# define YYERROR_VERBOSE 1
-#else
-# define YYERROR_VERBOSE 0
-#endif
-
-/* Use api.header.include to #include this header
-   instead of duplicating it here.  */
-#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
-# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
-/* Debug traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-#if YYDEBUG
-extern int projectDatadebug;
-#endif
-
-/* Token type.  */
-#ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    INTEGER = 258,
-    FLOATING = 259,
-    STRING = 260,
-    NAME = 261,
-    DEF = 262,
-    MAINASSNAME = 263,
-    VARFILEPATH = 264,
-    S2PFILEPATH = 265,
-    NETWORK = 266,
-    LENGTH = 267,
-    FREQ = 268,
-    UNIT = 269,
-    EXP = 270,
-    MESH = 271,
-    REFINE = 272,
-    ENERGY = 273,
-    WAVELENGTH = 274,
-    LOCAL = 275,
-    MESHING3D = 276,
-    ANA = 277,
-    BAND = 278,
-    NUM = 279,
-    MOR = 280,
-    RESPONSE = 281,
-    SYMMETRIC = 282,
-    PARAMETER = 283,
-    TYPE = 284,
-    TOPOLOGY = 285,
-    PART = 286,
-    XSCALE = 287,
-    YSCALE = 288,
-    AUTO = 289,
-    ZERO = 290,
-    POLE = 291,
-    WINDOW = 292,
-    CURVE = 293,
-    CIRCLE = 294,
-    IDEAL = 295,
-    CANONICAL = 296,
-    FILTER = 297,
-    CUSTOM = 298,
-    PASS = 299,
-    KRYLOV = 300,
-    ORDER = 301,
-    RETURNLOSS = 302,
-    OUTBAND = 303,
-    MAPPING = 304,
-    TUNING = 305,
-    METHOD = 306,
-    SOURCE = 307,
-    ITERMAX = 308,
-    AUTOMATIC = 309,
-    DESIGN = 310,
-    MAPPED = 311,
-    TX = 312,
-    ZEROS = 313,
-    PORT = 314,
-    IMPEDANCE = 315,
-    TARGET = 316,
-    QFACTOR = 317,
-    UNIFORM = 318,
-    INDUCTIVE = 319,
-    SKIN = 320,
-    LOSSY = 321,
-    PREDISTORTED = 322,
-    OPTIMIZE = 323,
-    ILOSSPP = 324,
-    TRUSTR = 325,
-    CUTOFF = 326,
-    RATIO = 327,
-    RECOMPUTE = 328,
-    JACOBIAN = 329,
-    ERRORT = 330,
-    ONLY = 331,
-    TRANSVERSEJ = 332,
-    XTOL = 333,
-    GRADDX = 334,
-    REMESH = 335,
-    FIRST = 336,
-    DECOMPOSITION = 337,
-    MATERIAL = 338,
-    MODELIZATION = 339,
-    COMPONENT = 340,
-    SAVE = 341,
-    REDUCTION = 342,
-    RELOAD = 343,
-    NEEDED = 344,
-    DONE = 345,
-    CHANGED = 346,
-    tMIN = 347,
-    tMAX = 348
-  };
-#endif
-
-/* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-union YYSTYPE
+#include "projectData_parser.hpp"
+/* Symbol kind.  */
+enum yysymbol_kind_t
 {
-#line 66 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
-
-int	ival;
-double	fval;
-char	*sval;
-
-#line 273 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
-
+  YYSYMBOL_YYEMPTY = -2,
+  YYSYMBOL_YYEOF = 0,                      /* "end of file"  */
+  YYSYMBOL_YYerror = 1,                    /* error  */
+  YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
+  YYSYMBOL_INTEGER = 3,                    /* INTEGER  */
+  YYSYMBOL_FLOATING = 4,                   /* FLOATING  */
+  YYSYMBOL_STRING = 5,                     /* STRING  */
+  YYSYMBOL_NAME = 6,                       /* NAME  */
+  YYSYMBOL_DEF = 7,                        /* DEF  */
+  YYSYMBOL_MAINASSNAME = 8,                /* MAINASSNAME  */
+  YYSYMBOL_VARFILEPATH = 9,                /* VARFILEPATH  */
+  YYSYMBOL_S2PFILEPATH = 10,               /* S2PFILEPATH  */
+  YYSYMBOL_NETWORK = 11,                   /* NETWORK  */
+  YYSYMBOL_LENGTH = 12,                    /* LENGTH  */
+  YYSYMBOL_FREQ = 13,                      /* FREQ  */
+  YYSYMBOL_UNIT = 14,                      /* UNIT  */
+  YYSYMBOL_EXP = 15,                       /* EXP  */
+  YYSYMBOL_MESH = 16,                      /* MESH  */
+  YYSYMBOL_TET = 17,                       /* TET  */
+  YYSYMBOL_SHARED = 18,                    /* SHARED  */
+  YYSYMBOL_REFINE = 19,                    /* REFINE  */
+  YYSYMBOL_RESONANCE = 20,                 /* RESONANCE  */
+  YYSYMBOL_ENERGY = 21,                    /* ENERGY  */
+  YYSYMBOL_WAVELENGTH = 22,                /* WAVELENGTH  */
+  YYSYMBOL_LOCAL = 23,                     /* LOCAL  */
+  YYSYMBOL_MESHING3D = 24,                 /* MESHING3D  */
+  YYSYMBOL_ANA = 25,                       /* ANA  */
+  YYSYMBOL_BAND = 26,                      /* BAND  */
+  YYSYMBOL_NUM = 27,                       /* NUM  */
+  YYSYMBOL_MOR = 28,                       /* MOR  */
+  YYSYMBOL_RESPONSE = 29,                  /* RESPONSE  */
+  YYSYMBOL_SYMMETRIC = 30,                 /* SYMMETRIC  */
+  YYSYMBOL_PARAMETER = 31,                 /* PARAMETER  */
+  YYSYMBOL_TYPE = 32,                      /* TYPE  */
+  YYSYMBOL_TOPOLOGY = 33,                  /* TOPOLOGY  */
+  YYSYMBOL_PART = 34,                      /* PART  */
+  YYSYMBOL_XSCALE = 35,                    /* XSCALE  */
+  YYSYMBOL_YSCALE = 36,                    /* YSCALE  */
+  YYSYMBOL_AUTO = 37,                      /* AUTO  */
+  YYSYMBOL_ZERO = 38,                      /* ZERO  */
+  YYSYMBOL_POLE = 39,                      /* POLE  */
+  YYSYMBOL_WINDOW = 40,                    /* WINDOW  */
+  YYSYMBOL_CURVE = 41,                     /* CURVE  */
+  YYSYMBOL_CIRCLE = 42,                    /* CIRCLE  */
+  YYSYMBOL_IDEAL = 43,                     /* IDEAL  */
+  YYSYMBOL_CANONICAL = 44,                 /* CANONICAL  */
+  YYSYMBOL_FILTER = 45,                    /* FILTER  */
+  YYSYMBOL_CUSTOM = 46,                    /* CUSTOM  */
+  YYSYMBOL_PASS = 47,                      /* PASS  */
+  YYSYMBOL_KRYLOV = 48,                    /* KRYLOV  */
+  YYSYMBOL_ORDER = 49,                     /* ORDER  */
+  YYSYMBOL_RETURNLOSS = 50,                /* RETURNLOSS  */
+  YYSYMBOL_OUTBAND = 51,                   /* OUTBAND  */
+  YYSYMBOL_MAPPING = 52,                   /* MAPPING  */
+  YYSYMBOL_TUNING = 53,                    /* TUNING  */
+  YYSYMBOL_METHOD = 54,                    /* METHOD  */
+  YYSYMBOL_SOURCE = 55,                    /* SOURCE  */
+  YYSYMBOL_ITERMAX = 56,                   /* ITERMAX  */
+  YYSYMBOL_AUTOMATIC = 57,                 /* AUTOMATIC  */
+  YYSYMBOL_DESIGN = 58,                    /* DESIGN  */
+  YYSYMBOL_WITH = 59,                      /* WITH  */
+  YYSYMBOL_MAPPED = 60,                    /* MAPPED  */
+  YYSYMBOL_TX = 61,                        /* TX  */
+  YYSYMBOL_ZEROS = 62,                     /* ZEROS  */
+  YYSYMBOL_ADD = 63,                       /* ADD  */
+  YYSYMBOL_CONJUGATE = 64,                 /* CONJUGATE  */
+  YYSYMBOL_PORT = 65,                      /* PORT  */
+  YYSYMBOL_IMPEDANCE = 66,                 /* IMPEDANCE  */
+  YYSYMBOL_TARGET = 67,                    /* TARGET  */
+  YYSYMBOL_QFACTOR = 68,                   /* QFACTOR  */
+  YYSYMBOL_UNIFORM = 69,                   /* UNIFORM  */
+  YYSYMBOL_INDUCTIVE = 70,                 /* INDUCTIVE  */
+  YYSYMBOL_SKIN = 71,                      /* SKIN  */
+  YYSYMBOL_LOSSY = 72,                     /* LOSSY  */
+  YYSYMBOL_PREDISTORTED = 73,              /* PREDISTORTED  */
+  YYSYMBOL_OPTIMIZE = 74,                  /* OPTIMIZE  */
+  YYSYMBOL_ILOSSPP = 75,                   /* ILOSSPP  */
+  YYSYMBOL_TRUSTR = 76,                    /* TRUSTR  */
+  YYSYMBOL_CUTOFF = 77,                    /* CUTOFF  */
+  YYSYMBOL_RATIO = 78,                     /* RATIO  */
+  YYSYMBOL_RECOMPUTE = 79,                 /* RECOMPUTE  */
+  YYSYMBOL_JACOBIAN = 80,                  /* JACOBIAN  */
+  YYSYMBOL_ERRORT = 81,                    /* ERRORT  */
+  YYSYMBOL_ONLY = 82,                      /* ONLY  */
+  YYSYMBOL_TRANSVERSEJ = 83,               /* TRANSVERSEJ  */
+  YYSYMBOL_XTOL = 84,                      /* XTOL  */
+  YYSYMBOL_GRADDX = 85,                    /* GRADDX  */
+  YYSYMBOL_REMESH = 86,                    /* REMESH  */
+  YYSYMBOL_FIRST = 87,                     /* FIRST  */
+  YYSYMBOL_DECOMPOSITION = 88,             /* DECOMPOSITION  */
+  YYSYMBOL_MATERIAL = 89,                  /* MATERIAL  */
+  YYSYMBOL_MODELIZATION = 90,              /* MODELIZATION  */
+  YYSYMBOL_COMPONENT = 91,                 /* COMPONENT  */
+  YYSYMBOL_SAVE = 92,                      /* SAVE  */
+  YYSYMBOL_REDUCTION = 93,                 /* REDUCTION  */
+  YYSYMBOL_RELOAD = 94,                    /* RELOAD  */
+  YYSYMBOL_NEEDED = 95,                    /* NEEDED  */
+  YYSYMBOL_DONE = 96,                      /* DONE  */
+  YYSYMBOL_CHANGED = 97,                   /* CHANGED  */
+  YYSYMBOL_tMIN = 98,                      /* tMIN  */
+  YYSYMBOL_tMAX = 99,                      /* tMAX  */
+  YYSYMBOL_PLUSI = 100,                    /* PLUSI  */
+  YYSYMBOL_MINUSI = 101,                   /* MINUSI  */
+  YYSYMBOL_102_ = 102,                     /* ','  */
+  YYSYMBOL_103_ = 103,                     /* '['  */
+  YYSYMBOL_104_ = 104,                     /* ']'  */
+  YYSYMBOL_105_ = 105,                     /* '{'  */
+  YYSYMBOL_106_ = 106,                     /* '}'  */
+  YYSYMBOL_YYACCEPT = 107,                 /* $accept  */
+  YYSYMBOL_All = 108,                      /* All  */
+  YYSYMBOL_PrjDataItems = 109,             /* PrjDataItems  */
+  YYSYMBOL_PrjDataItem = 110,              /* PrjDataItem  */
+  YYSYMBOL_SFFloat = 111,                  /* SFFloat  */
+  YYSYMBOL_SFComplex = 112,                /* SFComplex  */
+  YYSYMBOL_SFFloatList = 113,              /* SFFloatList  */
+  YYSYMBOL_MFFloat = 114,                  /* MFFloat  */
+  YYSYMBOL_SFComplexList = 115,            /* SFComplexList  */
+  YYSYMBOL_MFComplex = 116,                /* MFComplex  */
+  YYSYMBOL_MFFloatOrMFComplex = 117,       /* MFFloatOrMFComplex  */
+  YYSYMBOL_ImportData = 118,               /* ImportData  */
+  YYSYMBOL_CAD = 119,                      /* CAD  */
+  YYSYMBOL_Units = 120,                    /* Units  */
+  YYSYMBOL_Mesh = 121,                     /* Mesh  */
+  YYSYMBOL_Mwm = 122,                      /* Mwm  */
+  YYSYMBOL_Mor = 123,                      /* Mor  */
+  YYSYMBOL_FreqAna = 124,                  /* FreqAna  */
+  YYSYMBOL_FilterDesign = 125,             /* FilterDesign  */
+  YYSYMBOL_126_1 = 126,                    /* $@1  */
+  YYSYMBOL_WorkStatus = 127                /* WorkStatus  */
 };
-typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
-#endif
+typedef enum yysymbol_kind_t yysymbol_kind_t;
 
-
-extern YYSTYPE projectDatalval;
-
-int projectDataparse (void);
-
-#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_TET_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */
 
 
 
@@ -321,6 +318,18 @@ typedef __INT_LEAST16_TYPE__ yytype_int16;
 typedef int_least16_t yytype_int16;
 #else
 typedef short yytype_int16;
+#endif
+
+/* Work around bug in HP-UX 11.23, which defines these macros
+   incorrectly for preprocessor constants.  This workaround can likely
+   be removed in 2023, as HPE has promised support for HP-UX 11.23
+   (aka HP-UX 11i v2) only through the end of 2022; see Table 2 of
+   <https://h20195.www2.hpe.com/V2/getpdf.aspx/4AA4-7673ENW.pdf>.  */
+#ifdef __hpux
+# undef UINT_LEAST8_MAX
+# undef UINT_LEAST16_MAX
+# define UINT_LEAST8_MAX 255
+# define UINT_LEAST16_MAX 65535
 #endif
 
 #if defined __UINT_LEAST8_MAX__ && __UINT_LEAST8_MAX__ <= __INT_MAX__
@@ -382,6 +391,7 @@ typedef int yytype_uint16;
 
 #define YYSIZEOF(X) YY_CAST (YYPTRDIFF_T, sizeof (X))
 
+
 /* Stored state numbers (used for stacks). */
 typedef yytype_int16 yy_state_t;
 
@@ -399,6 +409,7 @@ typedef int yy_state_fast_t;
 #  define YY_(Msgid) Msgid
 # endif
 #endif
+
 
 #ifndef YY_ATTRIBUTE_PURE
 # if defined __GNUC__ && 2 < __GNUC__ + (96 <= __GNUC_MINOR__)
@@ -418,17 +429,23 @@ typedef int yy_state_fast_t;
 
 /* Suppress unused-variable warnings by "using" E.  */
 #if ! defined lint || defined __GNUC__
-# define YYUSE(E) ((void) (E))
+# define YY_USE(E) ((void) (E))
 #else
-# define YYUSE(E) /* empty */
+# define YY_USE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
+#if defined __GNUC__ && ! defined __ICC && 406 <= __GNUC__ * 100 + __GNUC_MINOR__
+# if __GNUC__ * 100 + __GNUC_MINOR__ < 407
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")
+# else
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
     _Pragma ("GCC diagnostic push")                                     \
     _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+# endif
 # define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
@@ -457,7 +474,7 @@ typedef int yy_state_fast_t;
 
 #define YY_ASSERT(E) ((void) (0 && (E)))
 
-#if ! defined yyoverflow || YYERROR_VERBOSE
+#if !defined yyoverflow
 
 /* The parser invokes alloca or malloc; define the necessary symbols.  */
 
@@ -522,8 +539,7 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 #   endif
 #  endif
 # endif
-#endif /* ! defined yyoverflow || YYERROR_VERBOSE */
-
+#endif /* !defined yyoverflow */
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
@@ -588,25 +604,27 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   269
+#define YYLAST   351
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  99
+#define YYNTOKENS  107
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  17
+#define YYNNTS  21
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  106
+#define YYNRULES  136
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  273
+#define YYNSTATES  358
 
-#define YYUNDEFTOK  2
-#define YYMAXUTOK   348
+/* YYMAXUTOK -- Last valid token kind.  */
+#define YYMAXUTOK   356
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
    as returned by yylex, with out-of-bounds checking.  */
-#define YYTRANSLATE(YYX)                                                \
-  (0 <= (YYX) && (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+#define YYTRANSLATE(YYX)                                \
+  (0 <= (YYX) && (YYX) <= YYMAXUTOK                     \
+   ? YY_CAST (yysymbol_kind_t, yytranslate[YYX])        \
+   : YYSYMBOL_YYUNDEF)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
    as returned by yylex.  */
@@ -616,15 +634,15 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,    94,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,   102,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,    95,     2,    96,     2,     2,     2,     2,     2,     2,
+       2,   103,     2,   104,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,    97,     2,    98,     2,     2,     2,     2,
+       2,     2,     2,   105,     2,   106,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -646,72 +664,73 @@ static const yytype_int8 yytranslate[] =
       55,    56,    57,    58,    59,    60,    61,    62,    63,    64,
       65,    66,    67,    68,    69,    70,    71,    72,    73,    74,
       75,    76,    77,    78,    79,    80,    81,    82,    83,    84,
-      85,    86,    87,    88,    89,    90,    91,    92,    93
+      85,    86,    87,    88,    89,    90,    91,    92,    93,    94,
+      95,    96,    97,    98,    99,   100,   101
 };
 
 #if YYDEBUG
-  /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
+/* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    93,    93,    97,    98,   103,   104,   105,   106,   107,
-     108,   109,   110,   111,   112,   131,   135,   167,   168,   169,
-     170,   174,   175,   228,   232,   239,   243,   250,   254,   261,
-     265,   269,   273,   278,   282,   289,   296,   301,   305,   312,
-     317,   322,   326,   331,   335,   339,   343,   347,   351,   355,
-     358,   362,   366,   370,   373,   377,   381,   385,   389,   393,
-     397,   401,   405,   409,   413,   417,   423,   427,   433,   437,
-     444,   448,   452,   456,   460,   464,   468,   475,   480,   484,
-     488,   492,   496,   500,   504,   508,   508,   512,   516,   520,
-     524,   528,   532,   536,   540,   544,   547,   550,   553,   559,
-     563,   567,   571,   575,   579,   583,   587
+       0,    97,    97,   101,   102,   107,   108,   109,   110,   111,
+     112,   113,   114,   115,   116,   137,   142,   151,   155,   186,
+     187,   188,   189,   190,   194,   195,   200,   201,   202,   203,
+     204,   208,   209,   214,   215,   269,   273,   280,   284,   291,
+     295,   302,   306,   310,   314,   318,   322,   326,   330,   333,
+     336,   340,   344,   351,   358,   363,   367,   371,   378,   383,
+     388,   392,   397,   401,   406,   410,   414,   418,   422,   426,
+     430,   434,   438,   442,   446,   450,   453,   457,   461,   465,
+     468,   472,   476,   480,   484,   488,   492,   496,   500,   503,
+     507,   511,   517,   521,   527,   531,   538,   542,   546,   550,
+     554,   558,   562,   569,   574,   578,   582,   587,   591,   595,
+     599,   603,   607,   611,   611,   619,   623,   627,   631,   635,
+     639,   643,   647,   651,   654,   657,   660,   666,   670,   674,
+     678,   682,   686,   690,   695,   699,   703
 };
 #endif
 
-#if YYDEBUG || YYERROR_VERBOSE || 0
+/** Accessing symbol of state STATE.  */
+#define YY_ACCESSING_SYMBOL(State) YY_CAST (yysymbol_kind_t, yystos[State])
+
+#if YYDEBUG || 0
+/* The user-facing name of the symbol whose (internal) number is
+   YYSYMBOL.  No bounds checking.  */
+static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
+
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "$end", "error", "$undefined", "INTEGER", "FLOATING", "STRING", "NAME",
-  "DEF", "MAINASSNAME", "VARFILEPATH", "S2PFILEPATH", "NETWORK", "LENGTH",
-  "FREQ", "UNIT", "EXP", "MESH", "REFINE", "ENERGY", "WAVELENGTH", "LOCAL",
-  "MESHING3D", "ANA", "BAND", "NUM", "MOR", "RESPONSE", "SYMMETRIC",
-  "PARAMETER", "TYPE", "TOPOLOGY", "PART", "XSCALE", "YSCALE", "AUTO",
-  "ZERO", "POLE", "WINDOW", "CURVE", "CIRCLE", "IDEAL", "CANONICAL",
-  "FILTER", "CUSTOM", "PASS", "KRYLOV", "ORDER", "RETURNLOSS", "OUTBAND",
-  "MAPPING", "TUNING", "METHOD", "SOURCE", "ITERMAX", "AUTOMATIC",
-  "DESIGN", "MAPPED", "TX", "ZEROS", "PORT", "IMPEDANCE", "TARGET",
+  "\"end of file\"", "error", "\"invalid token\"", "INTEGER", "FLOATING",
+  "STRING", "NAME", "DEF", "MAINASSNAME", "VARFILEPATH", "S2PFILEPATH",
+  "NETWORK", "LENGTH", "FREQ", "UNIT", "EXP", "MESH", "TET", "SHARED",
+  "REFINE", "RESONANCE", "ENERGY", "WAVELENGTH", "LOCAL", "MESHING3D",
+  "ANA", "BAND", "NUM", "MOR", "RESPONSE", "SYMMETRIC", "PARAMETER",
+  "TYPE", "TOPOLOGY", "PART", "XSCALE", "YSCALE", "AUTO", "ZERO", "POLE",
+  "WINDOW", "CURVE", "CIRCLE", "IDEAL", "CANONICAL", "FILTER", "CUSTOM",
+  "PASS", "KRYLOV", "ORDER", "RETURNLOSS", "OUTBAND", "MAPPING", "TUNING",
+  "METHOD", "SOURCE", "ITERMAX", "AUTOMATIC", "DESIGN", "WITH", "MAPPED",
+  "TX", "ZEROS", "ADD", "CONJUGATE", "PORT", "IMPEDANCE", "TARGET",
   "QFACTOR", "UNIFORM", "INDUCTIVE", "SKIN", "LOSSY", "PREDISTORTED",
   "OPTIMIZE", "ILOSSPP", "TRUSTR", "CUTOFF", "RATIO", "RECOMPUTE",
   "JACOBIAN", "ERRORT", "ONLY", "TRANSVERSEJ", "XTOL", "GRADDX", "REMESH",
   "FIRST", "DECOMPOSITION", "MATERIAL", "MODELIZATION", "COMPONENT",
   "SAVE", "REDUCTION", "RELOAD", "NEEDED", "DONE", "CHANGED", "tMIN",
-  "tMAX", "','", "'['", "']'", "'{'", "'}'", "$accept", "All",
-  "PrjDataItems", "PrjDataItem", "SFFloat", "SFFloatList", "MFFloat",
-  "ImportData", "CAD", "Units", "Mesh", "Mwm", "Mor", "FreqAna",
-  "FilterDesign", "$@1", "WorkStatus", YY_NULLPTR
+  "tMAX", "PLUSI", "MINUSI", "','", "'['", "']'", "'{'", "'}'", "$accept",
+  "All", "PrjDataItems", "PrjDataItem", "SFFloat", "SFComplex",
+  "SFFloatList", "MFFloat", "SFComplexList", "MFComplex",
+  "MFFloatOrMFComplex", "ImportData", "CAD", "Units", "Mesh", "Mwm", "Mor",
+  "FreqAna", "FilterDesign", "$@1", "WorkStatus", YY_NULLPTR
 };
+
+static const char *
+yysymbol_name (yysymbol_kind_t yysymbol)
+{
+  return yytname[yysymbol];
+}
 #endif
 
-# ifdef YYPRINT
-/* YYTOKNUM[NUM] -- (External) token number corresponding to the
-   (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_int16 yytoknum[] =
-{
-       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
-     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
-     275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
-     285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
-     295,   296,   297,   298,   299,   300,   301,   302,   303,   304,
-     305,   306,   307,   308,   309,   310,   311,   312,   313,   314,
-     315,   316,   317,   318,   319,   320,   321,   322,   323,   324,
-     325,   326,   327,   328,   329,   330,   331,   332,   333,   334,
-     335,   336,   337,   338,   339,   340,   341,   342,   343,   344,
-     345,   346,   347,   348,    44,    91,    93,   123,   125
-};
-# endif
-
-#define YYPACT_NINF (-77)
+#define YYPACT_NINF (-270)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -721,229 +740,280 @@ static const yytype_int16 yytoknum[] =
 #define yytable_value_is_error(Yyn) \
   0
 
-  /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
-     STATE-NUM.  */
+/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+   STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-     -77,    16,   140,   -77,   -77,    19,    26,    31,     8,     7,
-      -6,   -12,    28,    23,     4,    -3,    41,    37,    49,    51,
-     151,    21,    42,    30,    56,    57,    32,    20,    18,    24,
-      14,    27,    33,    36,    38,   -77,   -77,   -77,   -77,   -77,
-     -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,   105,
-      97,    25,    29,    58,    59,    96,    98,   129,    -1,   120,
-      10,    88,   109,    13,    39,   106,    87,   115,   139,    86,
-      99,   -14,    50,    85,    94,    83,    86,    82,   113,   135,
-     133,   125,   108,   117,   112,    -7,     9,     6,    86,   166,
-     168,   170,   171,   173,    95,   174,   182,   -77,   183,   184,
-     185,    11,   169,   187,   189,   124,    86,   -77,    86,   199,
-     179,    86,   201,   202,   206,   191,    15,   144,   214,   215,
-     216,   223,   226,    86,   -77,   -77,   -77,   -77,    86,   227,
-     228,   229,   230,    86,   231,   232,    86,    22,   159,    86,
-      86,   -77,    86,    86,   -77,   234,   235,    86,   236,   237,
-     205,   239,   207,   218,   209,   243,   244,    86,    86,   -77,
-      86,   245,   246,    86,    86,   -77,   -77,   -77,   -77,   -77,
-     -77,   247,   -77,   -77,   -77,   -77,   -77,   248,    86,   249,
-     -77,   -77,    86,    86,    86,   -77,   250,    86,   -77,   -77,
-     -77,    86,   251,    86,    86,   252,   -77,   -77,   -77,   -77,
-      86,   -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,
-     253,   254,   255,   -77,   -77,     0,   -77,   -77,   -77,   -77,
-      86,   -77,   -77,   256,   -77,   257,   258,   259,   -77,   -77,
-     -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,   -77,    86,
-     -77,   -77,   -77,   -77,   -77,   -77,    86,   -77,    86,   -77,
-     -77,   -77,   -77,   -77,   -77,    86,   -77,   -77,   -77,   233,
-     -77,   -77,   -77,   -77,   -77,   -77,   -77,    -2,   260,   -77,
-     -77,   -77,   -77
+    -270,    11,   229,  -270,  -270,    18,    26,    39,     2,    40,
+      31,   -13,    55,    71,    45,    69,    49,    -5,    56,    70,
+      68,    82,   110,    92,   125,    -3,   100,   103,    63,    59,
+      85,    77,    61,    79,     4,    81,    86,  -270,  -270,  -270,
+    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
+    -270,    53,   157,    87,   174,   168,    84,    89,   -71,   107,
+     108,   166,    -4,   163,   -23,   177,   188,    65,   179,    96,
+     144,   165,    28,    19,   162,   143,   171,   195,   121,   149,
+     -18,    52,   138,   135,   134,   121,   132,   159,   181,   176,
+     169,   151,   160,   153,    34,    91,    76,   121,   206,   211,
+     212,   213,   214,    75,   205,   124,   126,   217,   219,   127,
+     215,   197,   224,  -270,   228,   230,   232,    22,   209,   223,
+     231,   241,   243,   154,   121,   173,   121,   121,   178,   236,
+    -270,   121,   261,   238,   121,   263,   265,   266,   244,    30,
+     193,   273,   274,   275,   220,   218,   276,   280,   121,  -270,
+    -270,  -270,  -270,   121,   281,   282,   284,   285,   121,   286,
+     287,   121,    88,   208,   121,   121,  -270,   121,   121,  -270,
+     289,   290,   121,   291,   292,   257,   294,   259,   270,   264,
+     297,   301,   121,   121,  -270,   121,   302,   304,   121,   121,
+    -270,  -270,  -270,  -270,  -270,  -270,   210,   295,   283,   308,
+     309,  -270,  -270,   235,   298,   311,  -270,  -270,  -270,  -270,
+     318,   121,   321,   323,   324,  -270,  -270,   121,  -270,   325,
+     121,   121,   121,   326,   121,  -270,   327,   121,  -270,  -270,
+    -270,   121,   328,   121,   121,   329,  -270,  -270,   271,   272,
+    -270,  -270,   121,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
+    -270,  -270,   332,   333,   334,  -270,  -270,   237,  -270,  -270,
+    -270,  -270,   121,  -270,  -270,   330,  -270,   335,   336,   338,
+    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,   267,
+     315,   341,  -270,  -270,   121,   343,  -270,  -270,   121,  -270,
+    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
+    -270,   121,  -270,   121,  -270,  -270,   344,   345,  -270,  -270,
+    -270,  -270,   121,  -270,  -270,  -270,  -270,   320,  -270,  -270,
+    -270,   121,   347,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
+    -270,    -2,    10,    13,    17,   348,  -270,  -270,   121,   121,
+     121,  -270,  -270,   121,  -270,    29,  -270,  -270,  -270,  -270,
+    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270
 };
 
-  /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
-     Performed when YYTABLE does not specify something else to do.  Zero
-     means the default is an error.  */
-static const yytype_int8 yydefact[] =
+/* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
+   Performed when YYTABLE does not specify something else to do.  Zero
+   means the default is an error.  */
+static const yytype_uint8 yydefact[] =
 {
        3,     0,     0,     1,    14,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     4,     8,     5,     6,     7,
-      11,    12,     9,    10,    13,    25,    23,    24,    26,     0,
+       0,     0,     0,     0,     0,     0,     0,     4,     8,     5,
+       6,     7,    11,    12,     9,    10,    13,    37,    35,    36,
+      38,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    27,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    34,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    78,    16,    15,    79,     0,     0,
+       0,     0,     0,    39,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,    85,     0,     0,    82,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,    88,
-       0,     0,     0,     0,     0,    35,   102,   100,    99,   101,
-     103,     0,   105,   106,    28,    63,    64,     0,     0,     0,
-      29,    30,     0,     0,     0,    43,     0,     0,    37,    38,
-      87,     0,     0,     0,     0,     0,    45,    47,    46,    59,
-       0,    80,    50,    49,    51,    53,    52,    55,    54,    61,
-       0,     0,     0,    60,    62,     0,    81,    83,    84,    48,
-       0,    70,    71,     0,    76,     0,     0,     0,    98,    95,
-      96,    97,    90,    93,    89,    91,    92,   104,    66,     0,
-      31,    33,    32,    39,    44,    36,     0,    68,     0,    41,
-      69,    77,    56,    57,    58,    20,    21,    86,    42,     0,
-      72,    73,    75,    65,    40,    67,    17,     0,     0,    19,
-      22,    18,    74
+      52,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,   104,
+      16,    15,   107,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,   113,     0,     0,   110,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,   116,     0,     0,     0,     0,     0,
+      53,   130,   128,   127,   129,   131,     0,     0,     0,     0,
+       0,   133,   136,     0,     0,     0,   135,    40,    89,    90,
+       0,     0,     0,     0,     0,    41,    44,     0,    43,     0,
+       0,     0,     0,     0,     0,    62,     0,     0,    55,    57,
+     115,     0,     0,     0,     0,     0,    70,    73,     0,     0,
+      72,    85,     0,   108,    76,    75,    77,    79,    78,    81,
+      80,    87,     0,     0,     0,    86,    88,     0,   109,   111,
+     112,    74,     0,    96,    97,     0,   102,     0,     0,     0,
+     126,   123,   124,   125,   118,   121,   117,   119,   120,     0,
+       0,     0,   132,   134,     0,     0,    68,    92,     0,    47,
+      45,    46,    51,    42,    48,    49,    50,    56,    58,    63,
+      54,     0,    94,     0,    60,    95,     0,     0,   103,    82,
+      83,    84,    23,    33,    34,   114,    61,     0,    98,    99,
+     101,     0,     0,    66,    65,    69,    91,    59,    93,   106,
+     105,     0,     0,     0,     0,     0,    64,    67,     0,     0,
+       0,    24,    19,     0,    31,     0,    26,    22,    25,    21,
+      29,    32,    28,   100,    17,    18,    20,    27
 };
 
-  /* YYPGOTO[NTERM-NUM].  */
-static const yytype_int8 yypgoto[] =
+/* YYPGOTO[NTERM-NUM].  */
+static const yytype_int16 yypgoto[] =
 {
-     -77,   -77,   -77,   -77,   -76,   -77,   -77,   -77,   -77,   -77,
-     -77,   -77,   -77,   -77,   -77,   -77,   -77
+    -270,  -270,  -270,  -270,   -78,  -269,  -270,  -270,  -270,  -270,
+    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
+    -270
 };
 
-  /* YYDEFGOTO[NTERM-NUM].  */
+/* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int16 yydefgoto[] =
 {
-      -1,     1,     2,    35,   127,   267,   257,    36,    37,    38,
-      39,    40,    41,    42,    43,   215,    44
+       0,     1,     2,    37,   345,   332,   333,   313,   334,   314,
+     315,    38,    39,    40,    41,    42,    43,    44,    45,   257,
+      46
 };
 
-  /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
-     positive, shift that token.  If negative, reduce the rule whose
-     number is the opposite.  If YYTABLE_NINF, syntax error.  */
+/* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
+   positive, shift that token.  If negative, reduce the rule whose
+   number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
-     144,   125,   126,   125,   126,    52,   153,    53,    50,   159,
-      60,    48,   165,   129,   125,   126,     3,    58,   125,   126,
-      51,    49,   108,   109,    45,   178,   115,    54,   154,    59,
-     183,    46,   184,   111,   112,   187,    47,   130,   131,   132,
-     193,    56,    61,    80,    57,   177,   116,   200,   133,   192,
-     117,   118,   201,   160,    99,    79,   100,   206,   101,   161,
-     209,    78,   155,   213,   214,    81,   216,   217,   119,   120,
-      82,   220,    83,    63,   162,   163,   164,   156,   157,   158,
-      55,   230,   231,    62,   232,    84,    85,   235,   236,   125,
-     126,    64,   269,    65,   270,   255,   210,   211,    86,    87,
-      90,   134,   239,   135,    88,    92,   241,   242,   243,    89,
-      97,   245,    98,    91,   105,   246,    93,   248,   249,    94,
-     136,   106,   102,   137,   251,    95,   138,    96,   139,   140,
-     103,   104,   107,   110,   113,   114,   121,   122,   123,   256,
-      -2,     4,   124,   141,   258,   143,   128,   145,     5,     6,
-       7,     8,     9,    10,   142,   146,    11,    12,   147,   148,
-      13,   149,    14,   263,   150,    15,   151,    16,   152,   166,
-     264,   167,   265,   168,   169,    17,   170,   172,    66,   266,
-      18,    19,    20,    21,   171,   173,   174,   175,   176,    22,
-     180,   271,   181,   179,    23,    67,   182,    68,    69,    70,
-      71,    72,   185,   186,   188,   189,    24,    25,    73,   190,
-      74,    26,    75,    76,   191,    77,   194,   195,   196,   197,
-      27,    28,    29,    30,    31,    32,   198,    33,    34,   199,
-     202,   203,   204,   205,   207,   208,   212,   218,   219,   221,
-     222,   223,   224,   225,   226,   227,   228,   229,   233,   234,
-     237,   238,   240,   244,   247,   250,   252,   253,   254,   268,
-     260,   261,   262,   272,     0,     0,     0,     0,     0,   259
+     152,   150,   151,   127,    57,    50,    58,   169,    69,    59,
+      89,     3,   154,   150,   151,   124,   150,   151,   125,   190,
+     150,   151,    51,    47,   103,   150,   151,   119,   120,    60,
+      52,    48,   104,   150,   151,    90,   155,   156,   157,   211,
+      91,   138,    92,    70,    49,    55,   218,   178,   220,   221,
+     158,   142,   143,   224,    54,    93,   227,    94,    64,   210,
+      56,   233,    67,   346,   139,   352,   109,   232,   140,   141,
+     242,    62,   179,    65,   357,   243,   128,    68,   144,   184,
+     248,   110,   145,   251,    63,    61,   255,   256,   196,   258,
+     259,   131,   132,    66,   262,    53,   105,   106,   338,   339,
+     340,    71,   341,   197,   272,   273,   159,   274,   160,    72,
+     277,   278,   343,    73,   344,   347,   115,   348,   116,   350,
+     117,   351,   134,   135,   150,   151,   185,    74,   161,   338,
+     339,   162,   186,   288,   163,    87,   164,   165,    88,   292,
+      75,    97,   294,   295,   296,    95,   298,   180,    96,   300,
+     187,   188,   189,   301,    98,   303,   304,    76,   101,    77,
+      78,    79,    80,    81,   308,   181,   182,   183,   252,   253,
+     111,    82,   100,    99,   102,    83,   107,    84,    85,   113,
+      86,   108,   112,   114,   316,   121,   122,   123,   118,   126,
+     129,   130,   133,   136,   137,   146,   147,   148,   149,   153,
+     166,   167,   168,   170,   171,   173,   324,   172,   174,   191,
+     326,   175,   176,   177,   192,   193,   194,   195,   198,   199,
+     201,   200,   202,   327,   205,   328,   203,   206,   204,    -2,
+       4,   207,   217,   208,   331,   209,   212,     5,     6,     7,
+       8,     9,    10,   336,   215,    11,   216,    12,    13,    14,
+     213,   219,    15,   342,    16,   349,   222,    17,   214,    18,
+     354,   355,   356,   223,   225,   226,   228,    19,   229,   230,
+     231,   234,    20,    21,    22,    23,   235,   236,   237,   240,
+     238,    24,   239,   241,   244,   245,    25,   246,   247,   249,
+     250,   254,   260,   261,   263,   264,   265,   266,   267,   268,
+     270,    26,    27,   269,   271,   275,    28,   276,   280,   279,
+     281,   282,   283,   284,   286,    29,    30,    31,    32,    33,
+      34,   287,    35,    36,   289,   285,   290,   291,   293,   297,
+     299,   302,   305,   306,   307,   309,   310,   311,   318,   319,
+     312,   320,   322,   317,   323,   321,   325,   329,   330,   335,
+     337,   353
 };
 
 static const yytype_int16 yycheck[] =
 {
-      76,     3,     4,     3,     4,    17,    13,    19,    14,     3,
-      13,     3,    88,    27,     3,     4,     0,    13,     3,     4,
-      26,    14,    23,    24,     5,   101,    13,    39,    35,    25,
-     106,     5,   108,    23,    24,   111,     5,    51,    52,    53,
-     116,    13,    45,    13,    21,    34,    33,   123,    62,    34,
-      37,    38,   128,    47,    29,    13,    31,   133,    33,    53,
-     136,    40,    53,   139,   140,    35,   142,   143,    29,    30,
-      40,   147,    42,    36,    68,    69,    70,    68,    69,    70,
-      92,   157,   158,    42,   160,    55,    56,   163,   164,     3,
-       4,    42,    94,    42,    96,    95,    74,    75,    42,    42,
-      82,    51,   178,    53,    72,    91,   182,   183,   184,    89,
-       5,   187,    15,    89,    18,   191,    89,   193,   194,    86,
-      70,    23,    93,    73,   200,    89,    76,    89,    78,    79,
-      72,    72,     3,    13,    46,    26,    30,    50,    23,   215,
-       0,     1,     3,    58,   220,    62,    47,    65,     8,     9,
-      10,    11,    12,    13,    60,    42,    16,    17,    23,    26,
-      20,    36,    22,   239,    56,    25,    49,    27,    56,     3,
-     246,     3,   248,     3,     3,    35,     3,     3,    27,   255,
-      40,    41,    42,    43,    89,     3,     3,     3,     3,    49,
-       3,   267,     3,    24,    54,    44,    72,    46,    47,    48,
-      49,    50,     3,    24,     3,     3,    66,    67,    57,     3,
-      59,    71,    61,    62,    23,    64,    72,     3,     3,     3,
-      80,    81,    82,    83,    84,    85,     3,    87,    88,     3,
-       3,     3,     3,     3,     3,     3,    77,     3,     3,     3,
-       3,    36,     3,    36,    26,    36,     3,     3,     3,     3,
-       3,     3,     3,     3,     3,     3,     3,     3,     3,    26,
-       3,     3,     3,     3,    -1,    -1,    -1,    -1,    -1,    13
+      78,     3,     4,    26,    17,     3,    19,    85,    13,    22,
+      13,     0,    30,     3,     4,    19,     3,     4,    22,    97,
+       3,     4,    20,     5,    20,     3,     4,    98,    99,    42,
+      28,     5,    28,     3,     4,    38,    54,    55,    56,   117,
+      43,    13,    45,    48,     5,    14,   124,    13,   126,   127,
+      68,    32,    33,   131,    14,    58,   134,    60,    13,    37,
+      29,   139,    13,   332,    36,   334,    13,    37,    40,    41,
+     148,    16,    38,    28,   343,   153,    99,    28,    59,     3,
+     158,    28,    63,   161,    13,    98,   164,   165,    13,   167,
+     168,    26,    27,    24,   172,    93,    92,    93,   100,   101,
+     102,    45,   104,    28,   182,   183,    54,   185,    56,    39,
+     188,   189,   102,    45,   104,   102,    32,   104,    34,   102,
+      36,   104,    26,    27,     3,     4,    50,    45,    76,   100,
+     101,    79,    56,   211,    82,    43,    84,    85,    13,   217,
+      30,    78,   220,   221,   222,    45,   224,    56,    45,   227,
+      74,    75,    76,   231,    95,   233,   234,    47,    97,    49,
+      50,    51,    52,    53,   242,    74,    75,    76,    80,    81,
+      13,    61,    95,    88,    95,    65,    95,    67,    68,     5,
+      70,    95,    95,    15,   262,    78,    78,    21,    99,    26,
+      13,     3,    13,    49,    29,    33,    53,    26,     3,    50,
+      62,    66,    68,    71,    45,    29,   284,    26,    39,     3,
+     288,    60,    52,    60,     3,     3,     3,     3,    13,    95,
+       3,    95,     3,   301,    27,   303,    99,     3,    13,     0,
+       1,     3,    78,     3,   312,     3,    27,     8,     9,    10,
+      11,    12,    13,   321,     3,    16,     3,    18,    19,    20,
+      27,    78,    23,   331,    25,   333,    78,    28,    27,    30,
+     338,   339,   340,    27,     3,    27,     3,    38,     3,     3,
+      26,    78,    43,    44,    45,    46,     3,     3,     3,     3,
+      60,    52,    64,     3,     3,     3,    57,     3,     3,     3,
+       3,    83,     3,     3,     3,     3,    39,     3,    39,    29,
+       3,    72,    73,    39,     3,     3,    77,     3,    13,    99,
+      27,     3,     3,    78,     3,    86,    87,    88,    89,    90,
+      91,     3,    93,    94,     3,    27,     3,     3,     3,     3,
+       3,     3,     3,    62,    62,     3,     3,     3,     3,     3,
+     103,     3,    27,    13,     3,    78,     3,     3,     3,    29,
+       3,     3
 };
 
-  /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-     symbol of state STATE-NUM.  */
+/* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
+   state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,   100,   101,     0,     1,     8,     9,    10,    11,    12,
-      13,    16,    17,    20,    22,    25,    27,    35,    40,    41,
-      42,    43,    49,    54,    66,    67,    71,    80,    81,    82,
-      83,    84,    85,    87,    88,   102,   106,   107,   108,   109,
-     110,   111,   112,   113,   115,     5,     5,     5,     3,    14,
-      14,    26,    17,    19,    39,    92,    13,    21,    13,    25,
-      13,    45,    42,    36,    42,    42,    27,    44,    46,    47,
-      48,    49,    50,    57,    59,    61,    62,    64,    40,    13,
-      13,    35,    40,    42,    55,    56,    42,    42,    72,    89,
-      82,    89,    91,    89,    86,    89,    89,     5,    15,    29,
-      31,    33,    93,    72,    72,    18,    23,     3,    23,    24,
-      13,    23,    24,    46,    26,    13,    33,    37,    38,    29,
-      30,    30,    50,    23,     3,     3,     4,   103,    47,    27,
-      51,    52,    53,    62,    51,    53,    70,    73,    76,    78,
-      79,    58,    60,    62,   103,    65,    42,    23,    26,    36,
-      56,    49,    56,    13,    35,    53,    68,    69,    70,     3,
-      47,    53,    68,    69,    70,   103,     3,     3,     3,     3,
-       3,    89,     3,     3,     3,     3,     3,    34,   103,    24,
-       3,     3,    72,   103,   103,     3,    24,   103,     3,     3,
-       3,    23,    34,   103,    72,     3,     3,     3,     3,     3,
-     103,   103,     3,     3,     3,     3,   103,     3,     3,   103,
-      74,    75,    77,   103,   103,   114,   103,   103,     3,     3,
-     103,     3,     3,    36,     3,    36,    26,    36,     3,     3,
-     103,   103,   103,     3,     3,   103,   103,     3,     3,   103,
-       3,   103,   103,   103,     3,   103,   103,     3,   103,   103,
-       3,   103,     3,     3,     3,    95,   103,   105,   103,    13,
-       3,     3,     3,   103,   103,   103,   103,   104,    26,    94,
-      96,   103,     3
+       0,   108,   109,     0,     1,     8,     9,    10,    11,    12,
+      13,    16,    18,    19,    20,    23,    25,    28,    30,    38,
+      43,    44,    45,    46,    52,    57,    72,    73,    77,    86,
+      87,    88,    89,    90,    91,    93,    94,   110,   118,   119,
+     120,   121,   122,   123,   124,   125,   127,     5,     5,     5,
+       3,    20,    28,    93,    14,    14,    29,    17,    19,    22,
+      42,    98,    16,    13,    13,    28,    24,    13,    28,    13,
+      48,    45,    39,    45,    45,    30,    47,    49,    50,    51,
+      52,    53,    61,    65,    67,    68,    70,    43,    13,    13,
+      38,    43,    45,    58,    60,    45,    45,    78,    95,    88,
+      95,    97,    95,    20,    28,    92,    93,    95,    95,    13,
+      28,    13,    95,     5,    15,    32,    34,    36,    99,    98,
+      99,    78,    78,    21,    19,    22,    26,    26,    99,    13,
+       3,    26,    27,    13,    26,    27,    49,    29,    13,    36,
+      40,    41,    32,    33,    59,    63,    33,    53,    26,     3,
+       3,     4,   111,    50,    30,    54,    55,    56,    68,    54,
+      56,    76,    79,    82,    84,    85,    62,    66,    68,   111,
+      71,    45,    26,    29,    39,    60,    52,    60,    13,    38,
+      56,    74,    75,    76,     3,    50,    56,    74,    75,    76,
+     111,     3,     3,     3,     3,     3,    13,    28,    13,    95,
+      95,     3,     3,    99,    13,    27,     3,     3,     3,     3,
+      37,   111,    27,    27,    27,     3,     3,    78,   111,    78,
+     111,   111,    78,    27,   111,     3,    27,   111,     3,     3,
+       3,    26,    37,   111,    78,     3,     3,     3,    60,    64,
+       3,     3,   111,   111,     3,     3,     3,     3,   111,     3,
+       3,   111,    80,    81,    83,   111,   111,   126,   111,   111,
+       3,     3,   111,     3,     3,    39,     3,    39,    29,    39,
+       3,     3,   111,   111,   111,     3,     3,   111,   111,    99,
+      13,    27,     3,     3,    78,    27,     3,     3,   111,     3,
+       3,     3,   111,     3,   111,   111,   111,     3,   111,     3,
+     111,   111,     3,   111,   111,     3,    62,    62,   111,     3,
+       3,     3,   103,   114,   116,   117,   111,    13,     3,     3,
+       3,    78,    27,     3,   111,     3,   111,   111,   111,     3,
+       3,   111,   112,   113,   115,    29,   111,     3,   100,   101,
+     102,   104,   111,   102,   104,   111,   112,   102,   104,   111,
+     102,   104,   112,     3,   111,   111,   111,   112
 };
 
-  /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+/* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    99,   100,   101,   101,   102,   102,   102,   102,   102,
-     102,   102,   102,   102,   102,   103,   103,   104,   104,   104,
-     104,   105,   105,   106,   106,   107,   107,   108,   108,   109,
-     109,   109,   109,   109,   109,   110,   111,   111,   111,   112,
-     112,   112,   112,   112,   112,   112,   112,   112,   112,   112,
-     112,   112,   112,   112,   112,   112,   112,   112,   112,   112,
-     112,   112,   112,   112,   112,   112,   112,   112,   112,   112,
-     112,   112,   112,   112,   112,   112,   112,   113,   113,   113,
-     113,   113,   113,   113,   113,   114,   113,   113,   113,   113,
-     113,   113,   113,   113,   113,   113,   113,   113,   113,   115,
-     115,   115,   115,   115,   115,   115,   115
+       0,   107,   108,   109,   109,   110,   110,   110,   110,   110,
+     110,   110,   110,   110,   110,   111,   111,   112,   112,   113,
+     113,   113,   113,   113,   114,   114,   115,   115,   115,   115,
+     115,   116,   116,   117,   117,   118,   118,   119,   119,   120,
+     120,   121,   121,   121,   121,   121,   121,   121,   121,   121,
+     121,   121,   121,   122,   123,   123,   123,   123,   124,   124,
+     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
+     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
+     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
+     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
+     124,   124,   124,   125,   125,   125,   125,   125,   125,   125,
+     125,   125,   125,   126,   125,   125,   125,   125,   125,   125,
+     125,   125,   125,   125,   125,   125,   125,   127,   127,   127,
+     127,   127,   127,   127,   127,   127,   127
 };
 
-  /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
+/* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     1,     0,     2,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     1,     1,     2,     2,
-       0,     1,     3,     2,     2,     2,     2,     3,     4,     4,
-       4,     5,     5,     5,     3,     3,     5,     4,     4,     5,
-       6,     5,     5,     4,     5,     4,     4,     4,     4,     4,
-       4,     4,     4,     4,     4,     4,     5,     5,     5,     4,
-       4,     4,     4,     4,     4,     6,     5,     6,     5,     5,
-       4,     4,     5,     5,     7,     5,     4,     5,     3,     3,
-       4,     4,     3,     4,     4,     0,     5,     4,     3,     4,
-       4,     4,     4,     4,     3,     4,     4,     4,     4,     3,
-       3,     3,     3,     3,     4,     3,     3
+       1,     1,     1,     1,     1,     1,     1,     3,     3,     2,
+       3,     2,     2,     0,     3,     3,     2,     3,     2,     2,
+       0,     3,     3,     1,     1,     2,     2,     2,     2,     3,
+       4,     4,     5,     4,     4,     5,     5,     5,     5,     5,
+       5,     5,     3,     3,     5,     4,     5,     4,     5,     6,
+       5,     5,     4,     5,     6,     6,     5,     6,     5,     6,
+       4,     4,     4,     4,     4,     4,     4,     4,     4,     4,
+       4,     4,     5,     5,     5,     4,     4,     4,     4,     4,
+       4,     6,     5,     6,     5,     5,     4,     4,     5,     5,
+       7,     5,     4,     5,     3,     6,     6,     3,     4,     4,
+       3,     4,     4,     0,     5,     4,     3,     4,     4,     4,
+       4,     4,     3,     4,     4,     4,     4,     3,     3,     3,
+       3,     3,     4,     3,     4,     4,     3
 };
 
 
+enum { YYENOMEM = -2 };
+
 #define yyerrok         (yyerrstatus = 0)
 #define yyclearin       (yychar = YYEMPTY)
-#define YYEMPTY         (-2)
-#define YYEOF           0
 
 #define YYACCEPT        goto yyacceptlab
 #define YYABORT         goto yyabortlab
 #define YYERROR         goto yyerrorlab
+#define YYNOMEM         goto yyexhaustedlab
 
 
 #define YYRECOVERING()  (!!yyerrstatus)
@@ -965,10 +1035,9 @@ static const yytype_int8 yyr2[] =
       }                                                           \
   while (0)
 
-/* Error token number */
-#define YYTERROR        1
-#define YYERRCODE       256
-
+/* Backward compatibility with an undocumented macro.
+   Use YYerror or YYUNDEF. */
+#define YYERRCODE YYUNDEF
 
 
 /* Enable debugging if requested.  */
@@ -985,19 +1054,16 @@ do {                                            \
     YYFPRINTF Args;                             \
 } while (0)
 
-/* This macro is provided for backward compatibility. */
-#ifndef YY_LOCATION_PRINT
-# define YY_LOCATION_PRINT(File, Loc) ((void) 0)
-#endif
 
 
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                    \
+
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                    \
 do {                                                                      \
   if (yydebug)                                                            \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Type, Value); \
+                  Kind, Value); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
@@ -1008,18 +1074,15 @@ do {                                                                      \
 `-----------------------------------*/
 
 static void
-yy_symbol_value_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_value_print (FILE *yyo,
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
 {
   FILE *yyoutput = yyo;
-  YYUSE (yyoutput);
+  YY_USE (yyoutput);
   if (!yyvaluep)
     return;
-# ifdef YYPRINT
-  if (yytype < YYNTOKENS)
-    YYPRINT (yyo, yytoknum[yytype], *yyvaluep);
-# endif
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-  YYUSE (yytype);
+  YY_USE (yykind);
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
@@ -1029,12 +1092,13 @@ yy_symbol_value_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
 `---------------------------*/
 
 static void
-yy_symbol_print (FILE *yyo, int yytype, YYSTYPE const * const yyvaluep)
+yy_symbol_print (FILE *yyo,
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
 {
   YYFPRINTF (yyo, "%s %s (",
-             yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
+             yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
-  yy_symbol_value_print (yyo, yytype, yyvaluep);
+  yy_symbol_value_print (yyo, yykind, yyvaluep);
   YYFPRINTF (yyo, ")");
 }
 
@@ -1067,7 +1131,8 @@ do {                                                            \
 `------------------------------------------------*/
 
 static void
-yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, int yyrule)
+yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
+                 int yyrule)
 {
   int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
@@ -1079,9 +1144,8 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, int yyrule)
     {
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
-                       yystos[+yyssp[yyi + 1 - yynrhs]],
-                       &yyvsp[(yyi + 1) - (yynrhs)]
-                                              );
+                       YY_ACCESSING_SYMBOL (+yyssp[yyi + 1 - yynrhs]),
+                       &yyvsp[(yyi + 1) - (yynrhs)]);
       YYFPRINTF (stderr, "\n");
     }
 }
@@ -1096,8 +1160,8 @@ do {                                    \
    multiple parsers can coexist.  */
 int yydebug;
 #else /* !YYDEBUG */
-# define YYDPRINTF(Args)
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)
+# define YYDPRINTF(Args) ((void) 0)
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)
 # define YY_STACK_PRINT(Bottom, Top)
 # define YY_REDUCE_PRINT(Rule)
 #endif /* !YYDEBUG */
@@ -1120,265 +1184,38 @@ int yydebug;
 #endif
 
 
-#if YYERROR_VERBOSE
 
-# ifndef yystrlen
-#  if defined __GLIBC__ && defined _STRING_H
-#   define yystrlen(S) (YY_CAST (YYPTRDIFF_T, strlen (S)))
-#  else
-/* Return the length of YYSTR.  */
-static YYPTRDIFF_T
-yystrlen (const char *yystr)
-{
-  YYPTRDIFF_T yylen;
-  for (yylen = 0; yystr[yylen]; yylen++)
-    continue;
-  return yylen;
-}
-#  endif
-# endif
 
-# ifndef yystpcpy
-#  if defined __GLIBC__ && defined _STRING_H && defined _GNU_SOURCE
-#   define yystpcpy stpcpy
-#  else
-/* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
-   YYDEST.  */
-static char *
-yystpcpy (char *yydest, const char *yysrc)
-{
-  char *yyd = yydest;
-  const char *yys = yysrc;
 
-  while ((*yyd++ = *yys++) != '\0')
-    continue;
-
-  return yyd - 1;
-}
-#  endif
-# endif
-
-# ifndef yytnamerr
-/* Copy to YYRES the contents of YYSTR after stripping away unnecessary
-   quotes and backslashes, so that it's suitable for yyerror.  The
-   heuristic is that double-quoting is unnecessary unless the string
-   contains an apostrophe, a comma, or backslash (other than
-   backslash-backslash).  YYSTR is taken from yytname.  If YYRES is
-   null, do not copy; instead, return the length of what the result
-   would have been.  */
-static YYPTRDIFF_T
-yytnamerr (char *yyres, const char *yystr)
-{
-  if (*yystr == '"')
-    {
-      YYPTRDIFF_T yyn = 0;
-      char const *yyp = yystr;
-
-      for (;;)
-        switch (*++yyp)
-          {
-          case '\'':
-          case ',':
-            goto do_not_strip_quotes;
-
-          case '\\':
-            if (*++yyp != '\\')
-              goto do_not_strip_quotes;
-            else
-              goto append;
-
-          append:
-          default:
-            if (yyres)
-              yyres[yyn] = *yyp;
-            yyn++;
-            break;
-
-          case '"':
-            if (yyres)
-              yyres[yyn] = '\0';
-            return yyn;
-          }
-    do_not_strip_quotes: ;
-    }
-
-  if (yyres)
-    return yystpcpy (yyres, yystr) - yyres;
-  else
-    return yystrlen (yystr);
-}
-# endif
-
-/* Copy into *YYMSG, which is of size *YYMSG_ALLOC, an error message
-   about the unexpected token YYTOKEN for the state stack whose top is
-   YYSSP.
-
-   Return 0 if *YYMSG was successfully written.  Return 1 if *YYMSG is
-   not large enough to hold the message.  In that case, also set
-   *YYMSG_ALLOC to the required number of bytes.  Return 2 if the
-   required number of bytes is too large to store.  */
-static int
-yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
-                yy_state_t *yyssp, int yytoken)
-{
-  enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
-  /* Internationalized format string. */
-  const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat: reported tokens (one for the "unexpected",
-     one per "expected"). */
-  char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Actual size of YYARG. */
-  int yycount = 0;
-  /* Cumulated lengths of YYARG.  */
-  YYPTRDIFF_T yysize = 0;
-
-  /* There are many possibilities here to consider:
-     - If this state is a consistent state with a default action, then
-       the only way this function was invoked is if the default action
-       is an error action.  In that case, don't check for expected
-       tokens because there are none.
-     - The only way there can be no lookahead present (in yychar) is if
-       this state is a consistent state with a default action.  Thus,
-       detecting the absence of a lookahead is sufficient to determine
-       that there is no unexpected or expected token to report.  In that
-       case, just report a simple "syntax error".
-     - Don't assume there isn't a lookahead just because this state is a
-       consistent state with a default action.  There might have been a
-       previous inconsistent state, consistent state with a non-default
-       action, or user semantic action that manipulated yychar.
-     - Of course, the expected token list depends on states to have
-       correct lookahead information, and it depends on the parser not
-       to perform extra reductions after fetching a lookahead from the
-       scanner and before detecting a syntax error.  Thus, state merging
-       (from LALR or IELR) and default reductions corrupt the expected
-       token list.  However, the list is correct for canonical LR with
-       one exception: it will still contain any token that will not be
-       accepted due to an error action in a later state.
-  */
-  if (yytoken != YYEMPTY)
-    {
-      int yyn = yypact[+*yyssp];
-      YYPTRDIFF_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-      yysize = yysize0;
-      yyarg[yycount++] = yytname[yytoken];
-      if (!yypact_value_is_default (yyn))
-        {
-          /* Start YYX at -YYN if negative to avoid negative indexes in
-             YYCHECK.  In other words, skip the first -YYN actions for
-             this state because they are default actions.  */
-          int yyxbegin = yyn < 0 ? -yyn : 0;
-          /* Stay within bounds of both yycheck and yytname.  */
-          int yychecklim = YYLAST - yyn + 1;
-          int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
-          int yyx;
-
-          for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-            if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
-                && !yytable_value_is_error (yytable[yyx + yyn]))
-              {
-                if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
-                  {
-                    yycount = 1;
-                    yysize = yysize0;
-                    break;
-                  }
-                yyarg[yycount++] = yytname[yyx];
-                {
-                  YYPTRDIFF_T yysize1
-                    = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
-                    yysize = yysize1;
-                  else
-                    return 2;
-                }
-              }
-        }
-    }
-
-  switch (yycount)
-    {
-# define YYCASE_(N, S)                      \
-      case N:                               \
-        yyformat = S;                       \
-      break
-    default: /* Avoid compiler warnings. */
-      YYCASE_(0, YY_("syntax error"));
-      YYCASE_(1, YY_("syntax error, unexpected %s"));
-      YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
-      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
-      YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
-      YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
-# undef YYCASE_
-    }
-
-  {
-    /* Don't count the "%s"s in the final size, but reserve room for
-       the terminator.  */
-    YYPTRDIFF_T yysize1 = yysize + (yystrlen (yyformat) - 2 * yycount) + 1;
-    if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
-      yysize = yysize1;
-    else
-      return 2;
-  }
-
-  if (*yymsg_alloc < yysize)
-    {
-      *yymsg_alloc = 2 * yysize;
-      if (! (yysize <= *yymsg_alloc
-             && *yymsg_alloc <= YYSTACK_ALLOC_MAXIMUM))
-        *yymsg_alloc = YYSTACK_ALLOC_MAXIMUM;
-      return 1;
-    }
-
-  /* Avoid sprintf, as that infringes on the user's name space.
-     Don't have undefined behavior even if the translation
-     produced a string with the wrong number of "%s"s.  */
-  {
-    char *yyp = *yymsg;
-    int yyi = 0;
-    while ((*yyp = *yyformat) != '\0')
-      if (*yyp == '%' && yyformat[1] == 's' && yyi < yycount)
-        {
-          yyp += yytnamerr (yyp, yyarg[yyi++]);
-          yyformat += 2;
-        }
-      else
-        {
-          ++yyp;
-          ++yyformat;
-        }
-  }
-  return 0;
-}
-#endif /* YYERROR_VERBOSE */
 
 /*-----------------------------------------------.
 | Release the memory associated to this symbol.  |
 `-----------------------------------------------*/
 
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep)
+yydestruct (const char *yymsg,
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep)
 {
-  YYUSE (yyvaluep);
+  YY_USE (yyvaluep);
   if (!yymsg)
     yymsg = "Deleting";
-  YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
+  YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
 
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-  YYUSE (yytype);
+  YY_USE (yykind);
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
 
-
-
-/* The lookahead symbol.  */
+/* Lookahead token kind.  */
 int yychar;
 
 /* The semantic value of the lookahead symbol.  */
 YYSTYPE yylval;
 /* Number of syntax errors so far.  */
 int yynerrs;
+
+
 
 
 /*----------.
@@ -1388,43 +1225,36 @@ int yynerrs;
 int
 yyparse (void)
 {
-    yy_state_fast_t yystate;
+    yy_state_fast_t yystate = 0;
     /* Number of tokens to shift before error messages enabled.  */
-    int yyerrstatus;
+    int yyerrstatus = 0;
 
-    /* The stacks and their tools:
-       'yyss': related to states.
-       'yyvs': related to semantic values.
-
-       Refer to the stacks through separate pointers, to allow yyoverflow
+    /* Refer to the stacks through separate pointers, to allow yyoverflow
        to reallocate them elsewhere.  */
 
-    /* The state stack.  */
+    /* Their size.  */
+    YYPTRDIFF_T yystacksize = YYINITDEPTH;
+
+    /* The state stack: array, bottom, top.  */
     yy_state_t yyssa[YYINITDEPTH];
-    yy_state_t *yyss;
-    yy_state_t *yyssp;
+    yy_state_t *yyss = yyssa;
+    yy_state_t *yyssp = yyss;
 
-    /* The semantic value stack.  */
+    /* The semantic value stack: array, bottom, top.  */
     YYSTYPE yyvsa[YYINITDEPTH];
-    YYSTYPE *yyvs;
-    YYSTYPE *yyvsp;
-
-    YYPTRDIFF_T yystacksize;
+    YYSTYPE *yyvs = yyvsa;
+    YYSTYPE *yyvsp = yyvs;
 
   int yyn;
+  /* The return value of yyparse.  */
   int yyresult;
-  /* Lookahead token as an internal (translated) token number.  */
-  int yytoken = 0;
+  /* Lookahead symbol kind.  */
+  yysymbol_kind_t yytoken = YYSYMBOL_YYEMPTY;
   /* The variables used to return semantic value and location from the
      action routines.  */
   YYSTYPE yyval;
 
-#if YYERROR_VERBOSE
-  /* Buffer for error messages, and its allocated size.  */
-  char yymsgbuf[128];
-  char *yymsg = yymsgbuf;
-  YYPTRDIFF_T yymsg_alloc = sizeof yymsgbuf;
-#endif
+
 
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
 
@@ -1432,16 +1262,10 @@ yyparse (void)
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
 
-  yyssp = yyss = yyssa;
-  yyvsp = yyvs = yyvsa;
-  yystacksize = YYINITDEPTH;
-
   YYDPRINTF ((stderr, "Starting parse\n"));
 
-  yystate = 0;
-  yyerrstatus = 0;
-  yynerrs = 0;
   yychar = YYEMPTY; /* Cause a token to be read.  */
+
   goto yysetstate;
 
 
@@ -1463,10 +1287,11 @@ yysetstate:
   YY_IGNORE_USELESS_CAST_BEGIN
   *yyssp = YY_CAST (yy_state_t, yystate);
   YY_IGNORE_USELESS_CAST_END
+  YY_STACK_PRINT (yyss, yyssp);
 
   if (yyss + yystacksize - 1 <= yyssp)
 #if !defined yyoverflow && !defined YYSTACK_RELOCATE
-    goto yyexhaustedlab;
+    YYNOMEM;
 #else
     {
       /* Get the current used size of the three stacks, in elements.  */
@@ -1494,7 +1319,7 @@ yysetstate:
 # else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
-        goto yyexhaustedlab;
+        YYNOMEM;
       yystacksize *= 2;
       if (YYMAXDEPTH < yystacksize)
         yystacksize = YYMAXDEPTH;
@@ -1505,10 +1330,10 @@ yysetstate:
           YY_CAST (union yyalloc *,
                    YYSTACK_ALLOC (YY_CAST (YYSIZE_T, YYSTACK_BYTES (yystacksize))));
         if (! yyptr)
-          goto yyexhaustedlab;
+          YYNOMEM;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
-# undef YYSTACK_RELOCATE
+#  undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
       }
@@ -1526,6 +1351,7 @@ yysetstate:
         YYABORT;
     }
 #endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
+
 
   if (yystate == YYFINAL)
     YYACCEPT;
@@ -1547,17 +1373,28 @@ yybackup:
 
   /* Not known => get a lookahead token if don't already have one.  */
 
-  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
+  /* YYCHAR is either empty, or end-of-input, or a valid lookahead.  */
   if (yychar == YYEMPTY)
     {
-      YYDPRINTF ((stderr, "Reading a token: "));
+      YYDPRINTF ((stderr, "Reading a token\n"));
       yychar = yylex ();
     }
 
   if (yychar <= YYEOF)
     {
-      yychar = yytoken = YYEOF;
+      yychar = YYEOF;
+      yytoken = YYSYMBOL_YYEOF;
       YYDPRINTF ((stderr, "Now at end of input.\n"));
+    }
+  else if (yychar == YYerror)
+    {
+      /* The scanner already issued an error message, process directly
+         to error recovery.  But do not keep the error token as
+         lookahead, it is too special and may lead us to an endless
+         loop in error recovery. */
+      yychar = YYUNDEF;
+      yytoken = YYSYMBOL_YYerror;
+      goto yyerrlab1;
     }
   else
     {
@@ -1627,720 +1464,908 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 14:
-#line 112 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 14: /* PrjDataItem: error  */
+#line 116 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
                         {YYABORT;}
-#line 1634 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1471 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 15:
-#line 132 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 15: /* SFFloat: FLOATING  */
+#line 138 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
                 {
+		      (yyval.fval) = (yyvsp[0].fval);
 		      if(ProjData::Fbuff) ProjData::Fbuff->push_back((yyvsp[0].fval));
 		}
-#line 1642 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1480 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 16:
-#line 136 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 16: /* SFFloat: INTEGER  */
+#line 143 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
                 {
 		       (yyval.fval) = (double)(yyvsp[0].ival);
 		       if(ProjData::Fbuff) ProjData::Fbuff->push_back((double)(yyvsp[0].ival));
 		}
-#line 1651 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1489 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 21:
-#line 174 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
-                  {}
-#line 1657 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+  case 17: /* SFComplex: SFFloat PLUSI SFFloat  */
+#line 152 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                {
+		       if(ProjData::Cbuff) ProjData::Cbuff->push_back(std::complex<double>((yyvsp[-2].fval),(yyvsp[0].fval)));
+		}
+#line 1497 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 22:
-#line 175 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 18: /* SFComplex: SFFloat MINUSI SFFloat  */
+#line 156 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                {
+		       if(ProjData::Cbuff) ProjData::Cbuff->push_back(std::complex<double>((yyvsp[-2].fval),-(yyvsp[0].fval)));
+		}
+#line 1505 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 24: /* MFFloat: '[' SFFloat ']'  */
+#line 194 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                          {}
+#line 1511 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 25: /* MFFloat: '[' SFFloatList ']'  */
+#line 195 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
                               {}
-#line 1663 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1517 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 23:
-#line 229 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 31: /* MFComplex: '[' SFComplex ']'  */
+#line 208 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                            {}
+#line 1523 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 32: /* MFComplex: '[' SFComplexList ']'  */
+#line 209 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                                {}
+#line 1529 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 33: /* MFFloatOrMFComplex: MFFloat  */
+#line 214 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                  {}
+#line 1535 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 34: /* MFFloatOrMFComplex: MFComplex  */
+#line 215 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                    {}
+#line 1541 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 35: /* ImportData: VARFILEPATH STRING  */
+#line 270 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.varFilePath=(yyvsp[0].sval);
             }
-#line 1671 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1549 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 24:
-#line 233 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 36: /* ImportData: S2PFILEPATH STRING  */
+#line 274 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.s2pFilePath=(yyvsp[0].sval);
             }
-#line 1679 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1557 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 25:
-#line 240 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 37: /* CAD: MAINASSNAME STRING  */
+#line 281 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.mainAssName=(yyvsp[0].sval);
             }
-#line 1687 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1565 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 26:
-#line 244 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 38: /* CAD: NETWORK INTEGER  */
+#line 285 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.network=(yyvsp[0].ival);
             }
-#line 1695 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1573 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 27:
-#line 251 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 39: /* Units: LENGTH UNIT STRING  */
+#line 292 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               strcpy(prjData.lengthUnitName,(yyvsp[0].sval));
             }
-#line 1703 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1581 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 28:
-#line 255 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 40: /* Units: FREQ UNIT EXP INTEGER  */
+#line 296 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqUnitE =(yyvsp[0].ival);
             }
-#line 1711 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1589 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 29:
-#line 262 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 41: /* Mesh: MESH WAVELENGTH RATIO INTEGER  */
+#line 303 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.meshPerWavelen=(yyvsp[0].ival);
             }
-#line 1719 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1597 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 30:
-#line 266 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 42: /* Mesh: SHARED MESH WAVELENGTH RATIO INTEGER  */
+#line 307 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.sharedMeshPerWavelen=(yyvsp[0].ival);
+            }
+#line 1605 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 43: /* Mesh: SHARED MESH REFINE SFFloat  */
+#line 311 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.sharedMeshRefine=(yyvsp[0].fval);
+            }
+#line 1613 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 44: /* Mesh: MESH CIRCLE RATIO INTEGER  */
+#line 315 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.meshPerCircle=(yyvsp[0].ival);
             }
-#line 1727 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1621 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 31:
-#line 270 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 45: /* Mesh: MESH REFINE tMIN NUM INTEGER  */
+#line 319 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.meshRefineMinNum=(yyvsp[0].ival);
+            }
+#line 1629 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 46: /* Mesh: MESH REFINE tMAX NUM INTEGER  */
+#line 323 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.meshRefineMaxNum=(yyvsp[0].ival);
             }
-#line 1735 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1637 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 32:
-#line 274 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 47: /* Mesh: MESH TET tMAX NUM INTEGER  */
+#line 327 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
-//              prjData.refFreqBand[0]=$4;
-//              prjData.refFreqBand[1]=$5;
+              prjData.meshTetMaxNum=(yyvsp[0].ival);
             }
-#line 1744 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1645 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 33:
-#line 279 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 48: /* Mesh: REFINE FREQ BAND SFFloat SFFloat  */
+#line 331 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+            }
+#line 1652 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 49: /* Mesh: RESONANCE FREQ BAND SFFloat SFFloat  */
+#line 334 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+            }
+#line 1659 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 50: /* Mesh: RESONANCE FREQ tMAX RATIO SFFloat  */
+#line 337 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.resonFreqMaxRatio=(yyvsp[0].fval);
+            }
+#line 1667 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 51: /* Mesh: MESH tMIN ENERGY RATIO SFFloat  */
+#line 341 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.meshMinEnergyRatio=(yyvsp[0].fval);
             }
-#line 1752 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1675 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 34:
-#line 283 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 52: /* Mesh: LOCAL MESHING3D INTEGER  */
+#line 345 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.localMeshing3d=(yyvsp[0].ival);
             }
-#line 1760 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1683 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 35:
-#line 290 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 53: /* Mwm: CUTOFF RATIO SFFloat  */
+#line 352 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
            {
               prjData.cutoffRatio=(yyvsp[0].fval);
            }
-#line 1768 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1691 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 36:
-#line 297 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 54: /* Mor: MOR FREQ BAND SFFloat SFFloat  */
+#line 359 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqBand[0]=(yyvsp[-1].fval);
               prjData.freqBand[1]=(yyvsp[0].fval);
             }
-#line 1777 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1700 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 37:
-#line 302 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 55: /* Mor: MOR FREQ NUM INTEGER  */
+#line 364 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.MORFreqNum=(yyvsp[0].ival);
             }
-#line 1785 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1708 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 38:
-#line 306 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 56: /* Mor: RESONANCE MOR FREQ NUM INTEGER  */
+#line 368 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.MORFreqNum1=(yyvsp[0].ival);
+            }
+#line 1716 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 57: /* Mor: MOR KRYLOV ORDER INTEGER  */
+#line 372 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.KrylovOrder=(yyvsp[0].ival);
             }
-#line 1793 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1724 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 39:
-#line 313 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 58: /* FreqAna: ANA FREQ BAND SFFloat SFFloat  */
+#line 379 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.anaFreqBand[0]=(yyvsp[-1].fval);
               prjData.anaFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1802 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1733 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 40:
-#line 318 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 59: /* FreqAna: ZERO POLE FREQ BAND SFFloat SFFloat  */
+#line 384 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.zpFreqBand[0]=(yyvsp[-1].fval);
               prjData.zpFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1811 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1742 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 41:
-#line 323 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 60: /* FreqAna: ZERO POLE WINDOW RATIO SFFloat  */
+#line 389 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.zpWinRatio=(yyvsp[0].fval);
             }
-#line 1819 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1750 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 42:
-#line 327 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 61: /* FreqAna: MAPPING FREQ BAND SFFloat SFFloat  */
+#line 393 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.mapFreqBand[0]=(yyvsp[-1].fval);
               prjData.mapFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1828 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1759 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 43:
-#line 332 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 62: /* FreqAna: ANA FREQ NUM INTEGER  */
+#line 398 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.anaFreqNum=(yyvsp[0].ival);
             }
-#line 1836 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1767 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 44:
-#line 336 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 63: /* FreqAna: ANA MOR FREQ NUM INTEGER  */
+#line 402 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
-              prjData.anaMORFreqNum=(yyvsp[0].ival);
+              if(prjData.network) prjData.netMORFreqNum=(yyvsp[0].ival);
+              else                prjData.cmpMORFreqNum=(yyvsp[0].ival);
             }
-#line 1844 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1776 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 45:
-#line 340 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 64: /* FreqAna: COMPONENT RESONANCE FREQ tMAX RATIO SFFloat  */
+#line 407 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.cmpResonFreqMaxRatio=(yyvsp[0].fval);
+            }
+#line 1784 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 65: /* FreqAna: NETWORK RESONANCE FREQ tMAX RATIO SFFloat  */
+#line 411 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.netResonFreqMaxRatio=(yyvsp[0].fval);
+            }
+#line 1792 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 66: /* FreqAna: COMPONENT MOR FREQ NUM INTEGER  */
+#line 415 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.cmpMORFreqNum=(yyvsp[0].ival);
+            }
+#line 1800 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 67: /* FreqAna: COMPONENT RESONANCE MOR FREQ NUM INTEGER  */
+#line 419 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.cmpMORFreqNum1=(yyvsp[0].ival);
+            }
+#line 1808 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 68: /* FreqAna: NETWORK MOR FREQ NUM INTEGER  */
+#line 423 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.netMORFreqNum=(yyvsp[0].ival);
+            }
+#line 1816 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 69: /* FreqAna: NETWORK RESONANCE MOR FREQ NUM INTEGER  */
+#line 427 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.netMORFreqNum1=(yyvsp[0].ival);
+            }
+#line 1824 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 70: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
+#line 431 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.idealFilterType=(yyvsp[0].ival);
             }
-#line 1852 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1832 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 46:
-#line 344 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 71: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
+#line 435 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.idealFilterType=(yyvsp[0].ival);
+            }
+#line 1840 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 72: /* FreqAna: CANONICAL FILTER TOPOLOGY INTEGER  */
+#line 439 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.canonicalFilterTopology=(yyvsp[0].ival);
             }
-#line 1860 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1848 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 47:
-#line 348 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 73: /* FreqAna: IDEAL FILTER TOPOLOGY INTEGER  */
+#line 443 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.canonicalFilterTopology=(yyvsp[0].ival);
             }
-#line 1868 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1856 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 48:
-#line 352 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 74: /* FreqAna: CUSTOM IDEAL FILTER INTEGER  */
+#line 447 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.customIdealFilter=(yyvsp[0].ival);
             }
-#line 1876 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1864 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 49:
-#line 356 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 75: /* FreqAna: FILTER MAPPING METHOD INTEGER  */
+#line 451 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 1883 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1871 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 50:
-#line 359 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 76: /* FreqAna: FILTER MAPPING SYMMETRIC INTEGER  */
+#line 454 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filtermapSymmetric=(yyvsp[0].ival);
             }
-#line 1891 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1879 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 51:
-#line 363 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 77: /* FreqAna: FILTER MAPPING SOURCE INTEGER  */
+#line 458 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filtermapSource=(yyvsp[0].ival);
             }
-#line 1899 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1887 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 52:
-#line 367 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 78: /* FreqAna: FILTER MAPPING QFACTOR SFFloat  */
+#line 462 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filtermapQfactor = (yyvsp[0].fval);
             }
-#line 1907 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1895 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 53:
-#line 371 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 79: /* FreqAna: FILTER MAPPING ITERMAX INTEGER  */
+#line 466 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 1914 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1902 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 54:
-#line 374 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 80: /* FreqAna: FILTER TUNING ITERMAX INTEGER  */
+#line 469 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneItermax=(yyvsp[0].ival);
             }
-#line 1922 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1910 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 55:
-#line 378 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 81: /* FreqAna: FILTER TUNING METHOD INTEGER  */
+#line 473 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneMethod=(yyvsp[0].ival);
             }
-#line 1930 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1918 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 56:
-#line 382 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 82: /* FreqAna: FILTER TUNING RECOMPUTE JACOBIAN INTEGER  */
+#line 477 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneRecomputeJaco=(yyvsp[0].ival);
             }
-#line 1938 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1926 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 57:
-#line 386 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 83: /* FreqAna: FILTER TUNING RECOMPUTE ERRORT INTEGER  */
+#line 481 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneRecomputeError=(yyvsp[0].ival);
             }
-#line 1946 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1934 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 58:
-#line 390 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 84: /* FreqAna: FILTER TUNING ONLY TRANSVERSEJ INTEGER  */
+#line 485 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneOnlyJt=(yyvsp[0].ival);
             }
-#line 1954 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1942 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 59:
-#line 394 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 85: /* FreqAna: FILTER SYMMETRIC TUNING INTEGER  */
+#line 489 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterSymmetricTuning=(yyvsp[0].ival);
             }
-#line 1962 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1950 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 60:
-#line 398 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 86: /* FreqAna: FILTER TUNING XTOL SFFloat  */
+#line 493 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneXtol=(yyvsp[0].fval);
             }
-#line 1970 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1958 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 61:
-#line 402 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 87: /* FreqAna: FILTER TUNING TRUSTR SFFloat  */
+#line 497 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTuneTrustR=(yyvsp[0].fval);
             }
-#line 1978 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1966 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 62:
-#line 406 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 88: /* FreqAna: FILTER TUNING GRADDX SFFloat  */
+#line 501 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
-              prjData.filterTuneGradDx=(yyvsp[0].fval);
             }
-#line 1986 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1973 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 63:
-#line 410 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 89: /* FreqAna: FREQ RESPONSE TYPE INTEGER  */
+#line 504 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqRespParType = (FreqRespParType) (yyvsp[0].ival);
             }
-#line 1994 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1981 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 64:
-#line 414 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 90: /* FreqAna: FREQ RESPONSE PART INTEGER  */
+#line 508 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqRespParPart = (yyvsp[0].ival);
             }
-#line 2002 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1989 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 65:
-#line 418 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 91: /* FreqAna: FREQ RESPONSE YSCALE SFFloat SFFloat SFFloat  */
+#line 512 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqRespYscale[0]=(yyvsp[-2].fval);
               prjData.freqRespYscale[1]=(yyvsp[-1].fval);
               prjData.freqRespYscale[2]=(yyvsp[0].fval);
             }
-#line 2012 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 1999 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 66:
-#line 424 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 92: /* FreqAna: FREQ RESPONSE YSCALE AUTO INTEGER  */
+#line 518 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.freqRespYscaleAuto=(yyvsp[0].ival);
             }
-#line 2020 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2007 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 67:
-#line 428 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 93: /* FreqAna: ZERO POLE YSCALE SFFloat SFFloat SFFloat  */
+#line 522 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.zeropoleYscale[0]=(yyvsp[-2].fval);
               prjData.zeropoleYscale[1]=(yyvsp[-1].fval);
               prjData.zeropoleYscale[2]=(yyvsp[0].fval);
             }
-#line 2030 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2017 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 68:
-#line 434 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 94: /* FreqAna: ZERO POLE YSCALE AUTO INTEGER  */
+#line 528 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.zeropoleYscaleAuto=(yyvsp[0].ival);
             }
-#line 2038 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2025 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 69:
-#line 438 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 95: /* FreqAna: ZERO POLE CURVE INTEGER INTEGER  */
+#line 532 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               std::pair<int, int> Sij_ports;
               Sij_ports.first=(yyvsp[-1].ival);
               Sij_ports.second=(yyvsp[0].ival);
               prjData.zeropoleCurves.insert(Sij_ports);
             }
-#line 2049 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2036 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 70:
-#line 445 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 96: /* FreqAna: AUTOMATIC FREQ RESPONSE INTEGER  */
+#line 539 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoFreqResponse=(yyvsp[0].ival);
             }
-#line 2057 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2044 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 71:
-#line 449 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 97: /* FreqAna: AUTOMATIC ZERO POLE INTEGER  */
+#line 543 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoZeropole=(yyvsp[0].ival);
             }
-#line 2065 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2052 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 72:
-#line 453 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 98: /* FreqAna: AUTOMATIC DESIGN MAPPED POLE INTEGER  */
+#line 547 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoDesignWithMappedTz=(yyvsp[0].ival);
             }
-#line 2073 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2060 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 73:
-#line 457 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 99: /* FreqAna: AUTOMATIC MAPPED FREQ RESPONSE INTEGER  */
+#line 551 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoMappedFreqResponse=(yyvsp[0].ival);
             }
-#line 2081 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2068 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 74:
-#line 461 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 100: /* FreqAna: AUTOMATIC IDEAL MAPPED POLE FREQ RESPONSE INTEGER  */
+#line 555 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoIdealMappedTzFreqResponse=(yyvsp[0].ival);
             }
-#line 2089 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2076 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 75:
-#line 465 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 101: /* FreqAna: AUTOMATIC MAPPED ZERO POLE INTEGER  */
+#line 559 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoMappedZeropole=(yyvsp[0].ival);
             }
-#line 2097 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2084 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 76:
-#line 469 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 102: /* FreqAna: AUTOMATIC FILTER MAPPING INTEGER  */
+#line 563 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.autoFilterMapping=(yyvsp[0].ival);
             }
-#line 2105 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2092 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 77:
-#line 476 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 103: /* FilterDesign: FILTER PASS BAND SFFloat SFFloat  */
+#line 570 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterPassBand[0]=(yyvsp[-1].fval);
               prjData.filterPassBand[1]=(yyvsp[0].fval);
             }
-#line 2114 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2101 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 78:
-#line 481 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 104: /* FilterDesign: FILTER ORDER INTEGER  */
+#line 575 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterOrder = (yyvsp[0].ival);
             }
-#line 2122 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2109 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 79:
-#line 485 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 105: /* FilterDesign: IDEAL FILTER ADD CONJUGATE ZEROS INTEGER  */
+#line 579 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.idealFilterAddConjugateTZ = (yyvsp[0].ival);
+            }
+#line 2117 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 106: /* FilterDesign: IDEAL FILTER WITH MAPPED ZEROS INTEGER  */
+#line 583 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.idealFilterWithMappedTZ = (yyvsp[0].ival);
+              if(prjData.idealFilterWithMappedTZ) prjData.idealFilterAddConjugateTZ=0;
+            }
+#line 2126 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 107: /* FilterDesign: FILTER RETURNLOSS SFFloat  */
+#line 588 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterRetLoss = (yyvsp[0].fval);
             }
-#line 2130 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2134 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 80:
-#line 489 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 108: /* FilterDesign: FILTER OUTBAND RETURNLOSS SFFloat  */
+#line 592 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterOutbandRetLoss = (yyvsp[0].fval);
             }
-#line 2138 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2142 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 81:
-#line 493 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 109: /* FilterDesign: FILTER PORT IMPEDANCE SFFloat  */
+#line 596 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterPortImpedance = (yyvsp[0].fval);
             }
-#line 2146 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2150 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 82:
-#line 497 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 110: /* FilterDesign: FILTER QFACTOR SFFloat  */
+#line 600 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterQfactor = (yyvsp[0].fval);
             }
-#line 2154 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2158 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 83:
-#line 501 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 111: /* FilterDesign: FILTER TARGET QFACTOR SFFloat  */
+#line 604 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterTargetQfactor = (yyvsp[0].fval);
             }
-#line 2162 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2166 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 84:
-#line 505 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 112: /* FilterDesign: FILTER INDUCTIVE SKIN INTEGER  */
+#line 608 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.filterInductiveSkin = (yyvsp[0].ival);
             }
-#line 2170 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2174 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 85:
-#line 508 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
-                           {ProjData::Fbuff =&prjData.filterZeros; ProjData::Fbuff->clear();}
-#line 2176 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+  case 113: /* $@1: %empty  */
+#line 611 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+                           {ProjData::Cbuff =&prjData.filterZeros; ProjData::Cbuff->clear();
+                            ProjData::Fbuff =&ProjData::Fvec; ProjData::Fvec.clear();}
+#line 2181 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 86:
-#line 509 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 114: /* FilterDesign: FILTER TX ZEROS $@1 MFFloatOrMFComplex  */
+#line 613 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
-              ProjData::Fbuff=NULL;
+              if(prjData.filterZeros.size()==0){
+               for (int i=0; i<ProjData::Fvec.size() ; i++) prjData.filterZeros.push_back(std::complex<double>(ProjData::Fvec[i],0.0));
+               ProjData::Fbuff=NULL;
+              } else ProjData::Cbuff=NULL;
             }
-#line 2184 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2192 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 87:
-#line 513 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 115: /* FilterDesign: SYMMETRIC FILTER RESPONSE INTEGER  */
+#line 620 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.symmFilterResponse = (yyvsp[0].ival);
             }
-#line 2192 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2200 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 88:
-#line 517 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 116: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
+#line 624 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistortedFilter = (yyvsp[0].ival);
             }
-#line 2200 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2208 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 89:
-#line 521 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 117: /* FilterDesign: PREDISTORTED FILTER OPTIMIZE INTEGER  */
+#line 628 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistFilterOptim = (yyvsp[0].ival);
             }
-#line 2208 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2216 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 90:
-#line 525 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 118: /* FilterDesign: PREDISTORTED FILTER RETURNLOSS SFFloat  */
+#line 632 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimRL = (yyvsp[0].fval);
             }
-#line 2216 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2224 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 91:
-#line 529 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 119: /* FilterDesign: PREDISTORTED FILTER ILOSSPP SFFloat  */
+#line 636 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimILpp = (yyvsp[0].fval);
             }
-#line 2224 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2232 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 92:
-#line 533 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 120: /* FilterDesign: PREDISTORTED FILTER TRUSTR SFFloat  */
+#line 640 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimTrustR = (yyvsp[0].fval);
             }
-#line 2232 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2240 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 93:
-#line 537 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 121: /* FilterDesign: PREDISTORTED FILTER ITERMAX INTEGER  */
+#line 644 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimIterMax = (yyvsp[0].ival);
             }
-#line 2240 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2248 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 94:
-#line 541 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 122: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
+#line 648 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.predistortedFilter = (yyvsp[0].ival);
             }
-#line 2248 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2256 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 95:
-#line 545 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 123: /* FilterDesign: LOSSY FILTER OPTIMIZE INTEGER  */
+#line 652 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 2255 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2263 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 96:
-#line 548 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 124: /* FilterDesign: LOSSY FILTER ILOSSPP SFFloat  */
+#line 655 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 2262 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2270 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 97:
-#line 551 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 125: /* FilterDesign: LOSSY FILTER TRUSTR SFFloat  */
+#line 658 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 2269 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2277 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 98:
-#line 554 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 126: /* FilterDesign: LOSSY FILTER ITERMAX INTEGER  */
+#line 661 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
             }
-#line 2276 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2284 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 99:
-#line 560 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 127: /* WorkStatus: DECOMPOSITION NEEDED INTEGER  */
+#line 667 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.decompositionNeeded=(yyvsp[0].ival);
             }
-#line 2284 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2292 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 100:
-#line 564 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 128: /* WorkStatus: FIRST DECOMPOSITION INTEGER  */
+#line 671 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.firstDecomposition=(yyvsp[0].ival);
             }
-#line 2292 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2300 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 101:
-#line 568 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 129: /* WorkStatus: MATERIAL CHANGED INTEGER  */
+#line 675 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.materialChanged=(yyvsp[0].ival);
             }
-#line 2300 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2308 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 102:
-#line 572 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 130: /* WorkStatus: REMESH NEEDED INTEGER  */
+#line 679 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.remeshNeeded=(yyvsp[0].ival);
             }
-#line 2308 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2316 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 103:
-#line 576 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 131: /* WorkStatus: MODELIZATION NEEDED INTEGER  */
+#line 683 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.modelizationNeeded=(yyvsp[0].ival);
             }
-#line 2316 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2324 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 104:
-#line 580 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 132: /* WorkStatus: COMPONENT SAVE NEEDED INTEGER  */
+#line 687 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.componentsaveNeeded=(yyvsp[0].ival);
             }
-#line 2324 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2332 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 105:
-#line 584 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 133: /* WorkStatus: REDUCTION NEEDED INTEGER  */
+#line 691 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
-              prjData.workStatus.reductionNeeded=(yyvsp[0].ival);
+              prjData.workStatus.cmpReductionNeeded=(yyvsp[0].ival);
+              prjData.workStatus.netReductionNeeded=(yyvsp[0].ival);
             }
-#line 2332 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2341 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
-  case 106:
-#line 588 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+  case 134: /* WorkStatus: COMPONENT REDUCTION NEEDED INTEGER  */
+#line 696 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.workStatus.cmpReductionNeeded=(yyvsp[0].ival);
+            }
+#line 2349 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 135: /* WorkStatus: NETWORK REDUCTION NEEDED INTEGER  */
+#line 700 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+            {
+              prjData.workStatus.netReductionNeeded=(yyvsp[0].ival);
+            }
+#line 2357 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 136: /* WorkStatus: RELOAD NEEDED INTEGER  */
+#line 704 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
             {
               prjData.workStatus.reloadNeeded=(yyvsp[0].ival);
             }
-#line 2340 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2365 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
     break;
 
 
-#line 2344 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData_parser.cpp"
+#line 2369 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
 
       default: break;
     }
@@ -2355,11 +2380,10 @@ yyreduce:
      case of YYERROR or YYBACKUP, subsequent parser actions might lead
      to an incorrect destructor call or verbose syntax error message
      before the lookahead is translated.  */
-  YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
+  YY_SYMBOL_PRINT ("-> $$ =", YY_CAST (yysymbol_kind_t, yyr1[yyn]), &yyval, &yyloc);
 
   YYPOPSTACK (yylen);
   yylen = 0;
-  YY_STACK_PRINT (yyss, yyssp);
 
   *++yyvsp = yyval;
 
@@ -2383,49 +2407,13 @@ yyreduce:
 yyerrlab:
   /* Make sure we have latest lookahead translation.  See comments at
      user semantic actions for why this is necessary.  */
-  yytoken = yychar == YYEMPTY ? YYEMPTY : YYTRANSLATE (yychar);
-
+  yytoken = yychar == YYEMPTY ? YYSYMBOL_YYEMPTY : YYTRANSLATE (yychar);
   /* If not already recovering from an error, report this error.  */
   if (!yyerrstatus)
     {
       ++yynerrs;
-#if ! YYERROR_VERBOSE
       yyerror (YY_("syntax error"));
-#else
-# define YYSYNTAX_ERROR yysyntax_error (&yymsg_alloc, &yymsg, \
-                                        yyssp, yytoken)
-      {
-        char const *yymsgp = YY_("syntax error");
-        int yysyntax_error_status;
-        yysyntax_error_status = YYSYNTAX_ERROR;
-        if (yysyntax_error_status == 0)
-          yymsgp = yymsg;
-        else if (yysyntax_error_status == 1)
-          {
-            if (yymsg != yymsgbuf)
-              YYSTACK_FREE (yymsg);
-            yymsg = YY_CAST (char *, YYSTACK_ALLOC (YY_CAST (YYSIZE_T, yymsg_alloc)));
-            if (!yymsg)
-              {
-                yymsg = yymsgbuf;
-                yymsg_alloc = sizeof yymsgbuf;
-                yysyntax_error_status = 2;
-              }
-            else
-              {
-                yysyntax_error_status = YYSYNTAX_ERROR;
-                yymsgp = yymsg;
-              }
-          }
-        yyerror (yymsgp);
-        if (yysyntax_error_status == 2)
-          goto yyexhaustedlab;
-      }
-# undef YYSYNTAX_ERROR
-#endif
     }
-
-
 
   if (yyerrstatus == 3)
     {
@@ -2459,6 +2447,7 @@ yyerrorlab:
      label yyerrorlab therefore never appears in user code.  */
   if (0)
     YYERROR;
+  ++yynerrs;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -2475,13 +2464,14 @@ yyerrorlab:
 yyerrlab1:
   yyerrstatus = 3;      /* Each real token shifted decrements this.  */
 
+  /* Pop stack until we find a state that shifts the error token.  */
   for (;;)
     {
       yyn = yypact[yystate];
       if (!yypact_value_is_default (yyn))
         {
-          yyn += YYTERROR;
-          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+          yyn += YYSYMBOL_YYerror;
+          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYSYMBOL_YYerror)
             {
               yyn = yytable[yyn];
               if (0 < yyn)
@@ -2495,7 +2485,7 @@ yyerrlab1:
 
 
       yydestruct ("Error: popping",
-                  yystos[yystate], yyvsp);
+                  YY_ACCESSING_SYMBOL (yystate), yyvsp);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
@@ -2507,7 +2497,7 @@ yyerrlab1:
 
 
   /* Shift the error token.  */
-  YY_SYMBOL_PRINT ("Shifting", yystos[yyn], yyvsp, yylsp);
+  YY_SYMBOL_PRINT ("Shifting", YY_ACCESSING_SYMBOL (yyn), yyvsp, yylsp);
 
   yystate = yyn;
   goto yynewstate;
@@ -2518,7 +2508,7 @@ yyerrlab1:
 `-------------------------------------*/
 yyacceptlab:
   yyresult = 0;
-  goto yyreturn;
+  goto yyreturnlab;
 
 
 /*-----------------------------------.
@@ -2526,24 +2516,22 @@ yyacceptlab:
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
-  goto yyreturn;
+  goto yyreturnlab;
 
 
-#if !defined yyoverflow || YYERROR_VERBOSE
-/*-------------------------------------------------.
-| yyexhaustedlab -- memory exhaustion comes here.  |
-`-------------------------------------------------*/
+/*-----------------------------------------------------------.
+| yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
+`-----------------------------------------------------------*/
 yyexhaustedlab:
   yyerror (YY_("memory exhausted"));
   yyresult = 2;
-  /* Fall through.  */
-#endif
+  goto yyreturnlab;
 
 
-/*-----------------------------------------------------.
-| yyreturn -- parsing is finished, return the result.  |
-`-----------------------------------------------------*/
-yyreturn:
+/*----------------------------------------------------------.
+| yyreturnlab -- parsing is finished, clean up and return.  |
+`----------------------------------------------------------*/
+yyreturnlab:
   if (yychar != YYEMPTY)
     {
       /* Make sure we have latest lookahead translation.  See comments at
@@ -2559,20 +2547,18 @@ yyreturn:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[+*yyssp], yyvsp);
+                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
   if (yyss != yyssa)
     YYSTACK_FREE (yyss);
 #endif
-#if YYERROR_VERBOSE
-  if (yymsg != yymsgbuf)
-    YYSTACK_FREE (yymsg);
-#endif
+
   return yyresult;
 }
-#line 592 "/home/walter/MwCAD/EmCAD/EmCAD-tet/src/GUI/projectData.y"
+
+#line 708 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
 
 
 
@@ -2620,6 +2606,7 @@ int loadPrjData(const char *fName)
         projectDataSetInputFile(fid);
         int result=yyparse();
         fclose(fid);
+//        if(prjData.refFreqBand[0]<1.e-10) prjData.refFreqBand[0]=prjData.freqBand[0];
 	return result;
 }
 

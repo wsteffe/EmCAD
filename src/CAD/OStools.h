@@ -31,6 +31,7 @@ bool FileExists(const char* filename);
 bool FileIsSymlink(const char* filename);
 void removeFile(const char* filename);
 bool removeAllFilesInDir(const char *dirname);
+bool removeAllFilesInDirStartingWith(const char *dirname, const char *start);
 void createLink(const char* to, const char* link);
 std::string nativePath(const char *name);
 std::string nativePath(std::string name);

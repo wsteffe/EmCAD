@@ -24,6 +24,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <complex>
 
 
 enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
@@ -32,7 +33,7 @@ enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
 enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IMPORTEDCIRCUIT=3, IDEALCIRCUITMAPPEDTZ=4, IMPORTEDRESPONSE=5};
 #endif
 enum FilterMapSource {ZEROPOLES=0, IMPORTED_RESPONSE=1, IMPORTED_CIRCUIT=2};
-enum FilterTopology   {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
+enum FilterTopology   {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JLC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
 enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1};
 
 
@@ -41,6 +42,7 @@ struct StringList
   std::set<std::string, std::less<std::string> > list;
   void read(const char*filename);
   void save(const char*filename);
+  void clear(){list.clear();}
 };
 
 struct StringStringVecMap
@@ -48,6 +50,7 @@ struct StringStringVecMap
   std::map<std::string, std::vector<std::string>, std::less<std::string> > map;
   void read(const char*filename);
   void save(const char*filename);
+  void clear(){map.clear();}
 };
 
 
@@ -70,10 +73,12 @@ class WorkStatus
  int remeshNeeded;
  int componentsaveNeeded;
  int modelizationNeeded;
- int reductionNeeded;
+ int cmpReductionNeeded;
+ int netReductionNeeded;
  WorkStatus();
  void reset();
- void checkReduction();
+ void checkNetReduction();
+ void checkCmpReduction();
 };
 
 
@@ -92,12 +97,18 @@ struct ProjectData
     char   lengthUnitName[5];
     int    freqUnitE;    //10 power of Hz;
     int    meshPerWavelen;
+    int    sharedMeshPerWavelen;
+    double sharedMeshRefine;
     int    meshPerCircle;
+    int    meshRefineMinNum;
     int    meshRefineMaxNum;
+    int    meshTetMaxNum;
     double meshMinEnergyRatio;
     int    localMeshing3d;
     double freqBand[2];
-//    double refFreqBand[2];
+    double resonFreqMaxRatio;
+    double cmpResonFreqMaxRatio;
+    double netResonFreqMaxRatio;
     double anaFreqBand[2];
     double zpFreqBand[2];
     double zpWinRatio;
@@ -115,9 +126,13 @@ struct ProjectData
     std::vector<double> idealFilterResonFreq;
     std::vector<double> idealFilterImpedance;
     int    MORFreqNum;
+    int    MORFreqNum1;
     int    KrylovOrder;
     int    anaFreqNum;
-    int    anaMORFreqNum;
+    int    cmpMORFreqNum;
+    int    cmpMORFreqNum1;
+    int    netMORFreqNum;
+    int    netMORFreqNum1;
     int    autoFreqResponse;
     int    autoMappedFreqResponse;
     int    autoDesignWithMappedTz;
@@ -134,6 +149,8 @@ struct ProjectData
     int    filterInductiveSkin;
     double filterPortImpedance;
     int    filterOrder;
+    int    idealFilterWithMappedTZ;
+    int    idealFilterAddConjugateTZ;
     int    symmFilterResponse;
     int    customIdealFilter;
     int    predistortedFilter;
@@ -155,11 +172,11 @@ struct ProjectData
     int    filterTuneOnlyJt;
     double filterTuneXtol;
     double filterTuneTrustR;
-    double filterTuneGradDx;
-    std::vector<double> filterZeros;
+    std::vector<std::complex<double> > filterZeros;
 
-    StringList components;
+    StringList subcomponents;
     StringStringVecMap wgcomponents;
+    std::map<std::string, int> componentSubNum;
 
     WorkStatus workStatus;
 
@@ -185,6 +202,8 @@ struct ProjectData
     void readPorts();
     void savePortLoads();
     void readPortLoads();
+    void updateComponentSubNum();
+    int readFilterTxZeros(char* fname);
     double lengthUnit(){
 	  if(!strcmp(lengthUnitName,"M"))  return pow(10.0,0);
      else if(!strcmp(lengthUnitName,"MM")) return pow(10.0,-3);

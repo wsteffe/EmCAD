@@ -112,6 +112,7 @@ class TreeWidget : public QTreeWidget
       void setCurrentItem(QTreeWidgetItem * qitem, int column );
       void openCompAndPartition();
       void openCompOrPartition();
+      void viewSubCompConvergence();
       void atImportedPartProperties();
       void assignLayer();
       void assignMaterial();
@@ -160,6 +161,7 @@ class TreeWidget : public QTreeWidget
       QAction *aboutAction;
       QAction *openCompOrPartitionAction;
       QAction *openCompAndPartitionAction;
+      QAction *viewSubCompConvergenceAction;
       QAction *assignLayerAction;
       QAction *assignMaterialAction;
       QAction *showWgModesAction;
@@ -270,10 +272,10 @@ class SetCompPropertiesDialog : public QDialog
  public:
      int w,h;
      TreeWidget *treeWidget;
-     QDoubleValidator *meshRefValidator;
      QDoubleValidator *positiveDoubleValidator;
      QLineEdit  *nameLineEdit;
      QLineEdit  *meshRefLineEdit;
+     QLineEdit  *cutoffRefLineEdit;
      QSpinBox   *gridNumSB;
      QLineEdit  *typeChooser;
      QLineEdit  *LinePortZcLineEdit;
@@ -291,6 +293,7 @@ class SetCompPropertiesDialog : public QDialog
      QGroupBox *GridGroupBox;
      QGroupBox *buttonGroupBox;
      QGroupBox *meshGroupBox;
+     QGroupBox *cutoffGroupBox;
      QVBoxLayout *mainLayout;
 private:
      std::string LPname;
@@ -343,6 +346,7 @@ class DefineMaterialDialog : public QDialog
       void updateETanDelta(int state);
       void updateHTanDelta(int state);
       void updateDisp(int state);
+      void statusMessage (const QString aMessage);
 
  public:
 
@@ -350,13 +354,23 @@ class DefineMaterialDialog : public QDialog
       QDoubleValidator *dvalidator;
       QDoubleValidator *roughQvalidator;
       QDoubleValidator *lossFacValidator;
+      QDoubleValidator *roughBallRadiusValidator;
+      QDoubleValidator *roughSurfRatioValidator;
+      QDoubleValidator *roughSurfRzValidator;
+      QDoubleValidator *roughSurfRqValidator;
 
       TreeWidget *treeWidget;
 
+      QComboBox *roughModelChooser;
       QGroupBox *emGroupBox;
       QGroupBox *eDispGroupBox;
       QGroupBox *mDispGroupBox;
-      QGroupBox *sRoughGroupBox;
+      QGroupBox *sRoughChooserGroupBox;
+      QGroupBox *sRoughHurayGroupBox;
+      QGroupBox *sRoughFactorsGroupBox;
+      QGroupBox *sRoughFittingGroupBox;
+      QGroupBox *sRoughRzGroupBox;
+      QGroupBox *sRoughRqGroupBox;
       QGroupBox *sPolesGroupBox;
       QGroupBox *colorGroupBox;
       QGroupBox *buttonGroupBox;
@@ -372,7 +386,11 @@ class DefineMaterialDialog : public QDialog
       QLineEdit  *sigmamLineEdit;
       QLineEdit  *roughFreqLineEdit;
       QLineEdit  *roughLossFactorLineEdit;
-      QLineEdit  *roughImpedanceQLineEdit;
+      QLineEdit  *roughQFactorLineEdit;
+      QLineEdit  *roughBallRadiusLineEdit;
+      QLineEdit  *roughSurfRatioLineEdit;
+      QLineEdit  *roughSurfRzLineEdit;
+      QLineEdit  *roughSurfRqLineEdit;
       QSpinBox   *roughFitPolesNumSB;
 
       QCheckBox  *dispersive;
@@ -403,8 +421,10 @@ class DefineMaterialDialog : public QDialog
       QLineEdit  *SresLineEdit;
       QLineEdit  *SindLineEdit;
 
-      void setConsTanDeltaLorentz(char type);
+      void setConsTanDeltaLorentz(char type, DB::Material* mat);
       void setSurfHurayLorentz(DB::Material* mat);
+
+      QLabel *statusLabel;
 
 };
 

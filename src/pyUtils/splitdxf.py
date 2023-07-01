@@ -23,16 +23,19 @@ for layer in doc0.layers:
 
 #layer_names_lower = {lname.lower() for lname in layer_names}
 
+import pdb
+
 for lname in layer_names:
    fname = f0name+'_'+lname
    copyfile(f0name+".dxf", fname+".dxf")
    doc = ezdxf.readfile(fname+".dxf")
    msp = doc.modelspace()
-   delete_entities = [entity for entity in msp if entity.dxf.layer != lname]
+   delete_entities = [entity for entity in msp if entity.dxf.layer != lname and entity.dxf.layer !='0' ]
    for entity in delete_entities:
+#     pdb.set_trace()
       msp.unlink_entity(entity)
    for dlname in layer_names:
-      if dlname != lname:
+      if dlname != lname and dlname !='0':
          doc.layers.remove(dlname)
    doc.save()
 

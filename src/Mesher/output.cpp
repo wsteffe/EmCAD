@@ -38,6 +38,8 @@ extern bool REUSE_CIRCUITS;
 #include "MTetrahedron.h"
 #include "MElement.h"
 
+#include "GeomAPI_ProjectPointOnSurf.hxx"
+
 #include <TopoDS.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
@@ -126,14 +128,30 @@ typedef struct CompCurve{
 } CompCurveType;
 
 
+SPoint2 parFromVertex(MVertex *v, Handle(Geom_Surface) GS){
+     SPoint2 UV;
+     double U=0., V=0.;
+     if(v->getParameter(0,U) && v->getParameter(1,V))
+	  UV=SPoint2(U, V);
+     else{
+          gp_Pnt pnt(v->x(), v->y(), v->z());
+          GeomAPI_ProjectPointOnSurf proj(pnt, GS);
+          proj.LowerDistanceParameters(U,V);
+          UV=SPoint2(U,V);
+     }
+     return UV;
+}
+
 int GfaceOCCfaceSign(GFace *gf){
 //mesh orientation versus OCC face orientation
 //gmsh model may reverse OCC face orientation
      TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
      Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
      MTriangle *t = gf->triangles[0];
-     SPoint3 P=t->getVertex(0)->point();
-     SVector3 n=gf->normal(gf->parFromPoint(P));
+     MVertex *v=t->getVertex(0);
+     SPoint3 P=v->point();
+     SPoint2 uv=parFromVertex(v,GS);
+     SVector3 n=gf->normal(uv);
      double Nx, Ny, Nz;
      supNormal(GS, P.x(), P.y(), P.z(), Nx, Ny, Nz);
      SVector3 Fn=SVector3(Nx, Ny, Nz);
@@ -141,8 +159,12 @@ int GfaceOCCfaceSign(GFace *gf){
     }
 
 int GmshOCCfaceSign(GFace *gf){
+       TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+       Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
        MTriangle *t = gf->triangles[0];
-       SVector3 n=gf->normal(gf->parFromPoint(t->getVertex(0)->point()));
+       MVertex *v=t->getVertex(0);
+       SPoint2 uv=parFromVertex(v,GS);
+       SVector3 n=gf->normal(uv);
        SVector3 A=SVector3(t->getVertex(0)->point(),t->getVertex(1)->point());
        SVector3 B=SVector3(t->getVertex(0)->point(),t->getVertex(2)->point());
        return SIGN(dot(n,crossprod(A,B)));
@@ -213,6 +235,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
    for(GModel::eiter it = gm->firstEdge(); it != gm->lastEdge(); it++){
      GEdge *ge=(*it);
      unsigned int ElineNum=ge->getNumMeshElements();
+     if(ElineNum==0) continue;
      int iv1 = ge->getMeshElement(0)->getVertex(0)->getIndex();
      int iv2 = ge->getMeshElement(ElineNum-1)->getVertex(1)->getIndex();
      if(iv1==iv2) if(ge->length()<1.e-8) continue;
@@ -456,12 +479,14 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 
   for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
     GFace *gf=*fit;
-    if(gf->meshAttributes.method==MESH_NONE) continue;
     TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
     int Ssign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
     F.Orientation(TopAbs_FORWARD);
     int FI=ocaf->indexedFaces->FindIndex(F);
     if(!FI) continue;
+    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
+    int internal=1;
+    if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
     if(meshIF && ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level <ocaf->EmP->level) continue;
 //    int TriSsign=GmshOCCfaceSign(gf);
 //    assert(TriSsign==1);
@@ -469,15 +494,17 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 //    assert(Ssign==Ssign1);
     bool skipFaceMesh=REUSE_CIRCUITS;
     if(meshIF){
-        int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
         int UUFI=UFI;
         if(ocaf->isPartition()) if(ocaf->splitFacesMap[UFI-1]) UUFI=ocaf->splitFacesMap[UFI-1];
         skipFaceMesh=false;
-	std::string faceFileName=dirName;
-        char fname[50]; sprintf(fname,"F%d.mwm",UUFI);
-        faceFileName+="/interfaces/";
-        faceFileName+=fname;
-	fout=fopen(nativePath(faceFileName).c_str(), "w"); if(!fout) continue;
+	if(internal && gf->meshAttributes.method!=MESH_NONE){
+	 std::string faceFileName=dirName;
+         char fname[50]; sprintf(fname,"F%d.mwm",UUFI);
+         faceFileName+="/interfaces/";
+         faceFileName+=fname;
+	 fout=fopen(nativePath(faceFileName).c_str(), "w");
+	}
+	if(!fout) continue;
     }
     bool onWG=false;
     if(mesh3D && ocaf->faceAdjParts) {
@@ -527,7 +554,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
                        fprintf(fwg, "  volumes  [\"%s\", \"%s\"]\n",  vol1name.ToCString(), vol2name.ToCString()); 
                        if(REUSE_CIRCUITS) if(Fmaster[FI-1]) fprintf(fwg, "  master  %d\n", abs(Fmaster[FI-1]) );
       }
-      if(hasbdrc) fprintf(fout, "  material \"%s\"\n",  bdrname.ToCString());
+      if(hasbdrc)               fprintf(fout, "  material \"%s\"\n",  bdrname.ToCString());
+      if(ocaf->ECface(FI))	fprintf(fout, "  conductor %d\n",  ocaf->faceConductorMap[FI-1]);
     }
 
     std::map<int, int> PI2FPI;
@@ -553,24 +581,24 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     std::vector<GEdge*>   Fedges;
     std::vector<int>      FedgesSign;
     for(TopoDS_Iterator it1(F,TopAbs_WIRE); it1.More(); it1.Next()){
-    TopoDS_Shape W=it1.Value();
-    int Wsgn=1;
-    if(REUSE_CIRCUITS) if(mesh3D) if(Fmaster[FI-1]<0) Wsgn=-1;
-    for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
+     TopoDS_Shape W=it1.Value();
+     int Wsgn=1;
+     if(REUSE_CIRCUITS) if(mesh3D) if(Fmaster[FI-1]<0) Wsgn=-1;
+     for(TopoDS_Iterator it2(W,TopAbs_EDGE); it2.More(); it2.Next()){
       TopoDS_Shape E=it2.Value();
       int Esgn=(E.Orientation()==TopAbs_FORWARD) ? Ssign*Wsgn : -Ssign*Wsgn;
       E.Orientation(TopAbs_FORWARD);
       int EI=ocaf->indexedEdges->FindIndex(E);
       GEdge *ge=indexedGEdges[EI];
-      if(ge) {
-       unsigned int ElineNum=ge->getNumMeshElements();
-       int iv1 = ge->getMeshElement(0)->getVertex(0)->getIndex();
-       int iv2 = ge->getMeshElement(ElineNum-1)->getVertex(1)->getIndex();
-       if(iv1==iv2) if(ge->length()<1.e-8) continue;
-       Fedges.push_back(ge);
-       FedgesSign.push_back(Esgn);
-      }
-    }
+      if(!ge) continue;
+      unsigned int ElineNum=ge->getNumMeshElements();
+      if(ElineNum==0) continue;
+      int iv1 = ge->getMeshElement(0)->getVertex(0)->getIndex();
+      int iv2 = ge->getMeshElement(ElineNum-1)->getVertex(1)->getIndex();
+      if(iv1==iv2) if(ge->length()<1.e-8) continue;
+      Fedges.push_back(ge);
+      FedgesSign.push_back(Esgn);
+     }
     }
 
 //Fedges,FedgesSign vectors are reversed because edgeloop iterators
@@ -589,6 +617,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 
     if(!skipFaceMesh) {
 
+    Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
     std::map<int, std::pair<double, double> > faceContPar; 
     for(int k = 0; k <2; k++) for(int TI = 0; TI <FtriaNum; ++TI){
       MTriangle *t = gf->triangles[TI];
@@ -610,7 +639,12 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 	     if(v->getParameter(0, u0) && v->getParameter(1, u1))
 		  uv=SPoint2(u0, u1);
 	     else if(faceContPar.find(I)==faceContPar.end()){
-		  uv=gf->parFromPoint(v->point());
+                  gp_Pnt pnt(v->x(), v->y(), v->z());
+                  GeomAPI_ProjectPointOnSurf proj(pnt, GS);
+                  double u,v;
+                  proj.LowerDistanceParameters(u,v);
+		  uv=SPoint2(u,v);
+//		  uv=gf->parFromPoint(v->point());
                   std::pair<double, double> p=std::make_pair(uv.x(),uv.y());
                   faceContPar[I]=p;
 	     } else {
@@ -625,36 +659,47 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
         }
       }
     }
-    Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
     for(int TI = 0; TI <FtriaNum; ++TI){
       MTriangle *t = gf->triangles[TI];
-      SPoint2 SP(0.0,0.0);
+      SPoint2 cuv(0.0,0.0);
+      SPoint3 cpnt(0,0,0);
+      bool hasuv=true;
+      double el_mean=0;
       for(int j = 0; j < 3; ++j){
          MVertex *v = t->getVertex(j);
-         int I = v->getIndex();
-	 SPoint2 uv;
+	 SPoint3 vpnt=v->point();
+         MVertex *v2 = t->getVertex((j+1)%3);
+         el_mean+=vpnt.distance(v2->point());
+         cpnt+=vpnt;
 	 double u0=0., u1=0.;
-	 if(v->getParameter(0, u0) && v->getParameter(1, u1))
-	    uv=SPoint2(u0, u1);
-	 else if(faceContPar.find(I)==faceContPar.end()){
-	    uv=gf->parFromPoint(v->point());
-            std::pair<double, double> p=std::make_pair(uv.x(),uv.y());
-            faceContPar[I]=p;
-	 } else {
-            std::pair<double, double> p=faceContPar[I];
-            uv=SPoint2(p.first, p.second);
-	 }
-         SP+=uv;
+	 hasuv=hasuv && v->getParameter(0,u0) && v->getParameter(1,u1);
+	 if(hasuv) cuv+=SPoint2(u0, u1);
       }
-      SP*=1.0/3;
-      GPoint P=gf->point(SP);
+      cpnt*=1.0/3;
+      el_mean*=1.0/3;
+      GPoint CP;
+      bool goodpoint=false;
+      if(hasuv){
+	 cuv*=1.0/3;
+	 CP=gf->point(cuv);
+	 SPoint3 pnt(CP.x(), CP.y(), CP.z());
+	 goodpoint=pnt.distance(cpnt)<el_mean;
+      }
+      if(!goodpoint){
+        gp_Pnt P(cpnt.x(), cpnt.y(), cpnt.z());
+        GeomAPI_ProjectPointOnSurf proj(P, GS);
+        double u,v;
+        proj.LowerDistanceParameters(u,v);
+        cuv=SPoint2(u,v);
+	CP=gf->point(cuv);
+      }
       TI2FPI[TI]=FPNum++;
       FPI2PI.push_back(0);
-      points.push_back(P.x());
-      points.push_back(P.y());
-      points.push_back(P.z());
+      points.push_back(CP.x());
+      points.push_back(CP.y());
+      points.push_back(CP.z());
       if(gf->geomType() != GEntity::Plane){
-       SVector3 n=gf->normal(SP);
+       SVector3 n=gf->normal(cuv);
        normals.push_back(n.x());
        normals.push_back(n.y());
        normals.push_back(n.z());
@@ -732,7 +777,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     GEdge *ge=Fedges[i];
     TopoDS_Shape E=* (TopoDS_Shape *) ge->getNativePtr();
     int EI=ocaf->indexedEdges->FindIndex(E);
-    int ECedge=ocaf->ECedge(EI);
+    int ECedge=mesh3D? ocaf->edgeConductorMap[EI-1]: ocaf->ECedge(EI);
     if(fout) fprintf(fout, "\t%d,\n", ECedge);
     if(fwg && onWG) fprintf(fwg, "\t%d,\n", ECedge);
   }
@@ -971,6 +1016,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
   }
 #if defined(GMSH3D)
   if(mesh3D) {
+     int tetNumber=0;
      for(GModel::riter it = gm->firstRegion(); it != gm->lastRegion(); ++it)  {
        GRegion *gr=*it;
        TopoDS_Solid V=* (TopoDS_Solid *) gr->getNativePtr();
@@ -992,6 +1038,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
          fprintf(fout, " -1\n");
        }
        fprintf(fout, "]\n");
+       tetNumber+=(*it)->tetrahedra.size();
      }
      fflush(fout);
      #ifndef WNT
@@ -1001,7 +1048,14 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
         FlushFileBuffers(fout);   
      #endif   
      fclose(fout);
-     if(fwg) fclose(fwg); 
+     if(fwg) fclose(fwg);
+     TCollection_AsciiString assName; ocaf->getAssName(assName);
+     TCollection_AsciiString tetnFileName=TCollection_AsciiString(modelDir)+"/"+assName+".tetn";
+     FILE *ftetN=fopen(nativePath(tetnFileName.ToCString()).c_str(), "w"); 
+     if(ftetN){
+        fprintf(ftetN, "%d\n", tetNumber);
+	fclose(ftetN);
+     }
   }
 #endif
 

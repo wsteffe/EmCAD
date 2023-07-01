@@ -1016,13 +1016,12 @@ void ViewWidget::hideRubberBand( void )
 
 void ViewWidget::InitViewer( )
 {
-      Handle(Aspect_DisplayConnection)  aDisplayConnection=new Aspect_DisplayConnection();
-      static Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver (aDisplayConnection);
+      static Handle(OpenGl_GraphicDriver) graphicDriver = new OpenGl_GraphicDriver (new Aspect_DisplayConnection());
 
 #if OCC_VERSION_HEX > 0x060901
       myViewer = new V3d_Viewer (graphicDriver);
 #else
-      const Quantity_Length ViewSize=1000.0;
+      const Standard_Real ViewSize=1000.0;
       myViewer = new V3d_Viewer(
 		                  graphicDriver,
 				  TCollection_AsciiString a3DName ("Visu3D"),"",
@@ -1086,17 +1085,13 @@ void ViewWidget::InitView()
 #ifdef _WIN32 || defined(__WIN32__)
    Aspect_Handle aWindowHandle = (Aspect_Handle) winId();
    Handle(WNT_Window) aWnd = new WNT_Window (aWindowHandle);
-#if OCC_VERSION_HEX <= 0x060901
-   myViewer->GetView()->SetZClippingDepth (0.5);
-   myViewer->GetView()->SetZClippingWidth (0.5);
-#endif
 #elif defined (__APPLE__) && !defined (MACOSX_USE_GLX)
    NSView* aViewHandle = (NSView*)winId();
    Handle(Aspect_Window) aWnd = new Cocoa_Window (aViewHandle);
-#else
-   Window aWindowHandle = (Window ) winId();
+#elif defined (HAVE_XLIB)
+   Aspect_Drawable aWindowHandle = (Aspect_Drawable ) winId();
    Handle(Aspect_DisplayConnection) aDispConnection = myContext->CurrentViewer()->Driver()->GetDisplayConnection();
-   Handle(Xw_Window) aWnd = new Xw_Window (aDispConnection, aWindowHandle);
+   Handle(Aspect_Window) aWnd = new Xw_Window (aDispConnection, aWindowHandle);
 #endif
 
    myView->SetWindow (aWnd);
@@ -1140,7 +1135,7 @@ void ViewWidget::InitView()
 */
 void ViewWidget::deleteAllObjects()
 {
-        myContext->RemoveAll(true);
+        myContext->RemoveAll(false);
 /*
 	AIS_ListOfInteractive aList;
 	myContext->DisplayedObjects( aList );
@@ -1222,11 +1217,11 @@ void ViewWidget::gridCirc ( void )
 	myViewer->Grid()->SetColors( myGridColor, myGridTenthColor );
 }
 
-void ViewWidget::setGridOffset (Quantity_Length offset)
+void ViewWidget::setGridOffset (Standard_Real offset)
 {
-	Quantity_Length radius;
-	Quantity_Length xSize, ySize;
-	Quantity_Length oldOffset;
+	Standard_Real radius;
+	Standard_Real xSize, ySize;
+	Standard_Real oldOffset;
 	
 	myViewer->CircularGridGraphicValues( radius, oldOffset );
 	myViewer->SetCircularGridGraphicValues( radius, offset);

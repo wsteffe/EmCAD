@@ -191,16 +191,16 @@ int main(int argc, char **argv)
       int i=it->first.first;
       int j=it->first.second;
       double Ck=(it->second);
-      if(i<resonNum) Ck*=sqrt(C[i-1]);
-      if(j<resonNum) Ck*=sqrt(C[j-1]);
+      if(i<=resonNum) Ck*=sqrt(C[i-1]);
+      if(j<=resonNum) Ck*=sqrt(C[j-1]);
       fprintf(fid, " C  k%d k%d  %.10e\n", i, j, Ck);
      }
      for ( SparseMatIterator it=idealFilterLK.begin(); it!= idealFilterLK.end(); it++){
       int i=it->first.first;
       int j=it->first.second;
       double Lk=(it->second);
-      if(i<resonNum) Lk*=sqrt(Ci[i-1]);
-      if(j<resonNum) Lk*=sqrt(Ci[j-1]);
+      if(i<=resonNum) Lk*=sqrt(Ci[i-1]);
+      if(j<=resonNum) Lk*=sqrt(Ci[j-1]);
       fprintf(fid, " C  ki%d ki%d  %.10e\n", i, j, Lk);
      }
      fprintf(fid, " \n.include  extern_port_loads.JC\n");

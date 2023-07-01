@@ -146,7 +146,6 @@ int main(int argc, char **argv)
         } else {
          bool mesh3D=!ocaf->subCompNum && mesh3DonClient;
          bool meshIF=ocaf->subCompNum;
-         if( mesh3D  )                     MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
          if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
         }
         subCompNum=ocaf->subCompNum;
@@ -163,7 +162,6 @@ int main(int argc, char **argv)
 	 bool mesh3D=onServer|| (!onServer && mesh3DonClient);
          bool meshIF=false;
          bool meshWG=true;
-         if(mesh3D) MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
 	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
          ocaf->closeDoc();
          delete ocaf;

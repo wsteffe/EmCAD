@@ -55,8 +55,7 @@ set ( EMCAD_MESH_SRCS
 add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
 
   if(MSVC)
-     target_link_libraries ( 
-	emcad_mesh
+     target_link_libraries (emcad_mesh
 	Mesher CAD OStools DataBase
 	optimized ${GMSH_LIBRARY}
 	debug ${GMSH_LIBRARY_DEB}
@@ -71,22 +70,23 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
 	${Boost_LIBRARIES}
       )
   elseif(MINGW)
-     target_link_libraries ( 
-	emcad_mesh 
+     add_library(my_interface INTERFACE)
+     target_link_libraries (emcad_mesh
 	Mesher CAD OStools DataBase
-	${GMSH_LIBRARY}
-	${LAPACK_LIBRARIES}
-	${GMSH_DEPS_LIBRARIES}
-        ${OCC_LIBRARIES}
-	${OCC_3PARTIES_LIBRARIES}
-	${GMSH_EXTERNAL_LIBRARIES}
-	${MINGW_LIBRARIES}
-	${Boost_LIBRARIES}
-	gmp
+	  "-Wl,--start-group" 
+	     ${GMSH_LIBRARY} 
+	     ${GMSH_DEPS_LIBRARIES} 
+	     ${GMSH_EXTERNAL_LIBRARIES} 
+	     ${OCC_LIBRARIES} 
+	     ${OCC_3PARTIES_LIBRARIES}
+	     ${LAPACK_LIBRARIES}
+	     ${MINGW_LIBRARIES}
+	     ${Boost_LIBRARIES}
+	     gmp
+             "-Wl,--end-group"
       )
   else(MSVC)
-     target_link_libraries ( 
-	emcad_mesh 
+     target_link_libraries ( emcad_mesh
 	Mesher CAD OStools DataBase
 	${GMSH_LIBRARY}
 	${LAPACK_LIBRARIES}
@@ -103,4 +103,8 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
   endif()
 
 install(TARGETS emcad_mesh  DESTINATION bin)
+if(WIN32)
+  install(FILES $<TARGET_RUNTIME_DLLS:emcad_mesh> TYPE BIN)
+endif(WIN32)
+
 

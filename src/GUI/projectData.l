@@ -180,10 +180,14 @@ unit		 	        { return UNIT; }
 length			        { return LENGTH; }
 mor	                        { return MOR; }
 ana	                        { return ANA; }
+"+I"	                        { return PLUSI; }
+"-I"	                        { return MINUSI; }
 symmetric	                { return SYMMETRIC; }
 response                        { return RESPONSE; }
 port		                { return PORT; }
 impedance	                { return IMPEDANCE; }
+add                             { return ADD; }
+conjugate                       { return CONJUGATE; }
 zero                            { return ZERO; }
 pole                            { return POLE; }
 window                          { return WINDOW; }
@@ -237,12 +241,16 @@ xtol		  	 	{ return XTOL;}
 trustd		  	 	{ return TRUSTR;}
 graddx		  	 	{ return GRADDX;}
 jacobian	  	 	{ return JACOBIAN;}
+with	  	 	        { return WITH; }
 mapped	  	 	        { return MAPPED; }
 itermax	                        { return ITERMAX; }
 band	                        { return BAND; }
 exp	                        { return EXP; }
+shared	                        { return SHARED; }
 mesh	                        { return MESH; }
+tet	                        { return TET; }
 refine	                        { return REFINE; }
+resonance                       { return RESONANCE; }
 energy	                        { return ENERGY; }
 meshing3d	                { return MESHING3D; }
 local	                        { return LOCAL; }

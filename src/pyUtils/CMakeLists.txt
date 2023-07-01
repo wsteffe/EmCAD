@@ -25,20 +25,20 @@ add_custom_target(modeler ALL
    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 set(PYUTILS_EXE_FILES
-	build/exe.mingw-3.8/api_utils.exe
-	build/exe.mingw-3.8/api_download.exe
-	build/exe.mingw-3.8/api_submit.exe
-	build/exe.mingw-3.8/filter_tune.exe
-	build/exe.mingw-3.8/remove_dir.exe
-	build/exe.mingw-3.8/tar_extract.exe
-	build/exe.mingw-3.8/tar_create.exe
-	build/exe.mingw-3.8/tar_component.exe
-	build/exe.mingw-3.8/touchstone2to1.exe
-	build/exe.mingw-3.8/roughSurfaceFit.exe
+	build/exe.mingw_x86_64-3.10/api_utils.exe
+	build/exe.mingw_x86_64-3.10/api_download.exe
+	build/exe.mingw_x86_64-3.10/api_upload_file.exe
+	build/exe.mingw_x86_64-3.10/api_submit.exe
+	build/exe.mingw_x86_64-3.10/filter_tune.exe
+	build/exe.mingw_x86_64-3.10/remove_dir.exe
+	build/exe.mingw_x86_64-3.10/tar_extract.exe
+	build/exe.mingw_x86_64-3.10/tar_create.exe
+	build/exe.mingw_x86_64-3.10/tar_component.exe
+	build/exe.mingw_x86_64-3.10/touchstone2to1.exe
+	build/exe.mingw_x86_64-3.10/roughSurfaceFit.exe
 )
 set(PYUTILS_DLL_FILES
-	build//exe.mingw-3.8/libpython3.8.dll
-	build//exe.mingw-3.8/libwinpthread-1.dll
+	build//exe.mingw_x86_64-3.10/libpython3.10.dll
 )
 foreach(EXE ${PYUTILS_EXE_FILES})
 install(PROGRAMS  ${EXE}
@@ -54,7 +54,7 @@ install(PROGRAMS  ${DLL}
         )
 endforeach(DLL)
 
-install(DIRECTORY "build/exe.mingw-3.8/lib" 
+install(DIRECTORY "build/exe.mingw_x86_64-3.10/lib" 
 	DESTINATION bin
         )
 
@@ -67,6 +67,10 @@ install(PROGRAMS  api_utils.py
 	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
 install(PROGRAMS  api_download.py
+       	DESTINATION bin
+	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+        )
+install(PROGRAMS  api_upload_file.py
        	DESTINATION bin
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
@@ -124,5 +128,12 @@ install(PROGRAMS  cleandxf.py
 	RENAME cleandxf
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
+
+install(PROGRAMS layout2fc.py
+       	DESTINATION bin
+	RENAME layout2fc
+	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+        )
+
 
 endif(WIN32)

@@ -91,8 +91,14 @@ Material::Material(){
   surfPolesRes.stride=4;
   color[0]=49;  color[1]=79; color[2]=79; color[3]=255;
   roughSurfFreq=0.0;
+//  roughSurfModelType=LossAndQfactors;
+  roughSurfModelType=-1; //undefined
   roughSurfLossFactor=1.0;
   roughSurfImpedanceQ=1.0;
+  roughSurfBallRadius=0.0;
+  roughSurfSurfRatio=4.887;
+  roughSurfRz=0.0;
+  roughSurfRq=0.0;
   roughSurfFitPolesNum=1;
 }
 void Material::flush(){
@@ -161,6 +167,7 @@ Volume::Volume(){
   disabled=0;
   cellNum=0;
   meshRefinement=1;
+  cutoffRefinement=1;
   strcpy(material,"?");
 }
 Volume & Volume::operator =(Volume const &rhs){
@@ -344,10 +351,15 @@ void _mwm_print_material(void *a, void *b)
    if(mat->htandelta >0)\
    fprintf(EMMFILE, "   hTanDelta     %g\n", mat->htandelta);
 
-   if(mat->roughSurfFreq>0){
+   if(mat->roughSurfModelType>=0){
     fprintf(EMMFILE,"   rough surface frequency %.8e\n", mat->roughSurfFreq);
     fprintf(EMMFILE,"   rough surface lossfactor %.8e\n", mat->roughSurfLossFactor);
     fprintf(EMMFILE,"   rough surface impedance Qfactor %.8e\n", mat->roughSurfImpedanceQ);
+    fprintf(EMMFILE,"   rough surface modelType %d\n", mat->roughSurfModelType);
+    fprintf(EMMFILE,"   rough surface ballRadius %.8e\n", mat->roughSurfBallRadius);
+    fprintf(EMMFILE,"   rough surface surfRatio %.8e\n", mat->roughSurfSurfRatio);
+    fprintf(EMMFILE,"   rough surface Rz %.8e\n", mat->roughSurfRz);
+    fprintf(EMMFILE,"   rough surface Rq %.8e\n", mat->roughSurfRq);
     fprintf(EMMFILE,"   rough surface polesNum %d\n", mat->roughSurfFitPolesNum);
    }
    if(mat->epsLorentz.n) {
@@ -421,7 +433,7 @@ void _mwm_print_volume(void *a, void *b)
 	   if(!printOnlyMeshData){
 		fprintf(EMMFILE, "  meshRefinement  %f \n", vol->meshRefinement);
 	   }
-if(REUSE_CIRCUITS){
+           if(REUSE_CIRCUITS){
 	   if(printOnlyMeshData) if(vol->master){
 	      fprintf(EMMFILE, "  master  %d\n",vol->master);
 	      char mname[100]; sprintf(mname,"Vol%d",vol->master);
@@ -434,7 +446,7 @@ if(REUSE_CIRCUITS){
 		fprintf(EMMFILE, "  ]\n");
 	      }
 	   }
-}
+           }
 	   break;
      case HOLE:
 	   fprintf(EMMFILE, "  type  Hole\n");
@@ -457,6 +469,8 @@ if(REUSE_CIRCUITS){
 	   break;
      case SPLITTER:
 	   fprintf(EMMFILE, "  type  Splitter\n");
+	   if(!printOnlyMeshData) fprintf(EMMFILE, "  meshRefinement  %f \n", vol->meshRefinement);
+	   if(!printOnlyMeshData) fprintf(EMMFILE, "  cutoffRefinement  %f \n", vol->cutoffRefinement);
 	   break;
      case GRID:
 	   fprintf(EMMFILE, "  type  Grid\n");

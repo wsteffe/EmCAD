@@ -108,6 +108,7 @@ if(${QT_VERSION} EQUAL 5)
   elseif(MINGW)
     target_link_libraries (emcad 
 	CAD OStools DataBase PostProc
+        "-Wl,--start-group" 
 	${OCC_LIBRARIES}
 	${QWT_LIBRARY}
 	${OCC_3PARTIES_LIBRARIES}
@@ -117,6 +118,7 @@ if(${QT_VERSION} EQUAL 5)
         Qt5::Gui 
         Qt5::OpenGL
 	Qt5::Widgets
+        "-Wl,--end-group"
      )
   else(MSVC)
     target_link_libraries (emcad 
@@ -152,6 +154,9 @@ endif((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR MSYS)
 #SET_TARGET_PROPERTIES(emcad PROPERTIES LINK_FLAGS "-static")
 
 install(TARGETS emcad  DESTINATION bin)
+if(WIN32)
+  install(FILES $<TARGET_RUNTIME_DLLS:emcad> TYPE BIN)
+endif(WIN32)
 
 
 

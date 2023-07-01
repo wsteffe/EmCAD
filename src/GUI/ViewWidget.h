@@ -42,10 +42,7 @@
 #include <AIS_InteractiveContext.hxx>
 #include <V3d_View.hxx>
 
-#include <Quantity_Factor.hxx>
-#include <Quantity_Length.hxx>
 #include <Aspect_GridType.hxx>
-#include <V3d_Coordinate.hxx>
 #include <Aspect_GridDrawMode.hxx>
 #include <TDF_Label.hxx>
 #include <QtGlobal>
@@ -101,14 +98,14 @@ public:
 
 	void deleteAllObjects();
 
-	void setGridOffset (Quantity_Length offset);
+	void setGridOffset (Standard_Real offset);
 
 
 signals:
 	void selectionChanged();
 	void selectedLabelChanged();
-	void mouseMoved   ( V3d_Coordinate X, V3d_Coordinate Y, V3d_Coordinate Z );
-	void pointClicked ( V3d_Coordinate X, V3d_Coordinate Y, V3d_Coordinate Z );
+	void mouseMoved   ( Standard_Real X, Standard_Real Y, Standard_Real Z );
+	void pointClicked ( Standard_Real X, Standard_Real Y, Standard_Real Z );
 	void sendStatus   ( const QString aMessage );
 	//! Just a placeholder for now
 	void popupMenu ( const ViewWidget* aView, const QPoint aPoint ); 
@@ -170,11 +167,11 @@ private: // members
 
 	Standard_Boolean		myViewResized;
         CurrentAction3d                 myMode;
-        Quantity_Factor                 myCurZoom;
+        Standard_Real                 myCurZoom;
         Standard_Boolean		myGridSnap;
 	AIS_StatusOfDetection		myDetection;
 
-	V3d_Coordinate			myV3dX,   
+	Standard_Real			myV3dX,   
 					myV3dY,   
 					myV3dZ;
 		

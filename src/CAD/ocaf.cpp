@@ -37,6 +37,8 @@
 #include "assert.h"
 
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include <XCAFDoc.hxx>
 #include <XCAFDoc_DocumentTool.hxx>
@@ -64,6 +66,7 @@
 #include <TopTools_DataMapOfShapeInteger.hxx>
 #include <TopTools_MapIteratorOfMapOfShape.hxx>
 #include <TopTools_DataMapOfShapeListOfShape.hxx>
+#include <BOPAlgo_Builder.hxx>
 #include <BOPAlgo_Splitter.hxx>
 #include <BOPAlgo_GlueEnum.hxx>
 #include <TopExp_Explorer.hxx>
@@ -81,6 +84,7 @@
 #include <BRepTools.hxx>
 #include <BRepLib.hxx>
 //#include <BRepLib_MakeSolid.hxx>
+#include <BRepBuilderAPI_Sewing.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
@@ -88,7 +92,6 @@
 #include <TopExp.hxx>
 
 #include <BRepAdaptor_Surface.hxx>
-#include <BRepAdaptor_HSurface.hxx>
 #include <BRepTopAdaptor_TopolTool.hxx>
 #include <LocalAnalysis_SurfaceContinuity.hxx>
 #include <TopTools_ListIteratorOfListOfShape.hxx>
@@ -106,6 +109,9 @@
 #include <GeomAPI_ProjectPointOnSurf.hxx>
 #include <GeomAPI_ProjectPointOnCurve.hxx>
 #include <GeomLProp_SLProps.hxx>
+
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 
 #include <MeshVS_Mesh.hxx>
 #include <MeshVS_MeshPrsBuilder.hxx>
@@ -139,10 +145,7 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 
-#include <Quantity_Parameter.hxx>
-
 #include <omp.h>
-
 
 #define USEXMLXCAF 1
 
@@ -908,9 +911,9 @@ void MwOCAF::assignMatColor(TDF_Label label){
      else{
        DB::Material* mat = EmP->FindMaterial(vol->material);
        if(mat){
-	 Quantity_Parameter r=mat->color[0]/255.0;
-	 Quantity_Parameter g=mat->color[1]/255.0;
-	 Quantity_Parameter b=mat->color[2]/255.0;
+	 Standard_Real r=mat->color[0]/255.0;
+	 Standard_Real g=mat->color[1]/255.0;
+	 Standard_Real b=mat->color[2]/255.0;
 	 colName=Quantity_Color::Name(r,g,b);
        }
      }
@@ -928,9 +931,9 @@ void MwOCAF::assignMatColor(TDF_Label label){
   if(vol){
       DB::Material* mat = EmP->FindMaterial(vol->material);
       if(mat){
-	 Quantity_Parameter r=mat->color[0]/255.0;
-	 Quantity_Parameter g=mat->color[1]/255.0;
-	 Quantity_Parameter b=mat->color[2]/255.0;
+	 Standard_Real r=mat->color[0]/255.0;
+	 Standard_Real g=mat->color[1]/255.0;
+	 Standard_Real b=mat->color[2]/255.0;
 	 col.SetValues(r,g,b,Quantity_TOC_RGB);
       }
   }
@@ -1233,7 +1236,7 @@ bool MwOCAF::makeTheCompSolid(){
      TopoDS_Shape S = shapeTool->GetShape(label);
      if(!S.IsNull()){ 
 	     if(S.ShapeType()==TopAbs_SOLID) builder.Add(theCompSolid,S);
-	     else if(S.ShapeType()==TopAbs_COMPSOLID) 
+	     else if(S.ShapeType()==TopAbs_COMPSOLID || S.ShapeType()==TopAbs_COMPOUND) 
                  for(TopExp_Explorer exp(S,TopAbs_SOLID); exp.More(); exp.Next()) 
 			 builder.Add(theCompSolid,exp.Current());
 	     else continue;
@@ -1377,19 +1380,21 @@ void MwOCAF::heal(){
       if(!S.IsNull()) builder.Add(compoundShape, S);
   }
 
-/*
-  ShapeUpgrade_ShapeDivideClosed SDCF(compoundShape);
-  SDCF.Perform();
-  Handle(ShapeBuild_ReShape) SDCF_context=SDCF.GetContext();
-
-  TopoDS_Shape result=SDCF_context->Apply(compoundShape);
-*/
 
   ShapeFix_Shape SFS(compoundShape);
-  SFS.FixShellTool()->FixOrientationMode()=Standard_True;
-  SFS.FixFaceTool()->FixOrientationMode()=Standard_True;
+//  SFS.FixShellTool()->FixOrientationMode()=Standard_True;
+
   SFS.FixFaceTool()->FixMissingSeamMode() =Standard_True;
+  SFS.FixFaceTool()->FixOrientationMode()=Standard_False;
+  SFS.FixFaceTool()->FixSmallAreaWireMode() = Standard_False;
   SFS.FixWireTool()->ModifyTopologyMode() =Standard_True;
+  SFS.FixWireTool()->FixConnectedMode() = Standard_False;
+  SFS.FixWireTool()->FixEdgeCurvesMode() = Standard_False;
+  SFS.FixWireTool()->FixDegeneratedMode() = Standard_False;
+  SFS.FixWireTool()->FixSelfIntersectionMode() = Standard_False; 
+  SFS.FixWireTool()->FixLackingMode() = Standard_False; 
+  SFS.FixWireTool()->FixSmallMode() =Standard_True;
+  SFS.FixWireTool()->FixShiftedMode() =Standard_True;
   SFS.Perform();
   Handle(ShapeBuild_ReShape) SFS_context=SFS.Context();
 
@@ -1399,7 +1404,12 @@ void MwOCAF::heal(){
   ShapeUpgrade_ShapeDivideClosedEdges SDCE(result);
   SDCE.Perform();
   Handle(ShapeBuild_ReShape) SDCE_context=SDCE.GetContext();
-  
+
+/*
+  ShapeUpgrade_ShapeDivideClosed SDC(result);
+  SDC.Perform();
+  Handle(ShapeBuild_ReShape) SDC_context=SDC.GetContext();
+*/
 
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
@@ -1478,7 +1488,7 @@ TDF_Label MwOCAF::replaceLabelShape(TDF_Label label, TopoDS_Shape newS){
 
 
 
-void MwOCAF::imprint(){
+void MwOCAF::imprint(int downImprint){
 
  if(hasUPIF || numberOfParts()>=1){ // else skip all imprinting:
 
@@ -1535,15 +1545,23 @@ void MwOCAF::imprint(){
   PS.SetFuzzyValue(1.e-3);
   PS.SetNonDestructive(true);
 
- 
-  TopTools_MapOfShape ShapesMap, ToolsMap;
-  for (int I=1; I<=imprintingParts.Extent(); I++){
-        TopoDS_Shape S =imprintingParts.FindKey(I);
-	if (ShapesMap.Add(S)) PS.AddArgument(S);
-  }
-  if(hasUPIF) for (int I = 1; I <=UPIFsubshapes.Extent() ; I++){
+  {
+    TopoDS_Compound  imprintingShapes;
+    BRep_Builder builder;
+    builder.MakeCompound(imprintingShapes);
+    TopTools_MapOfShape ShapesMap, ToolsMap;
+    for (int I=1; I<=imprintingParts.Extent(); I++){
+       TopoDS_Shape S =imprintingParts.FindKey(I);
+       if (ShapesMap.Add(S)){
+	  if(downImprint) builder.Add(imprintingShapes,S); 
+	  else            PS.AddArgument(S);
+       }
+    }
+    if(downImprint) PS.AddArgument(imprintingShapes);
+    if(hasUPIF) for (int I = 1; I <=UPIFsubshapes.Extent() ; I++){
        TopoDS_Shape S =UPIFsubshapes.FindKey(I);
        if (!ShapesMap.Contains(S) && ToolsMap.Add(S)) PS.AddTool(S);
+    }
   }
 
   try {
@@ -1612,10 +1630,17 @@ void MwOCAF::imprint(){
           }
      }
 //Replace Shape with new shape:
-     if(!newS.IsNull() && !newS.IsEqual(S0)){ 
-	    TDF_Label newlabel=replaceLabelShape(label,newS);
-	    displayLabelShape(newlabel, true);
-	    refAtt->Set(newlabel);
+     if(!newS.IsNull() && !newS.IsEqual(S0)){
+         if(vol->type==DIELECTRIC){
+            int SoNum0=0;
+	    for (TopExp_Explorer exp(S,TopAbs_SOLID); exp.More(); exp.Next()) SoNum0++;
+            int SoNum1=0;
+	    for (TopExp_Explorer exp(newS,TopAbs_SOLID); exp.More(); exp.Next()) SoNum1++;
+	    assert(SoNum0==SoNum1);
+	 }
+	 TDF_Label newlabel=replaceLabelShape(label,newS);
+	 displayLabelShape(newlabel, true);
+	 refAtt->Set(newlabel);
      } 
   }
 
@@ -2178,63 +2203,51 @@ void MwOCAF::split(){
  if(hasSplitter()){
 
 // BRepLib::Precision(1.e-4);
- BOPAlgo_Splitter PS;
+ BOPAlgo_Builder PS;
  PS.SetFuzzyValue(1.e-3);
 
  TopTools_MapOfShape ShapesMap, ToolsMap;
 
- for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
-     TDF_Label label1 = it.Value();
-     Handle(TDF_Reference)  refAtt;
-     if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
-     TDF_Label label = refAtt->Get();
-     DB::Volume *vol=getLabelVol(label1);
-     if(!vol) continue;
-     if(vol->type==GRID ) continue;
-     TopoDS_Shape S= shapeTool->GetShape(label);
-     assert(!S.IsNull());
-     if(vol->type==DIELECTRIC || vol->type==HOLE) assert(S.ShapeType()==TopAbs_SOLID);
-     if(vol->type==WAVEGUIDE) assert(S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_FACE);
-     if(!S.IsNull())   if (ShapesMap.Add(S)) PS.AddArgument(S);
-  }
-  TopTools_IndexedMapOfShape  upIndexedFaces;
-  for (int FI=1; FI<=indexedFaces->Extent(); FI++){
-      TopoDS_Shape F = indexedFaces->FindKey(FI);
-      if (ShapesMap.Add(F)) {
-         upIndexedFaces.Add(F);
-	 PS.AddArgument(F);
-      }
-  }
-  TopTools_IndexedMapOfShape  upIndexedEdges;
-  for (int EI=1; EI<=indexedEdges->Extent(); EI++){
-      TopoDS_Shape E = indexedEdges->FindKey(EI);
-      if (ShapesMap.Add(E)) {
-        upIndexedEdges.Add(E);
-	PS.AddArgument(E);
-      }
-  }
-  TopTools_IndexedMapOfShape  upIndexedVertices;
-  for (int PI=1; PI<=indexedVertices->Extent(); PI++){
-      TopoDS_Shape P = indexedVertices->FindKey(PI);
-      if (ShapesMap.Add(P)){
-         upIndexedVertices.Add(P);
-	 PS.AddArgument(P);
-      }
-  }
 
-  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
-     TDF_Label label1 = it.Value();
-     Handle(TDF_Reference)  refAtt;
-     if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
-     TDF_Label label = refAtt->Get();
-     DB::Volume *vol=getLabelVol(label1);
-     if(!vol) continue; 
-     TopoDS_Shape S= shapeTool->GetShape(label);
-     assert(!S.IsNull());
-     if(!S.IsNull()) if(vol->type==SPLITTER || vol->type==GRID )
-		            for (TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()) 
-				       if (ToolsMap.Add(exp.Current())) PS.AddTool(exp.Current());
+  {
+    TopoDS_Compound  imprintedShapes;
+    BRep_Builder builder;
+    builder.MakeCompound(imprintedShapes);
+    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
+      TDF_Label label1 = it.Value();
+      Handle(TDF_Reference)  refAtt;
+      if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
+      TDF_Label label = refAtt->Get();
+      DB::Volume *vol=getLabelVol(label1);
+      if(!vol) continue;
+      if(vol->type==GRID ) continue;
+       TopoDS_Shape S= shapeTool->GetShape(label);
+      assert(!S.IsNull());
+      if(vol->type==DIELECTRIC || vol->type==HOLE) assert(S.ShapeType()==TopAbs_SOLID || S.ShapeType()==TopAbs_COMPOUND || S.ShapeType()==TopAbs_COMPSOLID);
+      if(vol->type==WAVEGUIDE) assert(S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_FACE);
+      if(!S.IsNull()) if (ShapesMap.Add(S)) {
+	   if(vol->type==SPLITTER){
+		BRepBuilderAPI_Sewing Sew;
+                Sew.Add(S); 
+                Sew.Perform();
+                TopoDS_Shape newS=Sew.SewedShape();
+                if(!newS.IsNull()){ //Replace Shape with new shape:
+	          TDF_Label newlabel=replaceLabelShape(label,newS);
+	          displayLabelShape(newlabel, true);
+	          refAtt->Set(newlabel);
+		  S=newS;
+		}
+		PS.AddArgument(S);
+	   }
+	   else builder.Add(imprintedShapes,S);
+      }
+    }
+    PS.AddArgument(imprintedShapes);
   }
+  TopTools_IndexedMapOfShape  upIndexedFaces(*indexedFaces);
+  TopTools_IndexedMapOfShape  upIndexedEdges(*indexedEdges);
+  TopTools_IndexedMapOfShape  upIndexedVertices(*indexedVertices);
+
 
   try {
      PS.Perform();
@@ -2266,30 +2279,38 @@ void MwOCAF::split(){
 //     TopoDS_Shape S = shapeTool->GetShape(label1);
      TopoDS_Shape newS;
      if(vol->type==DIELECTRIC ) {
+	 int SoNum0=0;
+	 if(S.ShapeType()==TopAbs_COMPOUND || S.ShapeType()==TopAbs_COMPSOLID)
+               for (TopExp_Explorer exp(S,TopAbs_SOLID); exp.More(); exp.Next()) SoNum0++;
          TopTools_ListOfShape RSlist;
 	 if(PSmap.IsBound(S)) RSlist= PSmap.Find(S);
 	 else(RSlist.Append(S));
          if(!RSlist.IsEmpty()) {
-	     if(S.ShapeType()==TopAbs_SOLID){
-                TopoDS_CompSolid  newCompS;
-                BRep_Builder builder;
-                builder.MakeCompSolid(newCompS);
-//              builder.MakeCompound(newCompS);
-		int soNum=0;
-		int shNum=0;
-	        for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
+              TopoDS_CompSolid  newCompS;
+              BRep_Builder builder;
+              builder.MakeCompSolid(newCompS);
+//            builder.MakeCompound(newCompS);
+	      int soNum=0;
+	      for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
                   TopoDS_Shape Si=RSit.Value();
-                  shNum++;
-	  	  if(Si.ShapeType()==TopAbs_SOLID){
+	  	  if(Si.ShapeType()==TopAbs_COMPOUND || Si.ShapeType()==TopAbs_COMPSOLID){
+                      for (TopExp_Explorer exp(Si,TopAbs_SOLID); exp.More(); exp.Next()){ 
+			 TopoDS_Shape Sii=exp.Current();
+		          if(CHECK_CREATED_SHAPES){
+			    BRepCheck_Analyzer ana (Sii, true);
+			    assert(ana.IsValid());
+			  }
+		          builder.Add(newCompS,Sii); soNum++;
+		      }
+		  } else if(Si.ShapeType()==TopAbs_SOLID){
 		      if(CHECK_CREATED_SHAPES){
 			 BRepCheck_Analyzer ana (Si, true);
 			 assert(ana.IsValid());
 		      }
 		      builder.Add(newCompS,Si); soNum++;
 		  }
-                }
-	        newS=newCompS;
-	     }
+               }
+	       newS=newCompS;
          }
          if(!newS.IsNull()){ //Replace Shape with new shape:
 	      TDF_Label newlabel=replaceLabelShape(label,newS);
@@ -2445,7 +2466,7 @@ void MwOCAF::split(){
 //	       if (reshape->Status(RSit.Value(), Fi, Standard_True)>=0){
                  TopoDS_Shape Fi=RSit.Value();
 	         Fi.Orientation(TopAbs_FORWARD);
-	         if(indexedFaces->Contains(Fi)){
+	         if(indexedFaces->Contains(Fi) && !splitFaces.Contains(Fi)){
 		   int FI = indexedFaces->FindIndex(Fi);
                    splitFacesMap[FI-1]=upFI;
 	         }
@@ -2570,6 +2591,10 @@ void MwOCAF::split(){
     int PNum=indexedVertices->Extent();
     int VNum=indexedSolids->Extent();
     subCompNum=0;
+    std::string asstypeFileName=projectDir; asstypeFileName+="/subcompNum";
+    FILE *subcmpfid= fopen(nativePath(asstypeFileName).c_str(), "w");
+    fprintf(subcmpfid, "%d\n", subCompNum);
+    fclose(subcmpfid);
     splitFacesMap.resize(FNum,0);
     splitEdgesMap.resize(ENum,0);
     splitVerticesMap.resize(PNum,0);
@@ -2623,12 +2648,17 @@ void MwOCAF::extractSubcomp(int subcompI){
 	  int VI=indexedSolids->FindIndex(S);
 	  if(solidCompMap[VI-1]==subcompI) newS=S;
        }else if(S.ShapeType()==TopAbs_COMPSOLID){
+          TopoDS_CompSolid  newCompS;
+          BRep_Builder builder;
+          builder.MakeCompSolid(newCompS);
+	  int soNum=0;
           for (TDF_ChildIterator it(label,Standard_False); it.More(); it.Next()) {
              TDF_Label label2 = it.Value();
              TopoDS_Shape Si = shapeTool->GetShape(label2);
 	     int VI=indexedSolids->FindIndex(Si);
-	     if(solidCompMap[VI-1]==subcompI) newS=Si;
+	     if(solidCompMap[VI-1]==subcompI) {builder.Add(newCompS,Si); soNum++;}
 	  }
+	  if(soNum>0) newS=newCompS;
         }
      }
      if(vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->type==SPLITTER )
@@ -3034,8 +3064,22 @@ void MwOCAF::makeFaceAdjCells(TDF_Label label){
       if(!strncmp(volName.ToCString(),"WGP",3)) partName=remove_SUB(partName);
       partName+=TCollection_AsciiString("__")+volName ;
     } else  partName=volName;
-    if(EmP->assemblyType==NET || vol->type==DIELECTRIC || vol->type==WAVEGUIDE)  
-    for (TopExp_Explorer it(S,TopAbs_FACE); it.More(); it.Next()){
+    if(EmP->assemblyType==NET || vol->type==DIELECTRIC || vol->type==WAVEGUIDE){
+       if(S.ShapeType()==TopAbs_COMPSOLID)
+       for (TopExp_Explorer it1(S,TopAbs_SOLID); it1.More(); it1.Next()){
+       TopoDS_Shape So = it1.Current();
+       for (TopExp_Explorer it(So,TopAbs_FACE); it.More(); it.Next()){
+            TopoDS_Shape F = it.Current();
+            int si=(F.Orientation()==TopAbs_FORWARD) ? 1 : 0; //first part is where face normal enters
+            F.Orientation(TopAbs_FORWARD);
+            int FI=indexedFaces->FindIndex(F);
+            if(FI){
+		 assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
+		 assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
+		 faceAdjParts[2*(FI-1)+si]=partName;
+            }
+       }
+       } else for (TopExp_Explorer it(S,TopAbs_FACE); it.More(); it.Next()){
             TopoDS_Shape F = it.Current();
             int si=(F.Orientation()==TopAbs_FORWARD) ? 1 : 0; //first part is where face normal enters
             F.Orientation(TopAbs_FORWARD);
@@ -3046,7 +3090,8 @@ void MwOCAF::makeFaceAdjCells(TDF_Label label){
 		 assert(faceAdjParts[2*(FI-1)+si]==TCollection_AsciiString("-"));
 		 faceAdjParts[2*(FI-1)+si]=partName;
             }
-    }
+         }
+      }
 }
 
 void MwOCAF::makeFaceAdjCells(){
@@ -3063,9 +3108,11 @@ void MwOCAF::makeFaceAdjCells(){
       TDF_Label label = refAtt->Get();
       Handle(TDataStd_Name)  nameAtt;
       if(!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
+      DB::Volume *vol=getLabelVol(label);
+      if(!vol) continue; 
       TopoDS_Shape S = shapeTool->GetShape(label);
       if(S.IsNull())  continue;
-      if(S.ShapeType()==TopAbs_SOLID) makeFaceAdjCells(label);
+      if(S.ShapeType()==TopAbs_SOLID || S.ShapeType()==TopAbs_COMPSOLID || (vol->type==DIELECTRIC && S.ShapeType()==TopAbs_COMPOUND) ) makeFaceAdjCells(label);
    }
    if(EmP->assemblyType==NET) return;
 // then waveguides are processed
@@ -3250,6 +3297,36 @@ void  getMultiBodies(
 }
 
 
+
+void  getAssMultiBodies( 
+		   Handle(XCAFDoc_ShapeTool) STool2, Handle(XCAFDoc_ColorTool) ColTool2, Handle(XCAFDoc_LayerTool) layTool2, 
+		   TDF_Label label2,
+		   std::map<std::string, std::set<int> > &nameShapeI,
+		   std::map<int, LabelAttributes> &iAttrs,
+                   TopTools_IndexedMapOfShape  &iShapes
+		 )
+{
+     for (TDF_ChildIterator it(label2, Standard_False); it.More(); it.Next())  {
+        TDF_Label sublabel2 = it.Value();
+        TopoDS_Shape subS2 = STool2->GetShape(sublabel2);
+        Handle(TDataStd_Name) sub2NameAtt;
+        if(!sublabel2.FindAttribute(TDataStd_Name::GetID(),sub2NameAtt)) continue;
+        TCollection_AsciiString sub2Name=sub2NameAtt->Get();
+        LabelAttributes attr;
+        copyLabelAttributes(attr, sublabel2, ColTool2, layTool2);
+        if(isValidMultibodyPartName(sub2Name)){
+           std::string str=sub2Name.ToCString();
+	   if(nameShapeI.find(str)==nameShapeI.end()){
+             int I=iShapes.Add(subS2);
+             nameShapeI[str].insert(I);
+	     iAttrs[I]=attr;
+           }
+	}
+   }
+}
+
+
+
 void  copySubAss(
 	           Handle(XCAFDoc_ShapeTool) STool1, Handle(XCAFDoc_ColorTool) ColTool1, Handle(XCAFDoc_LayerTool) layTool1, const TDF_Label &label1, 
 		   Handle(XCAFDoc_ShapeTool) STool2, Handle(XCAFDoc_ColorTool) ColTool2, Handle(XCAFDoc_LayerTool) layTool2, const TDF_Label &label2,
@@ -3269,7 +3346,6 @@ void  copySubAss(
 //---
 //---
    TopoDS_Shape S2 = STool2->GetShape(label2); if(S2.IsNull()) return;
-   TopoDS_Shape S2r = STool2->GetShape(label2ref);
    TDF_Label sublabel1=label1;
 /*
   If S2 is top level shape in the current document and current document not main document label2 holds a referred not located shape.
@@ -3321,6 +3397,7 @@ void  copySubAss(
             std::map<int, LabelAttributes> iAttrs;
             TopTools_IndexedMapOfShape  iShapes;
 	    getMultiBodies(STool2, ColTool2,layTool2, S2, nameShapeI, iAttrs, iShapes);    
+	    getAssMultiBodies(STool2, ColTool2,layTool2, label2ref, nameShapeI, iAttrs, iShapes);    
             typedef std::map<std::string, std::set<int> > ::iterator NameIt;
 	    for (NameIt nit=nameShapeI.begin(); nit!= nameShapeI.end(); nit++){
 	      TopoDS_Shape subS2;
@@ -3984,7 +4061,6 @@ bool MwOCAF::hasEmSubComponent(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &a
    return hassubcomp;
 }
 
-bool COMPONENTISASSEMBLY=false;
 
 void MwOCAF::saveImportedStruct(const char *dir,
 		int level,
@@ -4014,8 +4090,6 @@ void MwOCAF::saveImportedStruct(const char *dir,
       assemblyType=subEmP->assemblyType=COMPONENT;
    else if(isIFName(assName))
       assemblyType=subEmP->assemblyType=INTERFACE;
-   else if(COMPONENTISASSEMBLY && hasEmSubComponent(shapeTool, ass))
-      assemblyType=subEmP->assemblyType=NET;
    else if(shapeTool->IsAssembly(ass))
       assemblyType=subEmP->assemblyType=NET;
 
@@ -4026,7 +4100,16 @@ void MwOCAF::saveImportedStruct(const char *dir,
    std::string emFilePath=dir; emFilePath+="/model.em";
    if(FileExists(emFilePath.c_str())) loadProblem(subEmP, emFilePath.c_str());
    int modified=putVolumesInDB_(subEmP, subShapeTool, subDoc->Main());
-   if(modified) saveProblem(subEmP,emFilePath);
+   if(modified){
+        saveProblem(subEmP,emFilePath);
+        if(assemblyType==NET) {
+          std::string asstypeFileName=dir; asstypeFileName+="/assemblyType";
+          FILE *assfid= fopen(nativePath(asstypeFileName).c_str(), "w");
+          fprintf(assfid, "%d\n", assemblyType);
+          fprintf(assfid, "%d\n", 0);
+          fclose(assfid);
+	}
+   }
 // set subass name attribute into the related parts label:
    TDF_Label subPL = XCAFDoc_DocumentTool::DocLabel(subDoc->Main()).FindChild(6,Standard_True);
    TDataStd_Name::Set(subPL, assName);
@@ -4135,11 +4218,9 @@ void MwOCAF::saveImportedStruct(const char *dir,
 }
 
 void MwOCAF::saveImportedStruct(
-		const char *dir,
-                bool compIsAss
+		const char *dir
 		)
 {
-   COMPONENTISASSEMBLY=compIsAss;
    TDF_LabelSequence FreeLabels;
    shapeTool->GetFreeShapes(FreeLabels);
    assert(FreeLabels.Length()>0);
@@ -4387,6 +4468,7 @@ void MwOCAF::initFEPdataStruct(){
 	     FD.epsr=1.0; 
 	     FD.mur=1.0; 
 	     FD.meshref=1.0;
+	     FD.cutoffref=1.0;
 	     FD.shared=FI>extFaceNum && EmP->assemblyType==NET;
 	     FD.cmp1="-";  FD.cmp2="-";
              if(isPartition() and splitFaceCompMap.size()>=2*FI) if(splitFaceCompMap[2*(FI-1)+0] && splitFaceCompMap[2*(FI-1)+1]){
@@ -4570,12 +4652,14 @@ void MwOCAF::initFEPdataStruct(){
       if(!partEdgesMap[partI-1].IsNull()) for (int I =1; I <= partEdgesMap[partI-1]->Length(); I++){
 	 int EI=partEdgesMap[partI-1]->Value(I);
 	 if(!EI) continue;
-         if(isPartition()) if(splitEdgesMap[EI-1]) continue;
-	 char tag[10]; sprintf(tag,"%d",EI);
-         std::string EPath=projectDir+std::string("/interfaces/E")+tag;
-         std::string ERPath=std::string("../../interfaces/E")+tag;
-         EPath=nativePath(EPath);
-         ERPath=nativePath(ERPath);
+         std::string EPath;
+         if(isPartition()&& splitEdgesMap[EI-1]){
+            char tag[10]; sprintf(tag,"%d",splitEdgesMap[EI-1]);
+            EPath=projectDir+std::string("/../interfaces/E")+tag;
+         }else{
+	    char tag[10]; sprintf(tag,"%d",EI);
+            EPath=projectDir+std::string("/interfaces/E")+tag;
+	 }
 	 if(initializedE.find(EI)==initializedE.end()) if(!FileExists(EPath.c_str())){
              TopoDS_Edge E = TopoDS::Edge(indexedEdges->FindKey(EI));
              bool  CumOri=false;
@@ -4603,7 +4687,7 @@ void MwOCAF::initFEPdataStruct(){
 	 }
 	 if(EmP->assemblyType==NET){
             std::string partEPath=partDir+std::string("/interfaces/E"); 
-	    sprintf(tag,"%d",I); partEPath+=tag;
+	    char tag[10]; sprintf(tag,"%d",I); partEPath+=tag;
             partEPath=nativePath(partEPath);
 	    createLink(EPath.c_str(), partEPath.c_str());
 	 }
@@ -4630,6 +4714,7 @@ void MwOCAF::initFEPdataStruct(){
 	        ed.LPname=std::string(vol->name);
 		edChanged=1;
             }
+/*
 //       Defines singular edges and singular points
             bool singularE=(Emult[EI]==1);
 	    if(Emult[EI]>1 ) if(Enormals.find(EI)!=Enormals.end()) 
@@ -4642,12 +4727,17 @@ void MwOCAF::initFEPdataStruct(){
                TopExp::Vertices(E,VV[0],VV[1], CumOri);
                for (int i =0; i <2; i++){
                   int PI=indexedVertices->FindIndex(VV[i]);
-                  if(isPartition()) if(splitVerticesMap[PI-1]) continue;
-		  if(PI<=extVertexNum){
-                    char tag[10]; sprintf(tag,"%d",PI);
-                    std::string PPath=projectDir+std::string("/interfaces/P")+tag;
-                    PPath=nativePath(PPath);
+//		  if(PI<=extVertexNum){
+		    std::string PPath;
+                    if(isPartition()&& splitVerticesMap[PI-1]){
+		     char tag[10]; sprintf(tag,"%d",splitVerticesMap[PI-1]);
+                     PPath=projectDir+std::string("/../interfaces/P")+tag;
+		    }else{
+		     char tag[10]; sprintf(tag,"%d",PI);
+                     PPath=projectDir+std::string("/interfaces/P")+tag;
+	            }
                     FILE *fp=fopen(PPath.c_str(),"r+");
+		    if(!fp) continue;
 		    VertexData pd;
         	    assert(setLock(fp,"a")==0);
 	            pd.read(fp);
@@ -4657,9 +4747,10 @@ void MwOCAF::initFEPdataStruct(){
 	            fflush(fp);
 	            assert(releaseLock(fp)==0);
                     fclose(fp);
-	          }
+//	          }
 	       }
 	     }
+*/
 	     if(edChanged){
 	        FILE *fout=fopen(EPath.c_str(),"w");
 	        assert(setLock(fout,"w")==0);
@@ -4699,7 +4790,7 @@ void MwOCAF::setFEproperties()
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       TCollection_AsciiString partName=nameAtt->Get();
       DB::Volume *vol=EmP->FindVolume(partName.ToCString());
-      if(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC && vol->type!=WAVEGUIDE  && vol->type!=BOUNDARYCOND) continue;
+      if(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC && vol->type!=WAVEGUIDE  && vol->type!=BOUNDARYCOND  && vol->type!=SPLITTER) continue;
       DB::Material* mat= EmP->FindMaterial(vol->material);
       Handle(TDF_Reference)  refAtt;
       if(!label1.FindAttribute(TDF_Reference::GetID(),refAtt)) continue;
@@ -4728,10 +4819,11 @@ void MwOCAF::setFEproperties()
          assert(setLock(fp,"a")==0);
 	 FD.read(fp);
 	 if(reset){
-	    FD.epsr=FD.mur=FD.meshref=1.0;
+	    FD.epsr=FD.mur=FD.meshref=FD.cutoffref=1.0;
             initializedF.insert(FI);
 	 }
 	 FD.meshref=max(FD.meshref,vol->meshRefinement);
+	 FD.cutoffref=max(FD.cutoffref,vol->cutoffRefinement);
 	 if(mat){
 	  FD.epsr   =max(FD.epsr,   mat->epsr);
 	  FD.mur    =max(FD.mur,    mat->mur);
@@ -4979,7 +5071,7 @@ int MwOCAF::evalTEMnum(TopoDS_Shape S, bool intPort)
 	   TopoDS_Shape E=exp.Current();
 	   E.Orientation(TopAbs_FORWARD);
 	   int EI=indexedEdges->FindIndex(E);
-	   if(LPedge(EI)) 
+	   if(EI) if(LPedge(EI)) 
 		   if(contCurvesWithLP.find(EI)==contCurvesWithLP.end())
 			   contCurvesWithLP.insert(EI);
 	 }
@@ -5058,9 +5150,83 @@ void MwOCAF::setTEMnum()
       TopoDS_Shape S = shapeTool->GetShape(label);
       int TEMnum=evalTEMnum(S, false);
       if(vol->TEMportsNum!=TEMnum) {vol->TEMportsNum=TEMnum; worksaveNeeded=true;}
+      if(vol->TEMportsNum==0 && vol->TEportsNum==0 && vol->TMportsNum==0) {vol->TEportsNum=1; worksaveNeeded=true;}
 //--------
    }
 }
+
+void MwOCAF::setConductorMap()
+{
+   using namespace boost;
+   typedef adjacency_list <vecS, vecS, undirectedS> Graph;
+   Graph G;
+   int ENum=indexedEdges->Extent();
+   int FNum=indexedFaces->Extent();
+   int N=0;
+   std::map<int,int> CEI;
+   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)) if(CEI.find(EI)==CEI.end()) CEI[EI]=N++;
+   std::map<int,int> CFI;
+   for(int FI=1; FI <= FNum; FI++) if(ECface(FI)) if(CFI.find(FI)==CFI.end()) CFI[FI]=N++;
+   for (int FI=1; FI<=FNum; FI++)  if(ECface(FI)) {
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     for (TopExp_Explorer expe(F,TopAbs_EDGE); expe.More(); expe.Next()) {
+         TopoDS_Shape E= expe.Current();
+	 E.Orientation(TopAbs_FORWARD);
+	 int EI=indexedEdges->FindIndex(E);
+	 if(EI>0){
+	  assert(ECedge(EI));
+          int ice=CEI[EI];
+          int icf=CFI[FI];
+          add_edge(ice,icf, G);
+	 }
+     }
+   }
+   std::map<int,int> CPI;
+   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)){ 
+         TopoDS_Edge E= TopoDS::Edge(indexedEdges->FindKey(EI));
+         TopoDS_Vertex V1,V2;
+         TopExp::Vertices(E,V1,V2);
+         int ice=CEI[EI];
+	 int IP1=indexedVertices->FindIndex(V1);
+	 if(IP1>0){
+	  if(CPI.find(IP1)==CPI.end()) CPI[IP1]=N++;
+          int icp1=CPI[IP1];
+          add_edge(ice,icp1, G);
+	 }
+	 int IP2=indexedVertices->FindIndex(V2);
+	 if(IP2>0){
+	  if(CPI.find(IP2)==CPI.end()) CPI[IP2]=N++;
+          int icp2=CPI[IP2];
+          add_edge(ice,icp2, G);
+	 }
+   }
+
+   std::vector<int> component(num_vertices(G));
+   int NumConductors =connected_components(G, &component[0]);
+   edgeConductorMap.clear();
+   edgeConductorMap.resize(ENum,0);
+   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)) edgeConductorMap[EI-1]=1+component[CEI[EI]];
+   faceConductorMap.clear();
+   faceConductorMap.resize(FNum,0);
+   for(int FI=1; FI <= FNum; FI++) if(ECface(FI)) faceConductorMap[FI-1]=1+component[CFI[FI]];
+   std::vector<double> condArea(NumConductors,0.0);
+   for(int FI=1; FI <= FNum; FI++) if(faceConductorMap[FI-1]>0){
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     GProp_GProps gprops;
+     BRepGProp::SurfaceProperties(F, gprops);
+     double farea =gprops.Mass();
+     condArea[faceConductorMap[FI-1]-1]+=farea;
+   }
+   //Conductor with largest area is moved into the first position
+   double Amax=0;  int icondAMax=0;
+   for(int i=0;i<NumConductors;i++) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
+   std::vector<int> renum(NumConductors,0);
+   renum[icondAMax-1]=1;
+   int j=1;  for(int i=0;i<NumConductors;i++) if(renum[i]==0) renum[i]=++j;
+   for(int FI=1; FI <= FNum; FI++) if(faceConductorMap[FI-1]>0) faceConductorMap[FI-1]=renum[faceConductorMap[FI-1]-1];
+   for(int EI=1; EI <= ENum; EI++) if(edgeConductorMap[EI-1]>0) edgeConductorMap[EI-1]=renum[edgeConductorMap[EI-1]-1];
+}
+
 
 void MwOCAF::getAssName(TCollection_AsciiString &assName){
     Handle(TDataStd_Name)  nameAtt;
@@ -5157,8 +5323,8 @@ Standard_Boolean isTangentFaces(const TopoDS_Edge &theEdge,
 // Computation of the number of samples on the edge.
   BRepAdaptor_Surface              aBAS1(theFace1);
   BRepAdaptor_Surface              aBAS2(theFace2);
-  Handle(BRepAdaptor_HSurface)     aBAHS1      = new BRepAdaptor_HSurface(aBAS1);
-  Handle(BRepAdaptor_HSurface)     aBAHS2      = new BRepAdaptor_HSurface(aBAS2);
+  Handle(BRepAdaptor_Surface)     aBAHS1      = new BRepAdaptor_Surface(aBAS1);
+  Handle(BRepAdaptor_Surface)     aBAHS2      = new BRepAdaptor_Surface(aBAS2);
   Handle(BRepTopAdaptor_TopolTool) aTool1      = new BRepTopAdaptor_TopolTool(aBAHS1);
   Handle(BRepTopAdaptor_TopolTool) aTool2      = new BRepTopAdaptor_TopolTool(aBAHS2);
   Standard_Integer                 aNbSamples1 =     aTool1->NbSamples();
@@ -5276,7 +5442,10 @@ void MwOCAF::setSuperFaces()
 	   int EI=(*it).first; TopoDS_Edge E = TopoDS::Edge(indexedEdges->FindKey(EI));
            TopoDS_Face F1=TopoDS::Face(indexedFaces->FindKey(fdata[FDI1-1]->FI));
            TopoDS_Face F2=TopoDS::Face(indexedFaces->FindKey(fdata[FDI2-1]->FI));
-	   if(tE[EI-1]==-1) { changed=true; tE[EI-1]=isTangentFaces(E, F1, F2)? 1:0; }
+	   if(tE[EI-1]==-1) { 
+		changed=true;
+		tE[EI-1]= (isTangentFaces(E, F1, F2) && edgeData[EI-1].BrCond.size()==0) ? 1:0; 
+	   }
 	   if(tE[EI-1]>0){
 	         if(fdata[FDI1-1]->sfname > fdata[FDI2-1]->sfname) {fdata[FDI1-1]->sfname=fdata[FDI2-1]->sfname; changed=true;}
 	    else if(fdata[FDI2-1]->sfname > fdata[FDI1-1]->sfname) {fdata[FDI2-1]->sfname=fdata[FDI1-1]->sfname; changed=true;}

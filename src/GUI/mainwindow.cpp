@@ -43,6 +43,7 @@
 #include <QStatusBar>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QScrollArea>
 #include <QHeaderView>
 #include <QFileDialog>
 #include <QUrl>
@@ -59,9 +60,12 @@
 #include <QTextStream>
 #include <QRegExp>
 #include <QPen>
+#include <QPainter>
 #include <QIcon>
 #include <QPixmap>
 #include <QSplitter>
+#include <QStandardItemModel>
+#include <QTableView>
 
 //#include "PJTabScrollView.h"
 
@@ -121,7 +125,7 @@
 #define INVERTEDTEMPORTS 1
 #define INVERTEDTMPORTS 1
 
-#define NPARJOBSONSERVER 8
+#define NPARJOBSONSERVER 6
 
 DB::Material theDefaultMaterial;
 
@@ -141,9 +145,8 @@ int useAPI=0;
 
 int MESH3D_ON_SERVER=1;
 
-double sharedMeshPerWavelen=6;
+extern MainWindow *mainWindow;
 
-bool componentIsAssembly(){ return (emcadConfig[std::string("ComponentIsAssembly")]!=std::string("false"));}
 
 ViewWidget*    mainOCC;
 MwOCAF*       mainOCAF;
@@ -154,6 +157,11 @@ ProjectData prjData;
 Documentation documentation;
 RunningStatus runStatus;
 
+
+bool FileExists(const QString filePath) { 
+ QFileInfo checkFilePath(filePath);
+ return checkFilePath.exists();
+}
 
 void ltrim(std::string& str) {
   std::string::size_type pos = 0;
@@ -609,7 +617,8 @@ void WorkStatus::reset(){
    remeshNeeded=0;
    modelizationNeeded=0;
    componentsaveNeeded=0;
-   reductionNeeded=0;
+   cmpReductionNeeded=0;
+   netReductionNeeded=0;
 }
 
 WorkStatus::WorkStatus(){
@@ -623,19 +632,26 @@ ProjectData::ProjectData(){
        strcpy(lengthUnitName,"MM");
        freqUnitE=9;
        meshPerWavelen=10;
-       meshPerCircle=15;
-       meshRefineMaxNum=2;
+       sharedMeshRefine=2;
+       meshPerCircle=8;
+       meshRefineMinNum=1;
+       meshRefineMaxNum=3;
+       meshTetMaxNum=30000;
        meshMinEnergyRatio=25.0;
        localMeshing3d=1;
        freqBand[0]=freqBand[1]=0.0;
-//       refFreqBand[0]=refFreqBand[1]=0.0;
+       resonFreqMaxRatio=1.2;
+       cmpResonFreqMaxRatio=1.2;
+       netResonFreqMaxRatio=1.2;
        filterPassBand[0]=filterPassBand[1]=0.0;
        mapFreqBand[0]=mapFreqBand[1]=0.0;
        filterOrder=0;
+       idealFilterWithMappedTZ=0;
+       idealFilterAddConjugateTZ=1;
        anaFreqBand[0]=anaFreqBand[1]=0.0;
        zpFreqBand[0]=zpFreqBand[1]=0.0;
        zpWinRatio=1.0;
-       cutoffRatio=2.0;
+       cutoffRatio=4.0;
        zeropoleCurves.clear();
        idealFilterJ.clear();
        idealFilterCK.clear();
@@ -649,10 +665,14 @@ ProjectData::ProjectData(){
        idealFilterImpedance.clear();
        freqRespParType=SPAR;
        freqRespParPart=0;
-       MORFreqNum=3;
        KrylovOrder=1;
-       anaMORFreqNum=10;
-       anaFreqNum=100;
+       MORFreqNum=1;
+       MORFreqNum1=5;
+       cmpMORFreqNum=6;
+       cmpMORFreqNum1=20;
+       netMORFreqNum=12;
+       netMORFreqNum1=40;
+       anaFreqNum=1000;
        filterTuneItermax=1000;
        idealFilterType=CHEBYSHEV;
        canonicalFilterTopology=SYMMETRIC_TRANSVERSE_LC;
@@ -666,7 +686,6 @@ ProjectData::ProjectData(){
        filterTuneOnlyJt=0;
        filterTuneXtol=1.e-4;
        filterTuneTrustR=2.e-1;
-       filterTuneGradDx=5.e-2;
        unit.xm=lengthUnit();
        unit.xHz=freqUnit();
        freqRespYscaleAuto=1;
@@ -681,7 +700,6 @@ ProjectData::ProjectData(){
        autoZeropole=0;
        autoMappedZeropole=0;
        autoFilterMapping=0;
-       filterOrder=0;
        filterQfactor=0.0;
        filterTargetQfactor=0.0;
        filterInductiveSkin=0;
@@ -696,6 +714,55 @@ ProjectData::ProjectData(){
        predistFilterOptimRL=15;
        predistFilterOptimIterMax=200;
        predistFilterOptimTrustR=0.005;
+}
+
+
+int ProjectData::readFilterTxZeros(char* fname){
+
+  int Nloads=0;
+  int loadtype;
+
+  FILE *fid;
+  if(!(fid = fopen(fname, "r"))){
+    DB::Msg(ERROR, "Cannot open file %s\n", fname);
+    return 1;
+  }
+  filterZeros.clear();
+  double funit;
+  int c0,c,nz;
+  c=0;
+  int ipld;
+  do{
+    do {c0=c; c=getc(fid);} while(!(c0=='\n'&&(c=='!'||c=='+')||c==EOF));
+    if(c=='+'){
+      loadtype=getc(fid);
+      fscanf(fid,"%d", &Nloads);
+      for(int j=0; j<Nloads; j++) {
+         fscanf(fid,"%d", &ipld);
+      }
+    }
+    if(c=='!'){
+      std::pair<int, int> ports;
+      char funit[5];
+      fscanf(fid,"%d %d %d %s",&ports.first,&ports.second,&nz,funit);
+      if (strcmp(funit, "Hz") && strcmp(funit, "KHz") && strcmp(funit, "MHz") && strcmp(funit, "GHz") ){
+          fprintf(stderr, "invalid frequency unit in %s \n", fname);
+          return 1;
+      }
+      for(int i=0; i<nz; i++) {
+       double freq[2];
+       fscanf(fid,"%lf %lf",&freq[0],&freq[1]);
+       if((ports.first==1 && ports.second==2)||(ports.first==2 && ports.second==1)) 
+	       filterZeros.push_back(std::complex<double>(freq[1],freq[0]));
+       if(ports.first>0) for(int j=0; j<Nloads; j++) {
+         double Yld[2];
+         fscanf(fid,"%lf %lf",&Yld[0], &Yld[1]);
+       }
+      }
+    }
+  } while(c!=EOF);
+  fclose(fid);
+  return 0;
 }
 
 MainWindow::MainWindow()
@@ -744,7 +811,6 @@ MainWindow::MainWindow()
         mapped_freqRespPlot = new MwPlot(FREQRESP_PLOT);
         ideal_freqRespPlot = new MwPlot(FREQRESP_PLOT);
         imported_freqRespPlot = new MwPlot(FREQRESP_PLOT);
-        ideal_mappedTZ_freqRespPlot = new MwPlot(FREQRESP_PLOT);
         zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
         mapped_zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
         ideal_zeroPolePlot = new MwPlot(ZEROPOLE_PLOT);
@@ -801,7 +867,7 @@ void MainWindow::removeWorkDir()
   if(!mainWorkPath.isEmpty()){
     QString tmpdir=mainWorkPath;
     tmpdir.chop(5); //remove /work 
-    if(FileExists(tmpdir.toLatin1().data())) remove_dir(nativePath(tmpdir));
+    if(FileExists(tmpdir)) remove_dir(nativePath(tmpdir));
   }
 }
 
@@ -900,6 +966,27 @@ void MainWindow::makeTree()
 //        treeWidget->updateText();
 }
 
+void splitCompSUB(const char *name, std::string &baseName, int &subCompI){
+ baseName=std::string(name);
+ subCompI=0;
+ int l=strlen(name)-1; if(!isdigit(name[l])) return;
+ for(l=strlen(name)-1; l>0&&((!isalpha(name[l])||name[l]=='i')); ) l--;
+ if( l>2 && !strncmp(&name[l-3],"_SUB",4)){  
+   sscanf(&name[l+1], "%d", &subCompI); baseName=baseName.substr(0,l-3);
+ } else subCompI=0;
+}
+
+
+void ProjectData::updateComponentSubNum(){
+  componentSubNum.clear();
+  typedef std::set<std::string, std::less<std::string> >::const_iterator StrIt;
+  for ( StrIt it=subcomponents.list.begin(); it!= subcomponents.list.end(); it++){
+      std::string baseName; int subCompI;
+      splitCompSUB(it->c_str(), baseName, subCompI);
+      if(componentSubNum.find(baseName)==componentSubNum.end()) componentSubNum[baseName]= subCompI? 1: 0;
+      else                                                      componentSubNum[baseName]++;
+  }
+}
 
 void MainWindow::open()
 {
@@ -952,9 +1039,9 @@ void MainWindow::open()
 
 	prjData.readPorts();
 	prjData.readPortLoads();
-
         QString compFileName=mainWorkPath+"/components";
-        prjData.components.read(compFileName.toLatin1().data());
+        prjData.subcomponents.read(compFileName.toLatin1().data());
+        prjData.updateComponentSubNum();
         QString wgcompFileName=mainWorkPath+"/wgcomponents";
         prjData.wgcomponents.read(wgcompFileName.toLatin1().data());
         prjData.readWorkStatus();
@@ -1053,8 +1140,10 @@ void MainWindow::setEMC(QString prjDir, QString inDir)
         DB::Volume *invol;
         List_Read(inVols, j-1, &invol);
 	*vol=*invol;
-	if(vol->type==DIELECTRIC || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND)
+	if(vol->type==DIELECTRIC || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND || vol->type==SPLITTER)
 	   vol->meshRefinement=invol->meshRefinement;
+	if(vol->type==SPLITTER)
+	   vol->cutoffRefinement=invol->cutoffRefinement;
 	if(vol->type==DIELECTRIC || vol->type==BOUNDARYCOND){
 	   DB::Material* mat= ocaf->EmP->FindMaterial(invol->material);
 	   if(!mat){
@@ -1104,14 +1193,14 @@ void MainWindow::importEMC(QString partName, QString fileName)
      char tmp[]={"/tmp/EmCAD-XXXXXX"};
      tmppath=mkdtemp(tmp);
   #endif
-  if(!FileExists(tmppath.toLatin1().data())) return;
+  if(!FileExists(tmppath)) return;
   tar_extract(fileName, tmppath);
   QString inDir=tmppath+"/Work";
   QString prjDir=currentWorkPath+"/"+partName;
 
   setEMC(prjDir, inDir);
 
-  if(FileExists(tmppath.toLatin1().data()))  remove_dir(nativePath(tmppath));
+  if(FileExists(tmppath))  remove_dir(nativePath(tmppath));
   saveStatus();
   checkActions();
 
@@ -1131,10 +1220,12 @@ void MainWindow::reload()
 	bool decomposed=!prjData.workStatus.decompositionNeeded;
         closeDoc();
         QString emFileName=mainWorkPath+"/model.em";
-        assert(FileExists(emFileName.toLatin1().data()));
+        assert(FileExists(emFileName));
 	bool reloaded;
 	try{
           mainOCAF->newDoc();
+          prjData.subcomponents.clear();
+          prjData.wgcomponents.clear();
           reloaded=loadModel(mainOCAF, nativePath(emFileName).toLatin1().data(), true);
 	} 
 	catch (stepFileNotFound &e) {
@@ -1147,18 +1238,24 @@ void MainWindow::reload()
 	}
 	geoIsModified=reloaded;
 	if(reloaded){
-	   bool compIsAss=componentIsAssembly();
-	   mainOCAF->saveImportedStruct(mainWorkPath.toLatin1().data(),compIsAss);
+	   mainOCAF->saveImportedStruct(mainWorkPath.toLatin1().data());
            closeDoc();
 	   workopen(mainWorkPath);
+           TCollection_AsciiString assName; mainOCAF->getAssName(assName);
+           if(strcmp(prjData.mainAssName.toLatin1().data(),assName.ToCString())){
+             QString circuitDir=mainWorkPath+"/Data/Circuits/";
+	     removeAllFilesInDirStartingWith(circuitDir.toLatin1().data(), prjData.mainAssName.toLatin1().data());
+	     prjData.mainAssName=assName.ToCString();
+	   }
+           prjData.updateComponentSubNum();
+           prjData.saveSettings();
            saveStatus();
 	   updateAllWidgets();
 	}
 	if(reloaded && mainOCAF->prjStatus.partMaterials){
-         TCollection_AsciiString assName; mainOCAF->getAssName(assName);
-         QString meshFile=mainWorkPath+"/Data/Circuits/"+QString(assName.ToCString())+".msh";
+         QString meshFile=mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+".msh";
          meshFile=nativePath(meshFile);
-	 bool meshed=FileExists(meshFile.toLatin1().data());
+	 bool meshed=FileExists(meshFile);
 	 if(meshed){
              prjData.workStatus.decompositionNeeded=1;
 //             workStatus.remeshNeeded=1;
@@ -1170,6 +1267,113 @@ void MainWindow::reload()
 	}
 }
 
+
+void MainWindow::viewConvergence()
+{
+  if(mainOCAF->subCompNum>0 && !mainOCAF->isPartition()) return;
+  if(mainOCAF->subCompNum>0 && mainOCAF->subComp==0) return;
+
+  TCollection_AsciiString compName;
+  mainOCAF->getAssName(compName);
+  QString convFilePath=mainWorkPath+"/Data/Circuits/";
+  convFilePath+=compName.ToCString();
+  convFilePath+=".conv";
+     
+  char path[512]; strcpy(path,convFilePath.toLatin1().data());
+
+  ConvergenceDialog *dialog=new ConvergenceDialog(this);
+  dialog->setModel(convFilePath);
+  dialog->adjustSize();
+  dialog->show();
+}
+
+void MainWindow::viewSubCompConvergence()
+{
+  if(!mainOCAF->isPartition()) return;
+  if(mainOCAF->subCompNum==0 || !treeWidget->currentSubComp) return;
+
+  QString subCompI; subCompI.setNum(treeWidget->currentSubComp);
+  TCollection_AsciiString compName;
+  mainOCAF->getAssName(compName);
+  QString convFilePath=mainWorkPath+"/Data/Circuits/";
+  convFilePath+=compName.ToCString();
+  convFilePath+="_SUB";
+  convFilePath+=subCompI;
+  convFilePath+=".conv";
+     
+  char path[512]; strcpy(path,convFilePath.toLatin1().data());
+
+  ConvergenceDialog *dialog=new ConvergenceDialog(this);
+  connect(&modeler, SIGNAL(zeropoleEnd()), dialog, SLOT(atZeroPoleEnd()));
+  dialog->setModel(convFilePath);
+  dialog->adjustSize();
+  dialog->show();
+}
+
+ConvergenceDialog::ConvergenceDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
+{
+     mainw=parent;
+     setWindowTitle("Convergence Data");
+     tableView =new QTableView(this);
+     tableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+     closeButton =new QPushButton(tr("Close"));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
+
+     mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(tableView);
+     mainLayout->addWidget(closeButton);
+
+}
+
+void ConvergenceDialog::setModel(QString convFilePath)
+{
+     
+     if(!QFile::exists(convFilePath)) return;
+     QFile inputFile(convFilePath);
+     inputFile.open(QIODevice::ReadOnly);
+     if (!inputFile.isOpen()) return;
+     QTextStream stream(&inputFile);
+     std::map<std::string, std::vector<std::string> > table_rows;
+     std::vector<std::string> lineHeader;
+
+     for (QString line = stream.readLine(); !line.isNull(); line = stream.readLine()) {
+      QStringList list = line.split(QLatin1Char('='));
+      QString header=list.at(0).trimmed();
+      QString value =list.at(1).trimmed();
+      if(!header.startsWith("iter")){
+         std::string str=std::string(header.toLatin1().data());
+	 if(table_rows.find(str)==table_rows.end()) lineHeader.push_back(str);
+         table_rows[str].push_back(std::string(value.toLatin1().data()));
+      }
+     };
+     inputFile.close();
+    
+     int nrow=table_rows.size();
+     int ncol=0;
+     typedef std::map<std::string, std::vector<std::string> >::iterator RowIt;
+     for(RowIt it=table_rows.begin(); it!= table_rows.end(); it++) ncol=max(ncol,(*it).second.size());
+			     
+     QStandardItemModel *model=new QStandardItemModel(nrow, ncol);
+     for (int icol = 0; icol < model->columnCount(); ++icol) {
+       QString col; col.setNum(icol+1);
+       QStandardItem *hitem =  new QStandardItem(QString("Iteration ")+col);
+       model->setHorizontalHeaderItem(icol, hitem);
+     }
+     int irow=0;
+     for(int i=0; i<lineHeader.size(); i++){
+      RowIt it=table_rows.find(lineHeader[i]);
+      for (int icol = 0; icol < model->columnCount(); ++icol) {
+	QString qtext= icol < (*it).second.size() ? (*it).second[icol].c_str() : "";
+        QStandardItem *item =  new QStandardItem(qtext);
+        model->setItem(irow, icol, item);
+      }
+      QStandardItem *vitem =  new QStandardItem(QString((*it).first.c_str()));
+      model->setVerticalHeaderItem(irow, vitem);
+      irow++;
+     }
+
+     tableView->setModel(model);
+}
 
 
 int jumpDirectlyToPartition=1;
@@ -1265,10 +1469,10 @@ void rmModified(QString dir){
 }
 bool isModified(QString dir){
  QString fname=dir+"/modified";
- bool itis=FileExists(fname.toLatin1().data());
+ bool itis=FileExists(fname);
 /*
  fname=dir+"/model.dxc.modified";
- itis=itis||FileExists(fname.toLatin1().data());
+ itis=itis||FileExists(fname);
 */
  return itis;
 }
@@ -1310,14 +1514,28 @@ void MainWindow::updateAllWidgets()
 void MainWindow::closeAll(){
  closeDoc();
  removeWorkDir();
- prjData.components.list.clear();
+ prjData.subcomponents.list.clear();
  prjData.wgcomponents.map.clear();
+ prjData.componentSubNum.clear();
  logger->clear();
  runStatus.projectIsOpen=false;
  checkActions();
 }
 
 
+void writeAbort(int val)
+{
+    QString abortFilePath=mainWorkPath+"/Data/Circuits/ABORT";
+    FILE *f=fopen(abortFilePath.toLatin1().data(), "w");
+    fprintf(f,"%d\n",val);
+    fclose(f);
+}
+
+void MainWindow::abort(){
+modeler.abort=true;
+writeAbort(1);
+statusMessage(QString("Aborting"));
+}
 
 void MainWindow::closeDoc()
 {
@@ -1350,6 +1568,13 @@ void MainWindow::importDataDir()
         system(copyDataDir.toLatin1().data());
 }
 
+extern void saveProblem(DB::EmProblem *emp, std::string filePath);
+void saveProblem(){
+  std::string emFilePath=mainWorkPath.toLatin1().data();
+  emFilePath+="/model.em";
+  saveProblem(mainOCAF->EmP,emFilePath);
+}
+
 void MainWindow::importGeometry()
 {
 /*
@@ -1379,6 +1604,12 @@ void MainWindow::importGeometry()
 	   QString fileType = fileInfo.suffix();
 	   isDXC  =fileType.toLower() == tr("dxc"); 
 	   isSTEP =fileType.toLower() == tr("step") || fileType.toLower() == tr("stp");
+	   if(isSTEP && mainOCAF->EmP->hasGeo){
+		mainOCAF->EmP->stepFilePath=fileName.toLatin1().data();
+                saveProblem();
+	       	reload();
+		return;
+           }
 	   bool isGEO=isSTEP||isDXC;
 	   if(!isGEO) return;
 	   try {
@@ -1409,7 +1640,8 @@ void MainWindow::importGeometry()
 		       setModified(currentWorkPath);
 		       mainOCAF->worksaveNeeded=true;
                        prjData.workStatus.decompositionNeeded=1;
-                       prjData.workStatus.reductionNeeded=1;
+                       prjData.workStatus.cmpReductionNeeded=1;
+                       prjData.workStatus.netReductionNeeded=1;
 		   }
 	           if(TPrsStd_AISViewer::Find(mainOCAF->mainDoc->Main().Root(),theAISViewer))
 		          theAISViewer->SetInteractiveContext ( mainOCC->getContext());
@@ -1425,8 +1657,7 @@ void MainWindow::importGeometry()
            }
 	   mainOCC->updateContext();
            if(isSTEP){
-	      bool compIsAss=componentIsAssembly();
-              mainOCAF->saveImportedStruct(mainWorkPath.toLatin1().data(),compIsAss);
+              mainOCAF->saveImportedStruct(mainWorkPath.toLatin1().data());
               closeDoc();
               workopen(mainWorkPath.toLatin1().data());
               if(mainOCAF->EmP->assemblyType==NET) prjData.network=1;
@@ -1677,6 +1908,7 @@ void MainWindow::saveStatus(){
 void MainWindow::propagateStatus(QString dir)
 {
   QString asstypeFileName=dir+"/assemblyType";
+  char * fn=asstypeFileName.toLatin1().data();
   FILE *in= fopen(nativePath(asstypeFileName.toLatin1().data()).c_str(), "r");
   if(!in) return;
   int assType;
@@ -1696,6 +1928,7 @@ void MainWindow::propagateStatus(QString dir)
      prjstatus.geometry=1;
      prjstatus.partTypes=1;
      prjstatus.partMaterials=1;
+     prjstatus.wgPorts=1;
      for (int i = 0; i < subdirs.size(); ++i){
        ProjectStatus subStatus;
        QString subStatusFile=dir+"/"+subdirs.at(i)+"/model.status";
@@ -1832,15 +2065,22 @@ void ProjectData::saveSettings(){
    fprintf(fid, "length unit \"%s\"\n", lengthUnitName);
    fprintf(fid, "freq unit exp %d\n", freqUnitE);
    fprintf(fid, "mesh wavelength ratio %d\n", meshPerWavelen);
+   fprintf(fid, "shared mesh refine %8.2f\n", sharedMeshRefine);
    fprintf(fid, "mesh circle ratio %d\n", meshPerCircle);
+   fprintf(fid, "mesh refine min num %d\n", meshRefineMinNum);
    fprintf(fid, "mesh refine max num %d\n", meshRefineMaxNum);
+   fprintf(fid, "mesh tet max num %d\n", meshTetMaxNum);
    fprintf(fid, "mesh min energy ratio %10.3f\n", meshMinEnergyRatio);
    fprintf(fid, "local meshing3d %d\n", localMeshing3d);
    fprintf(fid, "mor freq band %10.5f %10.5f\n", freqBand[0], freqBand[1]);
-//   fprintf(fid, "refine freq band %10.5f %10.5f\n", refFreqBand[0], refFreqBand[1]);
+   fprintf(fid, "resonance freq max ratio %10.5f\n", resonFreqMaxRatio);
+   fprintf(fid, "component resonance freq max ratio %10.5f\n", cmpResonFreqMaxRatio);
+   fprintf(fid, "network resonance freq max ratio %10.5f\n", netResonFreqMaxRatio);
    fprintf(fid, "mapping freq band %10.5f %10.5f\n", mapFreqBand[0], mapFreqBand[1]);
    fprintf(fid, "filter pass band %14.8f %14.8f\n", filterPassBand[0], filterPassBand[1]);
    fprintf(fid, "filter order %d\n", filterOrder);
+   fprintf(fid, "ideal filter with mapped zeros %d\n", idealFilterWithMappedTZ);
+   fprintf(fid, "ideal filter add conjugate zeros %d\n", idealFilterAddConjugateTZ);
    fprintf(fid, "filter returnloss %10.5f\n", filterRetLoss);
    fprintf(fid, "filter outband returnloss %10.5f\n", filterOutbandRetLoss);
    fprintf(fid, "filter Qfactor %10.5f\n", filterQfactor);
@@ -1856,10 +2096,14 @@ void ProjectData::saveSettings(){
    fprintf(fid, "predistorted filter itermax %d\n", predistFilterOptimIterMax);
    fprintf(fid, "predistorted filter trustR %10.5f\n", predistFilterOptimTrustR);
    fprintf(fid, "mor freq num %d\n", MORFreqNum);
+   fprintf(fid, "resonance mor freq num %d\n", MORFreqNum1);
    fprintf(fid, "mor krylov order %d\n", KrylovOrder);
    fprintf(fid, "ana freq band %10.5f %10.5f\n", anaFreqBand[0], anaFreqBand[1]);
    fprintf(fid, "ana freq num %d\n", anaFreqNum);
-   fprintf(fid, "ana mor freq num %d\n", anaMORFreqNum);
+   fprintf(fid, "component mor freq num %d\n", cmpMORFreqNum);
+   fprintf(fid, "component resonance mor freq num %d\n", cmpMORFreqNum1);
+   fprintf(fid, "network mor freq num %d\n", netMORFreqNum);
+   fprintf(fid, "network resonance mor freq num %d\n", netMORFreqNum1);
    fprintf(fid, "cutoff ratio %10.5f\n", cutoffRatio);
    fprintf(fid, "zero pole freq band %10.5f %10.5f\n", zpFreqBand[0], zpFreqBand[1]);
    fprintf(fid, "zero pole window ratio %10.5f\n", zpWinRatio);
@@ -1876,7 +2120,6 @@ void ProjectData::saveSettings(){
    fprintf(fid, "filter tuning itermax %d\n", filterTuneItermax);
    fprintf(fid, "filter tuning xtol %8.2e\n", filterTuneXtol);
    fprintf(fid, "filter tuning trustd %8.2e\n", filterTuneTrustR);
-   fprintf(fid, "filter tuning graddx %8.2e\n", filterTuneGradDx);
    fprintf(fid, "freq response type %d\n", freqRespParType);
    fprintf(fid, "freq response part %d\n", freqRespParPart);
    fprintf(fid, "freq response yscale auto %d\n", freqRespYscaleAuto);
@@ -1894,7 +2137,9 @@ void ProjectData::saveSettings(){
    fprintf(fid, "automatic filter mapping  %d\n", autoFilterMapping);
    if(filterZeros.size()>0){
      fprintf(fid, "filter tx zeros [\n");
-	for (int i=0; i< filterZeros.size(); i++) fprintf(fid, " %14.8f\n", filterZeros[i]);
+	for (int i=0; i< filterZeros.size(); i++) 
+		if(filterZeros[i].imag()>=0) fprintf(fid, " %14.8f +I %14.8f\n", filterZeros[i].real(),  filterZeros[i].imag());
+		else                         fprintf(fid, " %14.8f -I %14.8f\n", filterZeros[i].real(), -filterZeros[i].imag());
      fprintf(fid, "]\n");
    }
    fclose(fid);
@@ -1932,7 +2177,8 @@ void ProjectData::saveWorkStatus(){
    fprintf(fid, "remesh needed  %d\n", workStatus.remeshNeeded);
    fprintf(fid, "modelization needed  %d\n", workStatus.modelizationNeeded);
    fprintf(fid, "component save needed %d\n", workStatus.componentsaveNeeded);
-   fprintf(fid, "reduction needed %d\n", workStatus.reductionNeeded);
+   fprintf(fid, "component reduction needed %d\n", workStatus.cmpReductionNeeded);
+   fprintf(fid, "network reduction needed %d\n", workStatus.netReductionNeeded);
    fprintf(fid, "reload needed %d\n", workStatus.reloadNeeded);
    fclose(fid);
 }
@@ -2290,8 +2536,12 @@ void MainWindow::exportFreqResponse()
 
 void MainWindow::exportMappedResponse()
 {
-	QString freqRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.ts");
-	QString t1extPath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.ext");
+
+	QString cktName;
+	if(prjData.filtermapSource==ZEROPOLES)         cktName=prjData.mainAssName+"_RM_mapped";
+        if(prjData.filtermapSource==IMPORTED_RESPONSE) cktName="imported_response_mapped";
+	QString freqRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+".ts");
+	QString t1extPath=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+".ext");
 	if(!QFile::exists(t1extPath)) 
 		create_touchstone1(freqRespPath);
 	else if(file1NewerThanFile2(freqRespPath.toLatin1().data(), t1extPath.toLatin1().data()) )  
@@ -2301,12 +2551,12 @@ void MainWindow::exportMappedResponse()
 	std::string ext;
         getFileLine(fext, ext);
 	QString t1ext=QString(ext.c_str());
-        QString t1Path=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped"+t1ext);	
+        QString t1Path=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+t1ext);
 
         QFileDialog dialog(this,tr("Export Mapped Circuit Frequency Response"));
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
 	dialog.setNameFilter("*"+t1ext);
-	QString	fname=prjData.mainAssName+"_mapped"+t1ext;
+	QString	fname=cktName+t1ext;
 	dialog.selectFile(fname);
 	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
 //	dialog.setFileMode ( QFileDialog::DirectoryOnly );
@@ -2353,54 +2603,6 @@ void MainWindow::exportIdealSpice()
 }
 
 
-void MainWindow::exportIdealMappedTzJC()
-{
-        QFileDialog dialog(this,tr("Export Ideal JC Circuit with mapped Tz"));
-	dialog.setAcceptMode(QFileDialog::AcceptSave);
-	dialog.setNameFilter(tr("*.JC"));
-	QString	fname=prjData.projectName+"_ideal_mappedTZ.JC";
-	dialog.selectFile(fname);
-	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
-//	dialog.setFileMode ( QFileDialog::DirectoryOnly );
-	QString	path;
-	if(dialog.exec()){
-           QStringList pathList= dialog.selectedFiles();
-	   path= pathList.at(0);
-	}
-	if( !path.isEmpty() )
-	{
-	     if(!path.endsWith(".JC")) path+=".JC";
-             QString mappedJCpath=nativePath(mainWorkPath+"/Data/Circuits/ideal_filter_mappedTZ.JC");
-             if(!FileExists(mappedJCpath.toLatin1().data())) return;
-	     if(QFile::exists(path)) QFile::remove (path);
-	     QFile::copy(mappedJCpath, path);
-	}
-}
-
-
-void MainWindow::exportIdealMappedTzSpice()
-{
-        QFileDialog dialog(this,tr("Export Ideal Spice Circuit with mapped Tz"));
-	dialog.setAcceptMode(QFileDialog::AcceptSave);
-	dialog.setNameFilter(tr("*.JC"));
-	QString	fname=prjData.projectName+"_ideal_mappedTZ.sp";
-	dialog.selectFile(fname);
-	dialog.setLabelText(QFileDialog::Accept,tr("Save"));
-//	dialog.setFileMode ( QFileDialog::DirectoryOnly );
-	QString	path;
-	if(dialog.exec()){
-           QStringList pathList= dialog.selectedFiles();
-	   path= pathList.at(0);
-	}
-	if( !path.isEmpty() )
-	{
-	     if(!path.endsWith(".sp")) path+=".sp";
-             QString mappedSPpath=nativePath(mainWorkPath+"/Data/Circuits/ideal_filter_mappedTZ.sp");
-             if(!FileExists(mappedSPpath.toLatin1().data())) return;
-	     if(QFile::exists(path)) QFile::remove (path);
-	     QFile::copy(mappedSPpath, path);
-	}
-}
 
 
 
@@ -2590,7 +2792,7 @@ void Preprocessor::upImprintSubass(QString dir, QString assName, int l)
       std::cout <<"Starting upward imprinting of " << dirname <<"\n";
       MwOCAF* ocaf=new MwOCAF();
       ocaf->workopen(dir.toLatin1().data());
-      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint();
+      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint(0);
       ocaf->saveIF();
       if(!ocaf->EmP->level) { 
          if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
@@ -2656,7 +2858,7 @@ void Preprocessor::downImprintSubass(QString dir, QString assName, int l)
       char dirname[101]; if(strlen(dir.toLatin1().data())< 100 ) strcpy(dirname,dir.toLatin1().data());
       MwOCAF* ocaf=new MwOCAF();
       ocaf->workopen(dir.toLatin1().data());
-      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint();
+      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint(1);
       ocaf->worksave();
       if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
       ocaf->initFEPdataStruct();
@@ -2786,6 +2988,7 @@ void Preprocessor::setMaterialData(QString dir)
         subocaf->workopen(partitionDir.toLatin1().data());
         subocaf->regenerateIndexedSubShapes();
         subocaf->setFEproperties();
+        subocaf->setTEMnum();
         if(subocaf->worksaveNeeded) subocaf->worksave();
         subocaf->closeDoc();
         delete subocaf;
@@ -2827,14 +3030,17 @@ void Preprocessor::setSuperFaces(QString dir)
        QString partitionDir=dir+"/Partition";
        ocaf=new MwOCAF();
        ocaf->workopen(partitionDir.toLatin1().data());
-       if(ocaf->subCompNum==0) ocaf->addToComponentLists(&(prjData.components.list),&(prjData.wgcomponents.map));
+       if(ocaf->subCompNum==0) ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
        int subCompNum=ocaf->subCompNum;
+       TCollection_AsciiString assName; ocaf->getAssName(assName);
+       std::string cmp=assName.ToCString();
+       prjData.componentSubNum[cmp]=subCompNum;
        ocaf->closeDoc();
        delete ocaf;
        for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {
          ocaf=new MwOCAF();
          ocaf->workopen(partitionDir.toLatin1().data(),subcmpI);
-	 ocaf->addToComponentLists(&(prjData.components.list),&(prjData.wgcomponents.map));
+	 ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
          ocaf->closeDoc();
          delete ocaf;
       }
@@ -2866,8 +3072,7 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
     QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
     QString str_meshpercircle; str_meshpercircle.setNum(prjData.meshPerCircle);
-    double sharedMeshsize=waveLen/prjData.lengthUnit()/(sharedMeshPerWavelen*prjData.cutoffRatio);
-    double sharedRef=meshsize/sharedMeshsize;
+    double sharedRef=prjData.sharedMeshRefine;
     QString str_sharedMeshRef; str_sharedMeshRef.setNum(sharedRef,'f',2);
     QString str_onServer; str_onServer.setNum(0);
     QString str_subcompI; str_subcompI.setNum(0);
@@ -2966,7 +3171,7 @@ void Preprocessor::mesh(QString dir, QString assPath, int level, int l)
 void Preprocessor::mesh()
 {
   
-  if(prjData.network || prjData.components.list.size()>1) saveMainCirc();
+  if(prjData.network || prjData.subcomponents.list.size()>1) saveMainCirc();
   int depth=maxDepth(currentWorkPath);
   mesh_failure=0;
   for (int level =0; level <= depth; ++level) 
@@ -2984,12 +3189,12 @@ void Preprocessor::decompose(){
    splitComponents(currentWorkPath, assName);
    if(decompose_failure) return;
    prjData.ports.clear();
-   prjData.components.list.clear();
-   prjData.wgcomponents.map.clear();
+   prjData.subcomponents.clear();
+   prjData.wgcomponents.clear();
    setSuperFaces(currentWorkPath);
    setMaterialData();
    QString compFileName=mainWorkPath+"/components";
-   prjData.components.save(compFileName.toLatin1().data());
+   prjData.subcomponents.save(compFileName.toLatin1().data());
    QString wgcompFileName=mainWorkPath+"/wgcomponents";
    prjData.wgcomponents.save(wgcompFileName.toLatin1().data());
    prjData.workStatus.decompositionNeeded=0;
@@ -3171,15 +3376,17 @@ void Preprocessor::saveMainCirc(){
      if((*it).second) fprintf(ckfid, "\n+   %s  %d", (*it).first.c_str(), (*it).second);
 #endif
    fprintf(ckfid, "\n\n");
-   typedef std::set<std::string, std::less<std::string> >::const_iterator StrIt;
-   for ( StrIt it=prjData.components.list.begin(); it!= prjData.components.list.end(); it++){
-      QString compFileName=it->c_str();
+   for ( std::map<std::string, int >::const_iterator it=prjData.componentSubNum.begin(); it!= prjData.componentSubNum.end(); it++){
+       QString compFileName=it->first.c_str();
+       QString compIFfileName=it->first.c_str();
 #if defined(GMSH3D)
-      compFileName+="_RM.JC";
+       compFileName+="_RM.JC";
 #else
-      compFileName+=".MJC";
+       compFileName+=".MJC";
 #endif
-      fprintf(ckfid, ".include  %s\n", compFileName.toLatin1().data());
+       compIFfileName+="_IF.JC";
+       fprintf(ckfid, ".include  %s\n", compFileName.toLatin1().data());
+       fprintf(ckfid, ".include  %s\n", compIFfileName.toLatin1().data());
    }
    fprintf(ckfid, "\n");
 
@@ -3195,17 +3402,22 @@ void Preprocessor::updateMaterialData()
   if(prjData.workStatus.componentsaveNeeded) worksaveAllComponents();
   prjData.ports.clear();
   setMaterialData(currentWorkPath);
-  if(prjData.components.list.size()>1) saveMainCirc();
+  if(prjData.componentSubNum.size()>1) saveMainCirc();
   prjData.workStatus.materialChanged=0;
   prjData.workStatus.remeshNeeded=1;
 }
 
-void Modeler::initModeledComponent()
+void Modeler::initProcessedComponent(){
+   processedComponent.clear();
+   for (std::map<std::string, int>::iterator it=prjData.componentSubNum.begin(); it!= prjData.componentSubNum.end(); it++) if(it->second>0) processedComponent[it->first]=0;
+}
+void Modeler::initModeledSubComponent()
 {
     QString workDir=mainWorkPath+"/Data/Circuits";
-    modeledComponent.clear();
+    iterOfSubComponent.clear();
+    modeledSubComponent.clear();
     typedef std::set<std::string, std::less<std::string> >::const_iterator StrIt;
-    for ( StrIt it=prjData.components.list.begin(); it!= prjData.components.list.end(); it++){
+    for ( StrIt it=prjData.subcomponents.list.begin(); it!= prjData.subcomponents.list.end(); it++){
       QString compName=(*it).c_str();
       QString infilePath=workDir+"/"+compName;
       if(MESH3D_ON_SERVER)  infilePath+=".tgz";
@@ -3213,10 +3425,12 @@ void Modeler::initModeledComponent()
       QString logName=compName+".log";
       QString logPath=workDir+"/"+logName;
       if(!FileExists(infilePath.toLatin1().data())) continue;
-      else if(prjData.workStatus.modelizationNeeded) modeledComponent[*it]=0;
-      else if(!FileExists(logPath.toLatin1().data())) modeledComponent[*it]=0;
-      else if( file1NewerThanFile2(infilePath.toLatin1().data(), logPath.toLatin1().data()) )  modeledComponent[*it]=0;
+      else if( prjData.workStatus.modelizationNeeded 
+	       || !FileExists(logPath.toLatin1().data()) 
+	       || file1NewerThanFile2(infilePath.toLatin1().data(), logPath.toLatin1().data())
+	     ) {modeledSubComponent[*it]=0; iterOfSubComponent[*it]=0;}
    }
+   initProcessedComponent();
 }
 
 void Modeler::initModeledComponentWg()
@@ -3274,18 +3488,82 @@ void Modeler::server_secrets(int put)
      msleep(100);
 }
 
-
-int name2subCompI(const char *name){
- int l=strlen(name)-1; if(!isdigit(name[l])) return 0;
- for(l=strlen(name)-1; l>0&&((!isalpha(name[l])||name[l]=='i')); ) l--;
- int subCompI=0;
- if( l>1 && !strncmp(&name[l-2],"SUB",3))  sscanf(&name[l+1], "%d", &subCompI);
- return subCompI;
+ 
+int read_result_file(QString resultFilePath)
+{
+    QFile resfile(resultFilePath);
+    int res=-1;
+    if(resfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	   QTextStream restext(&resfile);
+	   QString resline=restext.readLine();
+	   res=resline.toInt();
+           resfile.close();
+    }
+    return res;
 }
+
+void IterPolling::run()
+{
+  while(true){
+     msleep(2000);
+     int iter=currentIter;
+     if(FileExists(iterFilePath.toLatin1().data())) iter=read_result_file(iterFilePath);
+     if(iter>currentIter){
+         currentIter=iter;
+	 QString qstriter; qstriter.setNum(iter);
+         QString mssg="Completed Iteration "; mssg+=qstriter; mssg+=" for \"" ; mssg+=compName; mssg+="\"";
+         sendLogMessage(mssg);
+     }
+  }
+}
+
+void Modeler::api_sendAbort()
+{
+     if(!useAPI) return;
+     QString script=QString(emcadPath);
+     #ifdef WNT
+        script.chop(13);
+        QString ext=".exe";
+     #else
+        script.chop(9);
+        QString ext=".py";
+     #endif
+       script+="bin/api_upload_file";
+       script=nativePath(script+ext);
+     QString app;
+     QStringList args;
+     app= script;
+
+     args << QString("-user");
+     args << QString(emcadConfig[std::string("user")].c_str());
+     args << QString("-password");
+     args << QString(emcadConfig[std::string("password")].c_str());
+     args << QString("-folder");
+     args << prjData.projectName;
+     args << QString("ABORT");
+
+     QString Cmd=app+QString("  ")+args.join(QString(" "));
+     char * cmd=Cmd.toLatin1().data();
+     QProcess *proc=new QProcess;
+     QString workDir=mainWorkPath+"/Data/Circuits";
+     proc->setWorkingDirectory(nativePath(workDir));
+     proc->setStandardErrorFile(workDir+QString("/abort_error.log"));
+     proc->start(app, args);
+     proc->waitForFinished(-1);
+     msleep(100);
+     if(proc->exitCode()!=0){
+      QString mssg="Failed Sending Abort";
+      sendLogMessage(mssg);
+     }
+     proc->terminate();
+}
+
 
 void Modeler::modelize(std::string compNameStr)
 {
      QString compName=compNameStr.c_str();
+     std::string baseName; int subCompI;
+     splitCompSUB(compName.toLatin1().data(), baseName, subCompI);
      QString script=QString(emcadPath);
      #ifdef WNT
         script.chop(13);
@@ -3312,13 +3590,18 @@ void Modeler::modelize(std::string compNameStr)
      app= script;
      QString freq1; freq1.setNum(prjData.freqBand[0],'f',5);
      QString freq2; freq2.setNum(prjData.freqBand[1],'f',5);
-//     QString rfreq1; rfreq1.setNum(prjData.refFreqBand[0],'f',5);
-//     QString rfreq2; rfreq2.setNum(prjData.refFreqBand[1],'f',5);
-     QString rfreq1=freq1;
-     QString rfreq2=freq2;
+     QString rfreq1; rfreq1.setNum(0.0,'f',5);
+     QString rfreq2; 
+     if(subCompI>0) rfreq2.setNum(prjData.freqBand[1]*prjData.resonFreqMaxRatio,'f',5);
+     else           rfreq2.setNum(prjData.freqBand[1]*prjData.cmpResonFreqMaxRatio,'f',5);
+//     QString rfreq1=freq1;
+//     QString rfreq2=freq2;
      QString cutoff; cutoff.setNum(prjData.cutoffRatio,'f',5);
      QString KrylovOrder; KrylovOrder.setNum(prjData.KrylovOrder);
-     QString fnum; fnum.setNum(prjData.MORFreqNum);
+     QString fnum;  fnum.setNum(prjData.MORFreqNum);
+     QString fnum1; 
+     if(subCompI>0) fnum1.setNum(prjData.MORFreqNum1);
+     else           fnum1.setNum(prjData.cmpMORFreqNum1);
      if(useAPI){ 
        args << QString("-user");
        args << QString(emcadConfig[std::string("user")].c_str());
@@ -3350,7 +3633,7 @@ void Modeler::modelize(std::string compNameStr)
 	  }
        }
      }
-     if((!prjData.network && prjData.components.list.size()==1)|| (!INVERTEDTEPORTS && !INVERTEDTMPORTS && !INVERTEDTEMPORTS) )  args << QString("-inv");
+     if((!prjData.network && prjData.subcomponents.list.size()==1) )  args << QString("-inv");
      if(!prjData.network){
       args << QString("-include");
       args << QString("extern_port_loads.JC");
@@ -3362,31 +3645,31 @@ void Modeler::modelize(std::string compNameStr)
       double waveLen=c0_mks/(prjData.freqBand[1]*prjData.freqUnit());
       double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
       QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
+      QString str_meshRefineMinNum; str_meshRefineMinNum.setNum(prjData.meshRefineMinNum);
       QString str_meshRefineMaxNum; str_meshRefineMaxNum.setNum(prjData.meshRefineMaxNum);
+      QString str_meshTetMaxNum; str_meshTetMaxNum.setNum(prjData.meshTetMaxNum);
       QString str_meshMinEnergyRatio; str_meshMinEnergyRatio.setNum(prjData.meshMinEnergyRatio,'f',5);
       QString str_meshpercircle; str_meshpercircle.setNum(prjData.meshPerCircle);
-      double sharedMeshsize=waveLen/prjData.lengthUnit()/(sharedMeshPerWavelen*prjData.cutoffRatio);
-      double sharedRef=meshsize/sharedMeshsize;
+      double sharedRef=prjData.sharedMeshRefine;
       QString str_sharedMeshRef; str_sharedMeshRef.setNum(sharedRef,'f',2);
-      int subcompI=name2subCompI(compName.toLatin1().data());
-      QString str_subcompI; str_subcompI.setNum(subcompI);
+      QString str_subcompI; str_subcompI.setNum(subCompI);
       args << QString("-meshsize");
       args << str_meshsize;
       args << QString("-meshrefine");
-      args << rfreq1;
-      args << rfreq2;
-      args << prjData.freqUnitName();
+      args << str_meshRefineMinNum;
       args << str_meshRefineMaxNum;
       args << str_meshMinEnergyRatio;
       args << QString("-sharedmeshref");
       args << str_sharedMeshRef;
       args << QString("-meshpercircle");
       args << str_meshpercircle;
+      args << QString("-tetNmax");
+      args << str_meshTetMaxNum;
       args << QString("-subcomp");
       args << str_subcompI;
      }
 #if defined(GMSH3D)
-     if(prjData.components.list.size()>1) args << QString("-call");
+     if(prjData.subcomponents.list.size()>1) args << QString("-call");
 #endif
      args << QString("-k");
      args << KrylovOrder;
@@ -3395,6 +3678,11 @@ void Modeler::modelize(std::string compNameStr)
      args << freq2;
      args << prjData.freqUnitName();
      args << fnum;
+     args << QString("-resonsearch");
+     args << rfreq1;
+     args << rfreq2;
+     args << prjData.freqUnitName();
+     args << fnum1;
      args << QString("-cutoff");
      args << cutoff;
      args << compName;
@@ -3405,17 +3693,31 @@ void Modeler::modelize(std::string compNameStr)
      QString workDir=mainWorkPath+"/Data/Circuits";
      proc->setWorkingDirectory(nativePath(workDir));
      proc->setStandardErrorFile(workDir+QString("/modelize_error.log"));
+     QString iterFilePath=workDir+"/"+compName+".iter";
+     char * ifp=iterFilePath.toLatin1().data();
+     FILE *f=fopen(iterFilePath.toLatin1().data(), "w");
+     fprintf(f,"0\n");
+     fclose(f);
+     IterPolling *thread;
+     if(not useAPI){
+      thread=new IterPolling(iterFilePath,compName);
+      connect(thread, SIGNAL(sendLogMessageSignal(const QString &)), mainWindow->logger, SLOT(appendPlainText(const QString &)));
+      thread->start();
+     }
      proc->start(app, args);
-//     mssg="Started modelization of \""; mssg+=compName; mssg+="\"";
-//     sendLogMessage(mssg);
      proc->waitForFinished(-1);
-     msleep(100);
+     if(not useAPI) thread->exit(0);
+     msleep(1000);
+     int ecode=proc->exitCode();
      if(proc->exitCode()==0){
         if(useAPI)    {mssg="Completed Uploading of \"" ; mssg+=compName; mssg+="\"";}
 	else          {mssg="Completed Modelization of \"" ; mssg+=compName; mssg+="\"";}
         sendLogMessage(mssg);
+     }else if(proc->exitCode()==99){
+	mssg="Aborted Modelization of \""; mssg+=compName; mssg+="\"";
+        sendLogMessage(mssg);
      }else{
-        modeledComponent[compNameStr]=1;
+        modeledSubComponent[compNameStr]=1;
         failure=1;
         if(useAPI)
 	 {mssg="Failed Uploading of \"" ; mssg+=compName; mssg+="\"";}
@@ -3439,19 +3741,6 @@ void Modeler::modelize(std::string compNameStr)
      proc->terminate();
 }
 
- 
-int read_result_file(QString resultFilePath)
-{
-    QFile resfile(resultFilePath);
-    int res=-1;
-    if(resfile.open(QIODevice::ReadOnly | QIODevice::Text)){
-	   QTextStream restext(&resfile);
-	   QString resline=restext.readLine();
-	   res=resline.toInt();
-           resfile.close();
-    }
-    return res;
-}
 
 QString read_string_from_file(QString filePath)
 {
@@ -3466,7 +3755,71 @@ QString read_string_from_file(QString filePath)
     return string;
 }
 
-void Modeler::api_get_component_results(modelerTask operation, std::string compNameStr)
+
+void Modeler::api_get_component_iterdata(int &iter, std::string compNameStr)
+{
+     QString compName=compNameStr.c_str();
+     QString app;
+     app=QString(emcadPath);
+     #ifdef WNT
+         app.chop(13);
+	 QString ext=".exe";
+     #else
+         app.chop(9);
+	 QString ext=".py";
+     #endif
+     app+="bin/api_download";
+     app=nativePath(app+ext);
+     QString workDir=mainWorkPath+"/Data/Circuits";
+     {
+	 QString iterFile=compName+QString(".iter");
+         QStringList args;
+         args << QString("-user");
+         args << QString(emcadConfig[std::string("user")].c_str());
+         args << QString("-password");
+         args << QString(emcadConfig[std::string("password")].c_str());
+         args << QString("-folder");
+         args << prjData.projectName;
+	 args << QString("-saveUrl");
+         args << iterFile;
+         QString Cmd=app+QString("  ")+args.join(QString(" "));
+         char * cmd=Cmd.toLatin1().data();
+         QProcess *proc=new QProcess;
+         proc->setWorkingDirectory(nativePath(workDir));
+	 proc->setStandardErrorFile(workDir+QString("/get_component_iterdata_error.log"));
+         proc->start(app, args);
+         proc->waitForFinished(-1);
+         msleep(100);
+     }
+     QString iterFilePath=workDir+"/"+compName+QString(".iter");
+     int iter0=iter;
+     if(FileExists(iterFilePath.toLatin1().data())) iter=read_result_file(iterFilePath);
+     if(iter>iter0){
+	 QString convFile=compName+QString(".conv");
+         QStringList args;
+         args << QString("-user");
+         args << QString(emcadConfig[std::string("user")].c_str());
+         args << QString("-password");
+         args << QString(emcadConfig[std::string("password")].c_str());
+         args << QString("-folder");
+         args << prjData.projectName;
+	 args << QString("-saveUrl");
+         args << convFile;
+         QString Cmd=app+QString("  ")+args.join(QString(" "));
+         char * cmd=Cmd.toLatin1().data();
+         QProcess *proc=new QProcess;
+         proc->setWorkingDirectory(nativePath(workDir));
+	 proc->setStandardErrorFile(workDir+QString("/get_component_iterdata_error.log"));
+         proc->start(app, args);
+         proc->waitForFinished(-1);
+	 QString qstriter; qstriter.setNum(iter);
+         QString mssg="Completed Iteration "; mssg+=qstriter; mssg+=" for \"" ; mssg+=compName; mssg+="\"";
+         sendLogMessage(mssg);
+         msleep(100);
+     }
+}
+
+int Modeler::api_get_component_results(modelerTask operation, std::string compNameStr)
 {
      QString compName=compNameStr.c_str();
      QString app;
@@ -3485,13 +3838,20 @@ void Modeler::api_get_component_results(modelerTask operation, std::string compN
      if(operation==CIRCUITS){
        resultFiles << compName+QString(".res");
        resultFiles << compName+QString(".log");
+       resultFiles << compName+QString(".conv");
+       resultFiles << compName+QString("_IF.JC");
        resultFiles << compName+QString("_RM.JC");
        resultFiles << compName+QString("_RM.sp");
        QString compName0=compName; compName0.remove(QRegularExpression("_SUB[0-9]$"));
        if(prjData.wgcomponents.map.find(compNameStr)!=prjData.wgcomponents.map.end())
          for (int i=0; i<prjData.wgcomponents.map[compNameStr].size(); i++)
            resultFiles << compName0+QString("__")+QString(prjData.wgcomponents.map[compNameStr][i].c_str())+QString("*.port");
-     }else if (operation==PORTS){
+     } else if(operation==COMPIF){
+       resultFiles << compName+QString(".res");
+       resultFiles << compName+QString(".log");
+       resultFiles << compName+QString(".JC");
+       resultFiles << compName+QString("_IF.JC");
+     } else if (operation==PORTS){
        resultFiles << compName+QString(".res");
        resultFiles << compName+QString(".log");
        QString compName0=compName; compName0.remove(QRegularExpression("_SUB[0-9]$"));
@@ -3547,7 +3907,7 @@ void Modeler::api_get_component_results(modelerTask operation, std::string compN
          if(it==resultFiles.begin()){ //first resultfile must be compName+".res"
            QString resultFilePath=workDir+"/"+resultFile;
            if(FileExists(resultFilePath.toLatin1().data())) exitCode=read_result_file(resultFilePath);
-	   if(exitCode==-1) break; //   result not yet ready
+	   if(exitCode==-1) return exitCode; //   result not yet ready
 	 }
      }
      if(exitCode>0){
@@ -3559,17 +3919,199 @@ void Modeler::api_get_component_results(modelerTask operation, std::string compN
             mssg="Failed Port Modes of \"" ; mssg+=compName; mssg+="\"";
 	  }
           failure=1;
-          modeledComponent[compNameStr]=1;
           sendLogMessage(mssg);
+	  return exitCode;
       }
       else if(exitCode==0){
           if(operation==CIRCUITS) {mssg="Completed Modelization of \"" ; mssg+=compName; mssg+="\"";}
           if(operation==PORTS) {mssg="Computed Port Modes of \"" ; mssg+=compName; mssg+="\"";}
-          modeledComponent[compNameStr]=1;
           sendLogMessage(mssg);
+	  return exitCode;
       }    
 }
 
+void Modeler::compIF(std::string compNameStr, int subCompNum)
+{
+     QString compName=compNameStr.c_str();
+     QString script=QString(emcadPath);
+     #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+     #else
+       script.chop(9);
+       QString ext=".py";
+     #endif
+     if(useAPI){
+       script+="bin/api_submit";
+       script=nativePath(script+ext);
+     }else if(useDOCKER){
+       script="mwdocker_run";
+     }else{
+       script="compIF";
+     }
+     QString app=script;
+     QStringList args;
+     QString subNum;  subNum.setNum(subCompNum);
+     if(useAPI){
+       args << QString("-user");
+       args << QString(emcadConfig[std::string("user")].c_str());
+       args << QString("-password");
+       args << QString(emcadConfig[std::string("password")].c_str());
+       args << QString("-job");
+       args << QString("compIF");
+       args << QString("-project");
+       args << prjData.projectName;
+     } else if(useDOCKER){
+       args << QString("-job");
+       args << QString("compIF");
+       if(useServer){
+          args << QString("-project");
+          args << prjData.projectName;
+          if(emcadConfig.find(std::string("server"))!=emcadConfig.end()) if(emcadConfig[std::string("server")].length()>0) {
+                 args << QString("-server");
+		 args << QString(emcadConfig[std::string("server")].c_str());
+	  }
+       }
+     }
+     if(prjData.componentSubNum.size()==1)  args << QString("-inv");
+     args << QString("-subCompNum");
+     args << subNum;
+     args << compName;
+     QString Cmd=app+QString("  ")+args.join(QString(" "));
+     if(useServer) server_secrets(1);
+     char cmd[512];
+     strcpy(cmd,Cmd.toLatin1().data());
+     QProcess *proc=new QProcess;
+     QString workDir=mainWorkPath+"/Data/Circuits";
+     proc->setWorkingDirectory(nativePath(workDir));
+     proc->start(app, args);
+     bool started=proc->waitForStarted();
+     proc->waitForFinished(-1);
+     msleep(100);
+     QString mssg;
+     if(useServer) server_secrets(0);
+     if(proc->exitCode()==0){
+	mssg="Completed Interface  of \"" ; mssg+=compName; mssg+="\"";
+     }else {
+	mssg="Failed Interface  of \"" ; mssg+=compName; mssg+="\"";
+        failure=1;
+	QString logFilePath=workDir+"/"+compName+".log";
+        QFile logfile(logFilePath);
+	if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	   QTextStream logtext(&logfile);
+	   QString logline=logtext.readLine();
+	   while(!logline.isNull()){
+	     mssg+="\n\t"+logline;
+	     logline=logtext.readLine();
+	   }
+           logfile.close();
+	}
+     }
+     sendLogMessage(mssg);
+     proc->terminate();
+}
+
+
+
+void Modeler::compReduce(std::string compNameStr)
+{
+     QString compName=compNameStr.c_str();
+     QString script=QString(emcadPath);
+     #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+     #else
+       script.chop(9);
+       QString ext=".py";
+     #endif
+     if(useAPI){
+       script+="bin/api_submit";
+       script=nativePath(script+ext);
+     }else if(useDOCKER){
+       script="mwdocker_run";
+     }else{
+       script="reduce";
+     }
+     QString app=script;
+     QStringList args;
+     QString freq1; freq1.setNum(prjData.freqBand[0],'f',5);
+     QString freq2; freq2.setNum(prjData.freqBand[1],'f',5);
+     QString rfreq1; rfreq1.setNum(0.0,'f',5);
+     QString rfreq2; rfreq2.setNum(prjData.freqBand[1]*prjData.cmpResonFreqMaxRatio,'f',5);
+     QString fnum;  fnum.setNum(prjData.cmpMORFreqNum);
+     QString fnum1; fnum1.setNum(prjData.cmpMORFreqNum1);
+     if(useAPI){
+       args << QString("-user");
+       args << QString(emcadConfig[std::string("user")].c_str());
+       args << QString("-password");
+       args << QString(emcadConfig[std::string("password")].c_str());
+       args << QString("-job");
+       args << QString("reduce");
+       args << QString("-project");
+       args << prjData.projectName;
+     } else if(useDOCKER){
+       args << QString("-job");
+       args << QString("reduce");
+       if(useServer){
+          args << QString("-project");
+          args << prjData.projectName;
+          if(emcadConfig.find(std::string("server"))!=emcadConfig.end()) if(emcadConfig[std::string("server")].length()>0) {
+                 args << QString("-server");
+		 args << QString(emcadConfig[std::string("server")].c_str());
+	  }
+       }
+     }
+     if(prjData.componentSubNum.size()==1){
+	args << QString("-inv");
+        args << QString("-include");
+        args << QString("extern_port_loads.JC");
+        args << QString("-include");
+        args << QString("port_impedance_circuits.JC");
+     }
+     args << QString("-k");
+     args << QString("1");
+     args << QString("-freq");
+     args << QString(freq1);
+     args << QString(freq2);
+     args << prjData.freqUnitName();
+     args << QString(fnum);
+     args << QString("-resonsearch");
+     args << rfreq1;
+     args << rfreq2;
+     args << prjData.freqUnitName();
+     args << fnum1;
+     args << compName;
+     QString Cmd=app+QString("  ")+args.join(QString(" "));
+     char cmd[512];
+     strcpy(cmd,Cmd.toLatin1().data());
+     QProcess *proc=new QProcess;
+     QString workDir=mainWorkPath+"/Data/Circuits";
+     proc->setWorkingDirectory(nativePath(workDir));
+     proc->start(app, args);
+     bool started=proc->waitForStarted();
+     proc->waitForFinished(-1);
+     msleep(100);
+     QString mssg;
+     if(proc->exitCode()==0){
+	mssg="Completed Model Order Reduction  of \"" ; mssg+=compName; mssg+="\"";
+     }else {
+	mssg="Failed Model Order Reduction  of \"" ; mssg+=compName; mssg+="\"";
+        failure=1;
+	QString logFilePath=workDir+"/"+compName+".log";
+        QFile logfile(logFilePath);
+	if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	   QTextStream logtext(&logfile);
+	   QString logline=logtext.readLine();
+	   while(!logline.isNull()){
+	     mssg+="\n\t"+logline;
+	     logline=logtext.readLine();
+	   }
+           logfile.close();
+	}
+     }
+     sendLogMessage(mssg);
+     proc->terminate();
+}
 
 
 void Modeler::mainReduce(){
@@ -3596,7 +4138,10 @@ void Modeler::mainReduce(){
      #endif	
      QString freq1; freq1.setNum(prjData.anaFreqBand[0],'f',5);
      QString freq2; freq2.setNum(prjData.anaFreqBand[1],'f',5);
-     QString fnum;  fnum.setNum(prjData.anaMORFreqNum);
+     QString rfreq1; rfreq1.setNum(0.0,'f',5);
+     QString rfreq2; rfreq2.setNum(prjData.freqBand[1]*prjData.netResonFreqMaxRatio,'f',5);
+     QString fnum;  fnum.setNum(prjData.netMORFreqNum);
+     QString fnum1; fnum1.setNum(prjData.netMORFreqNum1);
      if(useAPI){
        args << QString("-user");
        args << QString(emcadConfig[std::string("user")].c_str());
@@ -3618,6 +4163,7 @@ void Modeler::mainReduce(){
 	  }
        }
      }
+     args << QString("-inv");
      args << QString("-include");
      args << QString("extern_port_loads.JC");
      args << QString("-include");
@@ -3629,6 +4175,11 @@ void Modeler::mainReduce(){
      args << QString(freq2);
      args << prjData.freqUnitName();
      args << QString(fnum);
+     args << QString("-resonsearch");
+     args << rfreq1;
+     args << rfreq2;
+     args << prjData.freqUnitName();
+     args << fnum1;
      args << prjData.mainAssName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
      if(useServer) server_secrets(1);
@@ -3645,7 +4196,7 @@ void Modeler::mainReduce(){
      if(useServer) server_secrets(0);
      if(proc->exitCode()==0){
         mssg="Completed Reduction of \"" ; mssg+=prjData.mainAssName; mssg+="\"";
-        prjData.workStatus.reductionNeeded=0;
+        prjData.workStatus.netReductionNeeded=0;
         prjData.saveWorkStatus();
      }else {
         mssg="Failed Reduction of \"" ; mssg+=prjData.mainAssName; mssg+="\"";
@@ -3707,7 +4258,7 @@ void Modeler::freqAna()
     QString workDir=mainWorkPath+"/Data/Circuits";
     QString JCpath=workDir+"/"+circuitName+".JC";
     char *fname=JCpath.toLatin1().data();
-    if(!FileExists(JCpath.toLatin1().data())) return;
+    if(!FileExists(JCpath)) return;
 
     QProcess *proc=new QProcess;
     proc->setWorkingDirectory(nativePath(workDir));
@@ -3911,7 +4462,8 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
     QString zpfreq1,zpfreq2,winRatio,fnum;
     zpfreq1.setNum(prjData.zpFreqBand[0],'f',5);
     zpfreq2.setNum(prjData.zpFreqBand[1],'f',5);
-    winRatio.setNum(prjData.zpWinRatio,'f',5);
+//    winRatio.setNum(prjData.zpWinRatio,'f',5);
+    winRatio.setNum(1.0,'f',5);
 
     fnum.setNum(50);
     args << QString("-zpfreq");
@@ -3924,8 +4476,8 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
     for ( ZeroPoleCurvesIterator it=prjData.zeropoleCurves.begin(); it!= prjData.zeropoleCurves.end(); it++){
      QString port1; port1.setNum((*it).first); args << port1;
      QString port2; port2.setNum((*it).second); args << port2;
-     QString zpfreq1; zpfreq1.setNum(prjData.zpFreqBand[0],'f',5); args << zpfreq1;
-     QString zpfreq2; zpfreq2.setNum(prjData.zpFreqBand[1],'f',5); args << zpfreq2;
+     QString zpfreq1; zpfreq1.setNum(0.5*prjData.zpFreqBand[0],'f',5); args << zpfreq1;
+     QString zpfreq2; zpfreq2.setNum(2.0*prjData.zpFreqBand[1],'f',5); args << zpfreq2;
     }
     args << prjData.freqUnitName();
     args << QString("-zpwinratio");
@@ -3955,21 +4507,21 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
 
     if(prjData.canonicalFilterTopology==SYMMETRIC_WITH_MAGICT)      args << QString("-withMagicT");
     else if(prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_LC)  args << QString("-transverseLC");
-    else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JC){
-	     args << QString("-transverseJC");
+    else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JLC){
+	     args << QString("-transverseJLC");
              if(prjData.filterTuneOnlyJt) args << QLatin1String("-tuneOnlyJt");
     }
 
     args << QLatin1String("-method");
-    args << QLatin1String("1");
+    args << QLatin1String("0");
     args << QLatin1String("-maxiter");
     args << QLatin1String("500");
     args << QLatin1String("-xtol");
     args << QLatin1String("1.e-6");
-//    args << QLatin1String("-trustd");
-//    args << QLatin1String("1.e-3");
+    args << QLatin1String("-trustd");
+    args << QLatin1String("1.e-1");
     args << QLatin1String("-graddx");
-    args << QLatin1String("1.e-6");
+    args << QLatin1String("1.e-5");
 
     
     if(useAPI){
@@ -4011,6 +4563,16 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
        fclose(f);
     }else{
        mssg="Failed Tuning of \"" ; mssg+=tunedCktName; mssg+="\"";
+       QString workDir=mainWorkPath+"/Data/Circuits";
+       QString mapped_cktName2;
+       if(prjData.filtermapSource==ZEROPOLES){
+         mapped_cktName2=prjData.mainAssName+"_RM_mapped";
+       }
+       if(prjData.filtermapSource==IMPORTED_RESPONSE){
+         mapped_cktName2="imported_response_mapped";
+       }
+       if(QFile().exists(workDir+"/"+mapped_cktName2+"_xpar.txt"))  QFile().remove(workDir+"/"+mapped_cktName2+"_xpar.txt");
+       if(QFile().exists(workDir+"/"+mapped_cktName2+".dat"))  QFile().remove(workDir+"/"+mapped_cktName2+".dat");
     }
     sendLogMessage(mssg);
     emit(idealFilterTuneEnd());
@@ -4018,8 +4580,12 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
 }
 
 
-void Modeler::filterDesign(bool mappedTxZeros)
+void Modeler::filterDesign()
 {
+
+    QString workDir=mainWorkPath+"/Data/Circuits";
+    bool mappedTxZeros=prjData.idealFilterWithMappedTZ;
+
     QString script=QString(emcadPath);
     #ifdef WNT
        script.chop(13);
@@ -4036,9 +4602,8 @@ void Modeler::filterDesign(bool mappedTxZeros)
     }else{
        script="symmfilter";
     }
-    QString workDir=mainWorkPath+"/Data/Circuits";
 
-    QString cktName;
+    QString cktName=prjData.customIdealFilter? QString("canonical_filter") : QString("ideal_filter");
 
     char f_unit[5];
     int fI=prjData.freqUnitE/3;
@@ -4049,8 +4614,7 @@ void Modeler::filterDesign(bool mappedTxZeros)
 	 case 3: strcpy(f_unit,"GHz"); break;
     }
 
-    if(!mappedTxZeros) {
-      cktName=prjData.customIdealFilter? QString("canonical_filter") : QString("ideal_filter");
+    {
       FILE *mufid;
       QString MUpath=workDir+"/"+cktName+".inp";
       if(!(mufid = fopen(MUpath.toLatin1().data(), "w"))){
@@ -4061,16 +4625,29 @@ void Modeler::filterDesign(bool mappedTxZeros)
       fprintf(mufid,  "f_unit:=\"%s\":\n",f_unit);
       fprintf(mufid,  "filterType:= %d:\n",prjData.idealFilterType);
 
-      int NZ=prjData.filterZeros.size();
+      int NZ0=prjData.filterZeros.size();
+      int NZ=0;
+      for(int i=0; i<NZ0; i++){
+	    if(prjData.filterZeros[i].imag()==0 || !prjData.idealFilterAddConjugateTZ)  NZ+=1;
+            else                                                                        NZ+=2;
+      }
       if(prjData.symmFilterResponse){
        fprintf(mufid , "nzeri_1_2:= %d:\n",2*NZ);
       } else {
        fprintf(mufid , "nzeri_1_2:= %d:\n",NZ);
       }
       fprintf(mufid , "zeri_1_2_f:= [ ");
-      for(int i=0; i<NZ; i++){
-	  fprintf(mufid , "%f",i,prjData.filterZeros[i]);
-	  if(i<NZ-1) fprintf(mufid , ", ");
+      for(int i=0; i<NZ0; i++){
+          if(prjData.filterZeros[i].imag()==0)
+	     fprintf(mufid , "%f",i,prjData.filterZeros[i].real());
+	  else if(prjData.idealFilterAddConjugateTZ) {
+	     fprintf(mufid , "%f +I*%f, ",i,prjData.filterZeros[i].real(),fabs(prjData.filterZeros[i].imag()));
+	     fprintf(mufid , "%f -I*%f",i,prjData.filterZeros[i].real(),fabs(prjData.filterZeros[i].imag()));
+	  } else {
+            if(prjData.filterZeros[i].imag()>0) fprintf(mufid , "%f +I*%f ",i,prjData.filterZeros[i].real(),fabs(prjData.filterZeros[i].imag()));
+	    else                                fprintf(mufid , "%f -I*%f ",i,prjData.filterZeros[i].real(),fabs(prjData.filterZeros[i].imag()));
+	  }
+	  if(i<NZ0-1) fprintf(mufid , ", ");
 	  if(i && !(i%5) ) fprintf(mufid , "\n");
       }
       fprintf(mufid , " ]:\n");
@@ -4137,15 +4714,11 @@ void Modeler::filterDesign(bool mappedTxZeros)
       args << QString("-withMagicT");
     } else if(prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_LC){
       args << QString("-transverseLC");
-    } else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JC){
-      args << QString("-transverseJC");
+    } else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JLC){
+      args << QString("-transverseJLC");
     }
     if(mappedTxZeros) {
-      cktName=QString("ideal_filter_mappedTZ");
-      args << QString("-mapTxZerosFromAna");
-      QString dataFile=prjData.mainAssName+"_RM_mapped_canonical.inp";
-      args << QString("-dataFile");
-      args << dataFile;
+      args << QString("-idealWithMappedTZ");
     }
 
     if(useAPI){
@@ -4219,8 +4792,9 @@ void Modeler::filterMap()
 	    inputName="imported_response";
 	    inputData=inputName+".s2p";
     }
-    QString inputDataPath=workDir+"/"+inputData;
-    if(!FileExists(inputDataPath.toLatin1().data())){
+    QString inputDataPath=workDir+QString("/")+inputData;
+    QFileInfo checkInputDataPath(inputDataPath);
+    if(!checkInputDataPath.exists()){
 	    emit(filterMapEnd());
             exit();
     }
@@ -4277,10 +4851,11 @@ void Modeler::filterMap()
     }
     if(prjData.canonicalFilterTopology==SYMMETRIC_WITH_MAGICT)      args << QString("-withMagicT");
     else if(prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_LC)  args << QString("-transverseLC");
-    else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JC){
-	     args << QString("-transverseJC");
+    else if (prjData.canonicalFilterTopology==SYMMETRIC_TRANSVERSE_JLC){
+	     args << QString("-transverseJLC");
              if(prjData.filterTuneOnlyJt) args << QLatin1String("-tuneOnlyJt");
     }
+    if(prjData.idealFilterWithMappedTZ)  args << QString("-idealWithMappedTZ");
     if(useAPI){
        args << QString("-user");
        args << QString(emcadConfig[std::string("user")].c_str());
@@ -4302,13 +4877,19 @@ void Modeler::filterMap()
 	   }
        }
     }
+    QString mapped_cktName,mapped_cktName2;
     if(prjData.filtermapSource==ZEROPOLES){
-      QString cktName=prjData.mainAssName+"_RM_mapped_canonical";
-      args << cktName;
+      mapped_cktName=prjData.mainAssName+"_RM_mapped_canonical";
+      mapped_cktName2=prjData.mainAssName+"_RM_mapped";
+      args << mapped_cktName;
     }
     if(prjData.filtermapSource==IMPORTED_RESPONSE){
+      mapped_cktName="imported_response_mapped_canonical";
+      mapped_cktName2="imported_response_mapped";
       QString fileName="imported_response";
-      args << fileName;
+      args << QString("-s2pFile");
+      args << inputData;
+      args << mapped_cktName;
     }
     QString Cmd=script+QString("  ")+args.join(QString(" "));
     char *cmd=Cmd.toLatin1().data();
@@ -4322,12 +4903,10 @@ void Modeler::filterMap()
     if(proc->exitCode()==0){
        mssg="Completed Filter Mapping of \"" ; mssg+=inputName; mssg+="\"";
        if(!prjData.customIdealFilter){
-          QString mapped_cktName1=prjData.mainAssName+"_RM_mapped_canonical";
-          QString mapped_cktName2=prjData.mainAssName+"_RM_mapped";
 	  if(QFile().exists(workDir+"/"+mapped_cktName2+".JC"))  QFile().remove(workDir+"/"+mapped_cktName2+".JC");
-	  QFile().rename(workDir+"/"+mapped_cktName1+".JC",workDir+"/"+mapped_cktName2+".JC");
+	  QFile().rename(workDir+"/"+mapped_cktName+".JC",workDir+"/"+mapped_cktName2+".JC");
 	  if(QFile().exists(workDir+"/"+mapped_cktName2+"_xpar.txt"))  QFile().remove(workDir+"/"+mapped_cktName2+"_xpar.txt");
-	  QFile().rename(workDir+"/"+mapped_cktName1+"_xpar.txt",workDir+"/"+mapped_cktName2+"_xpar.txt");
+	  QFile().rename(workDir+"/"+mapped_cktName+"_xpar.txt",workDir+"/"+mapped_cktName2+"_xpar.txt");
           QString donePath=workDir+"/"+mapped_cktName2+".done";
           FILE *f=fopen(donePath.toLatin1().data(), "w");
           fprintf(f,"0\n");
@@ -4393,7 +4972,7 @@ void Modeler::analize_ports(std::string compNameStr)
 	else       {mssg="Computed Port Modes of \"" ; mssg+=compName; mssg+="\"";}
         sendLogMessage(mssg);
      }else if(proc->exitCode()>0){
-        modeledComponent[compNameStr]=1;
+        modeledSubComponent[compNameStr]=1;
         failure=1;
         if(useAPI) {mssg="Failed Uploading of \"" ; mssg+=compName; mssg+="\"";}
 	else       {mssg="Failed Port Modes of \"" ; mssg+=compName; mssg+="\"";}
@@ -4408,36 +4987,79 @@ for ( StrMapIt it=strmap.begin(); it!= strmap.end(); it++) if(!(*it).second)  re
 return true;
 }	
 
+void Modeler::reduceAllComponents(){
+  typedef std::map<std::string, int>::iterator StrMapIt;
+  if(useAPI){
+       for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) compReduce(it->first);
+       do { 
+             msleep(1000);
+             for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) if(!(it->second)) if(api_get_component_results(CIRCUITS, (*it).first) >= 0) (*it).second=1;
+       } while(!allTrue(processedComponent));
+  } else if(useServer) {
+           int nparjobs=NPARJOBSONSERVER;
+           server_secrets(1);
+           std::vector<std::string> componentVec;
+	   for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) componentVec.push_back(it->first); 
+           #pragma omp parallel for schedule(dynamic) num_threads(nparjobs) shared(componentVec) 
+           for (int i=0; i < componentVec.size(); ++i) compReduce(componentVec[i]);
+           server_secrets(0);
+  } else for (StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) compReduce(it->first);
+  prjData.workStatus.cmpReductionNeeded=0;
+}
 
 void Modeler::run()
 {
+   writeAbort(0);
+   abort=false;
    QString mssg="Modeling";
    sendStatusMessage(mssg);
-   typedef std::map<std::string, int>::const_iterator StrMapIt;
-   if(task==CIRCUITS || task==UPDATE)    initModeledComponent();
+   typedef std::map<std::string, int>::iterator StrMapIt;
+   if(task==CIRCUITS || task==UPDATE)    initModeledSubComponent();
    else if(task==PORTS)                  initModeledComponentWg();
    if(useAPI){
       if(task==CIRCUITS || task==UPDATE){
-         for ( StrMapIt it=modeledComponent.begin(); it!= modeledComponent.end(); it++) modelize((*it).first);
+         api_sendAbort();
+         for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!abort) modelize((*it).first);
          do { 
-           msleep(1000); 
-           for ( StrMapIt it=modeledComponent.begin(); it!= modeledComponent.end(); it++) if(!(*it).second) api_get_component_results(CIRCUITS, (*it).first);
-         } while(!allTrue(modeledComponent));
+           msleep(1000);
+           if(abort) api_sendAbort();
+           for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!(*it).second) {
+		if(abort) {
+                   QString mssg="Aborted Modelization of \""; mssg+=(*it).first.c_str(); mssg+="\"";
+                   sendLogMessage(mssg);
+		   (*it).second=1;
+		} else {
+		  int iter=iterOfSubComponent[(*it).first]; int iter0=iter;
+		  api_get_component_iterdata(iter, (*it).first); 
+		  if(iter>iter0) iterOfSubComponent[(*it).first]=iter;
+		  if(api_get_component_results(CIRCUITS, (*it).first) >= 0) (*it).second=1;
+		}
+	   }
+         } while(!allTrue(modeledSubComponent));
+         if(!abort && !failure) for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) compIF(it->first, prjData.componentSubNum[it->first]);
       }else if(task==PORTS){
          for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++) analize_ports((*it).first);
          do { 
            msleep(1000); 
-           for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++) if(!(*it).second) api_get_component_results(PORTS,((*it).first));
+           for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++) if(!(*it).second) if(api_get_component_results(PORTS, (*it).first) >= 0) (*it).second=1;
          } while(!allTrue(modeledWgComponent));
       }  
    } else if(useServer) {
       int nparjobs=NPARJOBSONSERVER;
       server_secrets(1);
       if(task==CIRCUITS || task==UPDATE){
-          std::vector<std::string> modeledComponentVec;
-          for ( StrMapIt it=modeledComponent.begin(); it!= modeledComponent.end(); it++){ modeledComponentVec.push_back((*it).first); }
-          #pragma omp parallel for schedule(dynamic) num_threads(nparjobs) shared(modeledComponentVec) 
-          for (int i=0; i < modeledComponentVec.size(); ++i) modelize( modeledComponentVec[i]);
+          std::vector<std::string> modeledSubComponentVec;
+          for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) modeledSubComponentVec.push_back((*it).first); 
+          #pragma omp parallel for schedule(dynamic) num_threads(nparjobs) shared(modeledSubComponentVec,abort) 
+          for (int i=0; i < modeledSubComponentVec.size(); ++i) if(!abort) modelize(modeledSubComponentVec[i]);
+          std::vector<std::string> componentVec;
+          std::vector<int>         componentNsubVec;
+	  if(!abort) for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) {
+	      componentVec.push_back(it->first); 
+	      componentNsubVec.push_back(prjData.componentSubNum[it->first]);
+	  }
+          #pragma omp parallel for schedule(dynamic) num_threads(nparjobs) shared(componentVec,componentNsubVec,abort) 
+          for (int i=0; i < componentVec.size(); ++i) if(!abort) compIF(componentVec[i], componentNsubVec[i]);
       }
       else if(task==PORTS){
           std::vector<std::string> modeledWgComponentVec;
@@ -4446,34 +5068,38 @@ void Modeler::run()
 	  for (int i = 0; i < modeledWgComponentVec.size(); ++i) analize_ports(modeledWgComponentVec[i]);
       }
       server_secrets(0);
-   } else {
-      if(task==CIRCUITS || task==UPDATE)    for ( StrMapIt it=modeledComponent.begin(); it!= modeledComponent.end(); it++){  modelize((*it).first); if(failure) break; }
-      else if(task==PORTS)                  for ( StrMapIt it=modeledWgComponent.begin(); it!=modeledWgComponent.end(); it++) analize_ports((*it).first);
+   } else if(!abort) {
+      if(task==CIRCUITS || task==UPDATE){
+	      for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!abort) {modelize((*it).first); if(failure) break; }
+              for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++)   if(!abort) compIF(it->first, prjData.componentSubNum[it->first]);
+      } else if(task==PORTS)                  
+	      for ( StrMapIt it=modeledWgComponent.begin(); it!=modeledWgComponent.end(); it++) if(!abort) analize_ports((*it).first);
    }
-   if(failure){
+   if(failure || abort){
        sendStatusMessage(QString("Ready"));
        emit(modelerEnd());
        return;
    }
    prjData.workStatus.modelizationNeeded=0;
-   prjData.workStatus.checkReduction();
+   prjData.workStatus.checkNetReduction();
+   prjData.workStatus.checkCmpReduction();
    if(task==FILTERDESIGN ){
         msleep(1000);
         filterDesign();
 	if(prjData.customIdealFilter) idealFilterTune(QString("canonical_filter"),QString("ideal_filter"));
    }
-   if(task==FILTERDESIGNMAPPEDTXZ ){
-        msleep(1000);
-        filterDesign(true);
-   }
    if(task==FREQANA ){
-        msleep(1000); 
-        if(prjData.network || prjData.components.list.size()>1) if(prjData.workStatus.reductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE)  mainReduce();
+        msleep(1000);
+        initProcessedComponent();
+	if(processedComponent.size()>0 && prjData.workStatus.cmpReductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE) reduceAllComponents();
+        if(prjData.network && prjData.componentSubNum.size()>1) if(prjData.workStatus.netReductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE)  mainReduce();
         freqAna();
    }
    if(task==ZEROPOLE ){
-        msleep(1000); 
-        if(prjData.network || prjData.components.list.size()>1) if(prjData.workStatus.reductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE) mainReduce();
+        msleep(1000);
+        initProcessedComponent();
+	if(processedComponent.size()>0 && prjData.workStatus.cmpReductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE) reduceAllComponents();
+        if(prjData.network && prjData.componentSubNum.size()>1) if(prjData.workStatus.netReductionNeeded && prjData.analysedCircuit==ELECROMAGNETICDEVICE) mainReduce();
         zeropoleAna();
    }
    if(task==FILTERMAP ){
@@ -4481,8 +5107,14 @@ void Modeler::run()
         filterMap();
 	if(prjData.customIdealFilter){
           QString workDir=mainWorkPath+"/Data/Circuits";
-          QString mapped_cktName=prjData.mainAssName+"_RM_mapped";
-          QString mapped_canonical_cktName=prjData.mainAssName+"_RM_mapped_canonical";
+          QString mapped_cktName, mapped_canonical_cktName;
+          if(prjData.filtermapSource==ZEROPOLES){
+            mapped_cktName=prjData.mainAssName+"_RM_mapped";
+            mapped_canonical_cktName=prjData.mainAssName+"_RM_mapped_canonical";
+	  } else if(prjData.filtermapSource==IMPORTED_RESPONSE){
+            mapped_canonical_cktName="imported_response_mapped_canonical";
+            mapped_cktName="imported_response_mapped";
+	  }
           QString ideal_cktName="ideal_filter";
 	  if(   !QFile().exists(workDir+"/"+mapped_cktName+".JC")
 	     || !QFile().exists(workDir+"/"+mapped_cktName+".dat")
@@ -4500,7 +5132,9 @@ void Modeler::run()
    }
    if(task== UPDATE && prjData.autoFreqResponse){
         msleep(1000);
-        if(prjData.network || prjData.components.list.size()>1) if(prjData.workStatus.reductionNeeded) mainReduce();
+        initProcessedComponent();
+	if(processedComponent.size()>0 && prjData.workStatus.cmpReductionNeeded) reduceAllComponents();
+        if(prjData.network && prjData.componentSubNum.size()>1) if(prjData.workStatus.netReductionNeeded) mainReduce();
         prjData.analysedCircuit=ELECROMAGNETICDEVICE;
         freqAna();
         if(failure){
@@ -4511,7 +5145,9 @@ void Modeler::run()
    }
    if(task== UPDATE && prjData.autoZeropole){
         msleep(1000);
-        if(prjData.network || prjData.components.list.size()>1) if(prjData.workStatus.reductionNeeded) mainReduce();
+        initProcessedComponent();
+	if(processedComponent.size()>0 && prjData.workStatus.cmpReductionNeeded) reduceAllComponents();
+        if(prjData.network && prjData.subcomponents.list.size()>1) if(prjData.workStatus.netReductionNeeded) mainReduce();
         prjData.analysedCircuit=ELECROMAGNETICDEVICE;
         zeropoleAna();
         if(failure){
@@ -4525,8 +5161,14 @@ void Modeler::run()
         filterMap();
 	if(prjData.customIdealFilter){
           QString workDir=mainWorkPath+"/Data/Circuits";
-          QString mapped_cktName=prjData.mainAssName+"_RM_mapped";
-          QString mapped_canonical_cktName=prjData.mainAssName+"_RM_mapped_canonical";
+          QString mapped_cktName, mapped_canonical_cktName;
+          if(prjData.filtermapSource==ZEROPOLES){
+            mapped_cktName=prjData.mainAssName+"_RM_mapped";
+            mapped_canonical_cktName=prjData.mainAssName+"_RM_mapped_canonical";
+	  } else if(prjData.filtermapSource==IMPORTED_RESPONSE){
+            mapped_canonical_cktName="imported_response_mapped_canonical";
+            mapped_cktName="imported_response_mapped";
+	  }
           QString ideal_cktName="ideal_filter";
 	  if(   !QFile().exists(workDir+"/"+mapped_cktName+".JC")
 	     || !QFile().exists(workDir+"/"+mapped_cktName+".dat")
@@ -4589,7 +5231,6 @@ void MainWindow::startTask(modelerTask task){
     switch(task){
 	 case PORTS: msg="WG Ports Analysis Running"; break;
 	 case FILTERDESIGN: msg="Filter Design Running"; break;
-	 case FILTERDESIGNMAPPEDTXZ: msg="Filter Design with Mapped TX Zeros Running"; break;
 	 case FREQANA: msg="Freq Domain Ana Running";; break;
 	 case ZEROPOLE: msg="Zero Pole Ana Running";; break;
 	 case FILTERMAP: msg="Filter Map Running"; break;
@@ -4627,24 +5268,39 @@ void MainWindow::portModes(){
     modeler.start();
 }
 
-void WorkStatus::checkReduction(){
-    if(prjData.components.list.size()>1){
+void WorkStatus::checkNetReduction(){
+    if(prjData.subcomponents.list.size()>1){
       QString circDir=mainWorkPath+"/Data/Circuits";
       QString main_JC_path=circDir+"/"+prjData.mainAssName+"_RM.JC";
-      reductionNeeded=!FileExists(main_JC_path.toLatin1().data()) || prjData.workStatus.reductionNeeded;
-      typedef std::set<std::string, std::less<std::string> >::const_iterator StrIt;
-      if(!reductionNeeded) for ( StrIt it=prjData.components.list.begin(); it!= prjData.components.list.end(); it++){
-        QString compName=it->c_str();
+      netReductionNeeded=!FileExists(main_JC_path) || netReductionNeeded;
+      if(!netReductionNeeded) for ( std::map<std::string, int >::const_iterator it=prjData.componentSubNum.begin(); it!= prjData.componentSubNum.end(); it++){
+        QString compName=it->first.c_str();
 #if defined(GMSH3D)
-        QString comp_JC_path=circDir+"/"+compName+"_RM.JC";
-	if( file1NewerThanFile2(comp_JC_path.toLatin1().data(), main_JC_path.toLatin1().data()))  {reductionNeeded=1; break;}
+        QString comp_RM_JC_path=circDir+"/"+compName+"_RM.JC";
+	if( file1NewerThanFile2(comp_RM_JC_path.toLatin1().data(), main_JC_path.toLatin1().data()))  {netReductionNeeded=1; break;}
 #else
         QString comp_MJC_path=circDir+"/"+compName+".MJC";
-	if( file1NewerThanFile2(comp_MJC_path.toLatin1().data(), main_JC_path.toLatin1().data()))  {reductionNeeded=1; break;}
+	if( file1NewerThanFile2(comp_MJC_path.toLatin1().data(), main_JC_path.toLatin1().data()))  {netReductionNeeded=1; break;}
 #endif
       }
     }
 }
+
+
+void WorkStatus::checkCmpReduction(){
+    if(prjData.subcomponents.list.size()>1){
+      QString circDir=mainWorkPath+"/Data/Circuits";
+      if(!cmpReductionNeeded) for ( std::map<std::string, int >::const_iterator it=prjData.componentSubNum.begin(); it!= prjData.componentSubNum.end(); it++) if(it->second){
+        QString compName=it->first.c_str();
+        QString comp_JC_path=circDir+"/"+compName+".JC";
+        QString comp_RM_JC_path=circDir+"/"+compName+"_RM.JC";
+        if(!FileExists(comp_RM_JC_path)) {cmpReductionNeeded=1; break;};
+	if( file1NewerThanFile2(comp_JC_path.toLatin1().data(), comp_RM_JC_path.toLatin1().data()))  {cmpReductionNeeded=1; break;}
+      }
+    }
+    netReductionNeeded=netReductionNeeded||cmpReductionNeeded;
+}
+
 
 
 void MainWindow::atModelerEnd(){
@@ -4679,12 +5335,6 @@ void MainWindow::filterMap(){
 void MainWindow::filterDesign(){
   FilterDesignDialog *dialog=new FilterDesignDialog(this);
   connect(&modeler, SIGNAL(filterDesignEnd()), dialog, SLOT(atFilterDesignEnd()));
-  dialog->show();
-}
-
-void MainWindow::filterDesignWithTzMap(){
-  FilterDesignWithTzMapDialog *dialog=new FilterDesignWithTzMapDialog(this);
-  connect(&modeler, SIGNAL(filterDesignEnd()), dialog, SLOT(atFilterDesignWithTzMapEnd()));
   dialog->show();
 }
 
@@ -4740,20 +5390,11 @@ FilterTunerDialog::FilterTunerDialog(FilterTuner *t, QWidget * p=0, Qt::WindowFl
      xTolLineEdit->setText(QString("%1").arg(prjData.filterTuneXtol, 0, 'e', 1));
 
      QLabel *trustRadiusLabel= new QLabel();
-     trustRadiusLabel->setText(tr("Trust Region Radius:"));
+     trustRadiusLabel->setText(tr("Max X Step:"));
 
      trustRadiusLineEdit = new QLineEdit();
      trustRadiusLineEdit->setValidator(dvalidator);
      trustRadiusLineEdit->setText(QString("%1").arg(prjData.filterTuneTrustR, 0, 'e', 1));
-
-
-     QLabel *gradDxLabel= new QLabel();
-     gradDxLabel->setText(tr("Gradient dX:"));
-
-     gradDxLineEdit = new QLineEdit();
-     gradDxLineEdit->setValidator(dvalidator);
-     gradDxLineEdit->setText(QString("%1").arg(prjData.filterTuneGradDx, 0, 'e', 1));
-
 
 
 //   Automatic
@@ -4782,12 +5423,10 @@ FilterTunerDialog::FilterTunerDialog(FilterTuner *t, QWidget * p=0, Qt::WindowFl
      tuneSettingsLayout->addWidget(recomputeError, 2, 2);
      tuneSettingsLayout->addWidget(maxIterLabel, 3, 0);
      tuneSettingsLayout->addWidget(maxIterLineEdit, 3, 1);
-     tuneSettingsLayout->addWidget(xTolLabel, 3, 2);
-     tuneSettingsLayout->addWidget(xTolLineEdit, 3, 3);
-     tuneSettingsLayout->addWidget(gradDxLabel, 4, 0);
-     tuneSettingsLayout->addWidget(gradDxLineEdit, 4, 1);
-     tuneSettingsLayout->addWidget(trustRadiusLabel, 4, 2);
-     tuneSettingsLayout->addWidget(trustRadiusLineEdit, 4, 3);
+     tuneSettingsLayout->addWidget(trustRadiusLabel, 4, 0);
+     tuneSettingsLayout->addWidget(trustRadiusLineEdit, 4, 1);
+     tuneSettingsLayout->addWidget(xTolLabel, 5, 0);
+     tuneSettingsLayout->addWidget(xTolLineEdit, 5, 1);
 
      QGroupBox *tuneSettingsGroupBox=new QGroupBox();
      tuneSettingsGroupBox->setLayout(tuneSettingsLayout);
@@ -4847,9 +5486,9 @@ void FilterTunerDialog::init()
 void FilterTunerDialog::varFileChooser()
 {
 	QString	path;
-        QStringList filters;
 	QFileDialog dialog(this,tr("Open"));
-	dialog.setNameFilter("Text files(*.txt) ;; Excel files(*.xlsx)");
+	QStringList filters({"Text files(*.txt *.csv)","Excel files(*.xlsx)"});
+	dialog.setNameFilters(filters);
 
 	dialog.setDirectory(QDir::currentPath());
 	dialog.setFileMode(QFileDialog::ExistingFile);
@@ -4888,9 +5527,6 @@ void FilterTunerDialog::set(){
 
     tmp=trustRadiusLineEdit->text().toDouble();
     if(fabs(prjData.filterTuneTrustR-tmp)>1.e-8) { changed=true; prjData.filterTuneTrustR=tmp;}
-
-    tmp=gradDxLineEdit->text().toDouble();
-    if(fabs(prjData.filterTuneGradDx-tmp)>1.e-8) { changed=true; prjData.filterTuneGradDx=tmp;}
 
     if(changed) prjData.saveSettings();
     int err=tuner->check();
@@ -4961,16 +5597,13 @@ void FilterTuner::run(){
     filterTuneItermax.setNum(prjData.filterTuneItermax);
     args << QLatin1String("-maxiter");
     args << filterTuneItermax;
-    QString xtol,trustd,graddx;
+    QString xtol,trustd;
     xtol.setNum(prjData.filterTuneXtol,'e',3);
     trustd.setNum(prjData.filterTuneTrustR,'e',3);
-    graddx.setNum(prjData.filterTuneGradDx,'e',3);
     args << QLatin1String("-xtol");
     args << xtol;
     args << QLatin1String("-trustd");
     args << trustd;
-    args << QLatin1String("-graddx");
-    args << graddx;
     if(prjData.filterTuneRecomputeJaco) args << QLatin1String("-recomputejaco");
     if(prjData.filterTuneRecomputeError) args << QLatin1String("-recomputeerror");
     args << QLatin1String("-ideal_cktname");
@@ -5017,9 +5650,9 @@ int FilterTuner::check()
 
     QString workDir=mainWorkPath+"/Data/Circuits";
 
-    if(!FileExists(prjData.varFilePath.toLatin1().data())) return -2;
+    if(!FileExists(prjData.varFilePath)) return -2;
     QString idealParPath=nativePath(workDir+QString("/")+ideal_cktName+QString("_xpar.txt"));
-    if(!FileExists(idealParPath.toLatin1().data())) return -1;
+    if(!FileExists(idealParPath)) return -1;
 
     QProcess *proc=new QProcess;
     proc->setWorkingDirectory(nativePath(workDir));
@@ -5049,7 +5682,10 @@ int FilterTuner::check()
        QString mssg="Ideal Filter not found. Please run \"Ideal Filter\" from \"Design\" menu";
        sendLogMessage(mssg);
     }else if(ecode==1){
-       QString mssg="Number of variables is lower than Number of tunable Circuit Parameters";
+       QString mssg="Variables are not defined";
+       sendLogMessage(mssg);
+    }else if(ecode==2){
+       QString mssg="Tunable Circuit Parameters are not defined";
        sendLogMessage(mssg);
     }
     return ecode;
@@ -5057,7 +5693,9 @@ int FilterTuner::check()
 
 void MainWindow::atDecomposerEnd()
 {
-  runStatus.runningDecomposer=false; checkActions();
+  runStatus.runningDecomposer=false;
+  if(mainOCAF->EmP->assemblyType==NET) saveStatus();
+  checkActions();
   if(mainOCAF->EmP->hasGeo) updateAllWidgets();
 }
 
@@ -5108,7 +5746,7 @@ void MainWindow::aboutQt()
 }
 
 
-void MainWindow::xyzPosition (V3d_Coordinate X,   V3d_Coordinate Y,  V3d_Coordinate Z)
+void MainWindow::xyzPosition (Standard_Real X, Standard_Real Y,  Standard_Real Z)
 {
 	QString aString;
 	QTextStream ts(&aString);
@@ -5153,6 +5791,7 @@ void Documentation::showDocumentation(const QString sectionID)
     manualPath+=sectionID;
 
     QString manualLink="file:///"+manualPath;
+    char* txt=manualLink.toLatin1().data();
     QDesktopServices::openUrl(QUrl(manualLink, QUrl::TolerantMode));
 
 }
@@ -5231,15 +5870,6 @@ void MainWindow::importedcircuit_responsePlot()
 }
 
 
-void MainWindow::ideal_mappedTZ_responsePlot()
-{
-  ideal_mappedTZ_freqRespPlot->plottedCircuit=IDEALCIRCUITMAPPEDTZ;
-  ideal_mappedTZ_freqRespPlot->loadFile();
-  ideal_mappedTZ_freqRespPlot->plotFreqResponse();
-  ideal_mappedTZ_freqRespPlot->window()->resize(800,500);
-  ideal_mappedTZ_freqRespPlot->show();
-}
-
 
 void MainWindow::mapped_responsePlot()
 {
@@ -5302,7 +5932,11 @@ void MainWindow::createActions()
     closeAction->setEnabled(false);
     connect(closeAction, SIGNAL(triggered()), this, SLOT(closeAll()));
 
-    closeCompOrPartitionAction = new QAction(tr("&Close Component OR Partition"), this);
+    abortAction = new QAction(tr("&Abort Modelization"), this);
+    abortAction->setEnabled(false);
+    connect(abortAction, SIGNAL(triggered()), this, SLOT(abort()));
+
+    closeCompOrPartitionAction = new QAction(tr("&Close Component"), this);
     closeCompOrPartitionAction->setShortcut(tr("Ctrl+U"));
     connect(closeCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(closeCompOrPartition()));
     closeCompOrPartitionAction->setEnabled(false);
@@ -5312,7 +5946,7 @@ void MainWindow::createActions()
     connect(closeCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(closeCompAndPartition()));
     closeCompAndPartitionAction->setEnabled(false);
 
-    openCompOrPartitionAction = new QAction(tr("&Open Component OR Partition"), this);
+    openCompOrPartitionAction = new QAction(tr("&Open Component"), this);
     openCompOrPartitionAction->setShortcut(tr("Ctrl+O"));
     connect(openCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(openCompOrPartition()));
     openCompOrPartitionAction->setEnabled(false);
@@ -5321,6 +5955,9 @@ void MainWindow::createActions()
     openCompAndPartitionAction->setShortcut(tr("Ctrl+Shift+O"));
     connect(openCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(openCompAndPartition()));
     openCompAndPartitionAction->setEnabled(false);
+
+    viewConvergenceAction = new QAction(tr("&View Convergence"), this);
+    connect(viewConvergenceAction, SIGNAL(triggered()), this, SLOT(viewConvergence()));
 
     importGeometryAction = new QAction(tr("&Import Geometry"), this);
     importGeometryAction->setShortcut(tr("Ctrl+I"));
@@ -5397,15 +6034,6 @@ void MainWindow::createActions()
     exportIdealSpiceAction = new QAction(tr("&Ideal Spice Circuit"), this);
     exportIdealSpiceAction->setEnabled(false);
     connect(exportIdealSpiceAction, SIGNAL(triggered()), this, SLOT(exportIdealSpice()));
-
-    exportJC_IdealMappedTZ_Action = new QAction(tr("&Ideal JC Circuit with mapped TZ"), this);
-    exportJC_IdealMappedTZ_Action->setEnabled(false);
-    connect(exportJC_IdealMappedTZ_Action, SIGNAL(triggered()), this, SLOT(exportIdealMappedTzJC()));
-
-    exportSpice_IdealMappedTZ_Action = new QAction(tr("&Ideal Spice Circuit with mapped TZ"), this);
-    exportSpice_IdealMappedTZ_Action->setEnabled(false);
-    connect(exportSpice_IdealMappedTZ_Action, SIGNAL(triggered()), this, SLOT(exportIdealMappedTzSpice()));
-
 
     exportFilterTuneParAction = new QAction(tr("&Filter Tuning Parameters"), this);
     exportFilterTuneParAction->setEnabled(false);
@@ -5500,11 +6128,6 @@ void MainWindow::createActions()
     filterDesignAction->setEnabled(false);
     connect(filterDesignAction, SIGNAL(triggered()), this, SLOT(filterDesign()));
 
-    filterDesignWithTzMapAction = new QAction(tr("&Ideal Filter with mapped Tx zeros"), this);
-    filterDesignWithTzMapAction->setStatusTip(tr("Design an ideal filter circuit with with mapped Tx zeros"));
-    filterDesignWithTzMapAction->setEnabled(false);
-    connect(filterDesignWithTzMapAction, SIGNAL(triggered()), this, SLOT(filterDesignWithTzMap()));
-
     updateAction = new QAction(tr("&Update"), this);
     updateAction->setStatusTip(tr("Update electromagnetic models and analyses"));
     updateAction->setEnabled(true);
@@ -5540,11 +6163,6 @@ void MainWindow::createActions()
     importedcircuit_responsePlotAction->setStatusTip(tr("Plots frequency response of imported circuit"));
     importedcircuit_responsePlotAction->setEnabled(false);
     connect(importedcircuit_responsePlotAction, SIGNAL(triggered()), this, SLOT(importedcircuit_responsePlot()));
-
-    ideal_mappedTZ_responsePlotAction = new QAction(tr("&Ideal Filter with mapped Tx Zeros"), this);
-    ideal_mappedTZ_responsePlotAction->setStatusTip(tr("Plots the frequency response of the ideal filter with mapped Tx Zeros"));
-    ideal_mappedTZ_responsePlotAction->setEnabled(false);
-    connect(ideal_mappedTZ_responsePlotAction, SIGNAL(triggered()), this, SLOT(ideal_mappedTZ_responsePlot()));
 
     zeropolePlotAction = new QAction(tr("&Electromanetic Model"), this);
     zeropolePlotAction->setStatusTip(tr("Plots the Zeros/Poles pattern of S parameters of the electromagnetic device"));
@@ -5710,8 +6328,8 @@ void MainWindow::createActions()
     connect(backgroundAction, SIGNAL(triggered()), mainOCC, SLOT(background()));
 	
 	// The co-ordinates from the view
-//    connect( mainOCC, SIGNAL(mouseMoved(V3d_Coordinate,V3d_Coordinate,V3d_Coordinate)),
-//		     this,   SLOT(xyzPosition(V3d_Coordinate,V3d_Coordinate,V3d_Coordinate)) );
+//    connect( mainOCC, SIGNAL(mouseMoved(Standard_Real,Standard_Real,Standard_Real)),
+//		     this,   SLOT(xyzPosition(Standard_Real,Standard_Real,Standard_Real)) );
 
 //    connect( mainOCC, SIGNAL(selectedLabelChanged()),\
 //            this,   SLOT(getOcafSelection()) );
@@ -5755,8 +6373,6 @@ void MainWindow::createMenus()
 		exportMenu->addAction( exportIdealSpiceAction );
 		exportMenu->addAction( exportMappedJCAction );
 		exportMenu->addAction( exportMappedSpiceAction );
-		exportMenu->addAction( exportJC_IdealMappedTZ_Action );
-		exportMenu->addAction( exportSpice_IdealMappedTZ_Action );
 		exportMenu->addAction( exportFilterTuneParAction );
 	fileMenu->addAction( closeCompOrPartitionAction );
 	fileMenu->addAction( closeCompAndPartitionAction );
@@ -5809,13 +6425,13 @@ void MainWindow::createMenus()
 		   plotFreqResponseMenu->addAction( mapped_responsePlotAction );
 		   plotFreqResponseMenu->addAction( imported_responsePlotAction );
 		   plotFreqResponseMenu->addAction( importedcircuit_responsePlotAction );
-		   plotFreqResponseMenu->addAction( ideal_mappedTZ_responsePlotAction );
 		plotZeroPoleMenu = plotsMenu->addMenu( tr("&Zeros and Poles") );
 		   plotZeroPoleMenu->addAction( zeropolePlotAction );
 		   plotZeroPoleMenu->addAction( mapped_zeropolePlotAction );
 		   plotZeroPoleMenu->addAction( ideal_zeropolePlotAction );
 		viewMenu->addSeparator();
 		viewMenu->addAction( accountStatusAction );
+	        viewMenu->addAction(viewConvergenceAction);
 
         editMenu = menuBar()->addMenu( tr("&Edit ") );
 		editMenu->addAction( prjOptionsAction );
@@ -5834,14 +6450,14 @@ void MainWindow::createMenus()
 		editMenu->addAction( modelizeAction );
                 designsMenu = editMenu->addMenu( tr("&Designs ") );
 		       designsMenu->addAction( filterDesignAction );
-		       designsMenu->addAction( filterDesignWithTzMapAction );
 		       designsMenu->addAction( filterTuneAction );
                 analysesMenu = editMenu->addMenu( tr("&Analyses ") );
 		       analysesMenu->addAction( portModesAction );
 		       analysesMenu->addAction( freqAnaAction );
 		       analysesMenu->addAction( zeropoleAnaAction );
 		       analysesMenu->addAction( filterMapAction );
-		editMenu->addAction( updateAction );
+		editMenu->addAction(updateAction);
+		editMenu->addAction(abortAction);
 	editMenu->addSeparator();
 	editMenu->addAction( configAction );
 
@@ -5860,11 +6476,11 @@ void MainWindow::checkActions()
   QString RM_TSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.ts");
   QString RM_SPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.sp");
   QString MAT_path =nativePath(mainWorkPath+"/Data/materials.mat");
-  bool hasRM_JC=FileExists(RM_JCpath.toLatin1().data());
-  bool hasRM_SZP=FileExists(RM_SZPpath.toLatin1().data());
-  bool hasRM_TS=FileExists(RM_TSpath.toLatin1().data());
-  bool hasRM_SP=FileExists(RM_SPpath.toLatin1().data());
-  bool hasMAT=FileExists(MAT_path.toLatin1().data());
+  bool hasRM_JC=FileExists(RM_JCpath);
+  bool hasRM_SZP=FileExists(RM_SZPpath);
+  bool hasRM_TS=FileExists(RM_TSpath);
+  bool hasRM_SP=FileExists(RM_SPpath);
+  bool hasMAT=FileExists(MAT_path);
   QString mappedCircuitName,mappedInpName;
   if(prjData.filtermapSource==ZEROPOLES){
 	mappedCircuitName=prjData.mainAssName+"_RM_mapped";
@@ -5872,7 +6488,7 @@ void MainWindow::checkActions()
   }
   if(prjData.filtermapSource==IMPORTED_RESPONSE){
         mappedCircuitName="imported_response_mapped";
-        mappedInpName="imported_response_mapped_canonical";
+        mappedInpName="imported_response";
   }
   if(prjData.filtermapSource==IMPORTED_CIRCUIT){
 	mappedCircuitName="imported_circuit";
@@ -5890,7 +6506,9 @@ void MainWindow::checkActions()
   QString idealSZPpath=nativePath(mainWorkPath+"/Data/Circuits/ideal_filter.SZP");
   QString idealTSpath=nativePath(mainWorkPath+"/Data/Circuits/ideal_filter.ts");
   QString freqTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.ts");
-  QString mappedTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.ts");
+  QString mappedTSpath;
+  if(prjData.filtermapSource==ZEROPOLES) mappedTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM_mapped.ts");
+  if(prjData.filtermapSource==IMPORTED_RESPONSE) mappedTSpath=nativePath(mainWorkPath+"/Data/Circuits/imported_response_mapped.ts");
   QString importedS2Ppath=nativePath(mainWorkPath+"/Data/Circuits/imported_response.s2p");
   QString impCircJCpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"imported_circuit.JC");
   QString impCircTSpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"imported_circuit.ts");
@@ -5898,22 +6516,22 @@ void MainWindow::checkActions()
   QString filtInpPath;
   if(prjData.filtermapSource==ZEROPOLES) filtInpPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedInpName+".inp");
   if(prjData.filtermapSource==IMPORTED_RESPONSE) filtInpPath=importedS2Ppath;
-  bool hasMappedJC=FileExists(mappedJCpath.toLatin1().data());
-  bool hasMappedSP=FileExists(mappedSPpath.toLatin1().data());
-  bool hasMappedSZP=FileExists(mappedSZPpath.toLatin1().data());
-  bool hasIdealJC=FileExists(idealJCpath.toLatin1().data());
-  bool hasIdealSP=FileExists(idealSPpath.toLatin1().data());
-  bool hasIdealJCmappedTZ=FileExists(idealJCmappedTZpath.toLatin1().data());
-  bool hasIdealSPmappedTZ=FileExists(idealSPmappedTZpath.toLatin1().data());
-  bool hasIdealSZP=FileExists(idealSZPpath.toLatin1().data());
-  bool hasIdealTS=FileExists(idealTSpath.toLatin1().data());
-  bool hasFreqTS=FileExists(freqTSpath.toLatin1().data());
-  bool hasMappedTS=FileExists(mappedTSpath.toLatin1().data());
-  bool hasImportedTS=FileExists(importedS2Ppath.toLatin1().data());
-  bool hasImpCircJC=FileExists(impCircJCpath.toLatin1().data());
-  bool hasImpCircTS=FileExists(impCircTSpath.toLatin1().data());
-  bool hasIdeal_mappedTZ_TS=FileExists(ideal_mappedTZ_TSpath.toLatin1().data());
-  bool hasFiltInp=FileExists(filtInpPath.toLatin1().data());
+  bool hasMappedJC=FileExists(mappedJCpath);
+  bool hasMappedSP=FileExists(mappedSPpath);
+  bool hasMappedSZP=FileExists(mappedSZPpath);
+  bool hasIdealJC=FileExists(idealJCpath);
+  bool hasIdealSP=FileExists(idealSPpath);
+  bool hasIdealJCmappedTZ=FileExists(idealJCmappedTZpath);
+  bool hasIdealSPmappedTZ=FileExists(idealSPmappedTZpath);
+  bool hasIdealSZP=FileExists(idealSZPpath);
+  bool hasIdealTS=FileExists(idealTSpath);
+  bool hasFreqTS=FileExists(freqTSpath);
+  bool hasMappedTS=FileExists(mappedTSpath);
+  bool hasImportedTS=FileExists(importedS2Ppath);
+  bool hasImpCircJC=FileExists(impCircJCpath);
+  bool hasImpCircTS=FileExists(impCircTSpath);
+  bool hasIdeal_mappedTZ_TS=FileExists(ideal_mappedTZ_TSpath);
+  bool hasFiltInp=FileExists(filtInpPath);
   bool hasFiltSpec=prjData.filterOrder>0 && prjData.filterRetLoss>0 && prjData.filterPassBand[0]>0 && prjData.filterPassBand[1] >0;
   newProjectAction->setEnabled(!runStatus.projectIsOpen);
 //  saveAction->setEnabled(runStatus.projectIsOpen);
@@ -5925,6 +6543,7 @@ void MainWindow::checkActions()
   closeCompAndPartitionAction->setEnabled(runStatus.projectIsOpen && (mainOCAF->EmP->level || mainOCAF->isPartition()));
   openCompAndPartitionAction->setEnabled(runStatus.projectIsOpen &&  mainOCAF->EmP->assemblyType==COMPONENT && !mainOCAF->isPartition());
   openCompOrPartitionAction->setEnabled(runStatus.projectIsOpen && mainOCAF->EmP->assemblyType==COMPONENT && !mainOCAF->isPartition());
+  viewConvergenceAction->setEnabled(runStatus.projectIsOpen &&  mainOCAF->EmP->assemblyType==COMPONENT && (mainOCAF->subCompNum==0  || mainOCAF->subComp>0  && mainOCAF->isPartition()));
 //  importDataDirAction->setEnabled(projectIsOpen);
   importGeometryAction->setEnabled(runStatus.projectIsOpen);
   importMaterialAction->setEnabled(runStatus.projectIsOpen);
@@ -5937,8 +6556,6 @@ void MainWindow::checkActions()
   exportIdealResponseAction->setEnabled(runStatus.projectIsOpen && hasIdealTS);
   exportFreqResponseAction->setEnabled(runStatus.projectIsOpen && hasFreqTS);
   exportMappedResponseAction->setEnabled(runStatus.projectIsOpen && hasMappedTS);
-  exportJC_IdealMappedTZ_Action->setEnabled(runStatus.projectIsOpen && hasIdealJCmappedTZ);
-  exportSpice_IdealMappedTZ_Action->setEnabled(runStatus.projectIsOpen && hasIdealSPmappedTZ);
   exportMappedJCAction->setEnabled(runStatus.projectIsOpen && hasMappedJC);
   exportMappedSpiceAction->setEnabled(runStatus.projectIsOpen && hasMappedSP);
   decomposeAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && !mainOCAF->EmP->level && mainOCAF->prjStatus.partMaterials);
@@ -5952,7 +6569,6 @@ void MainWindow::checkActions()
   ideal_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasIdealTS);
   imported_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasImportedTS);
   importedcircuit_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasImpCircTS);
-  ideal_mappedTZ_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasIdeal_mappedTZ_TS);
   ideal_zeropolePlotAction->setEnabled(runStatus.projectIsOpen && hasIdealSZP);
   modelizeAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && mainOCAF->prjStatus.partMaterials && mainOCAF->prjStatus.wgPorts &&!preproc.failure());
   portModesAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && mainOCAF->prjStatus.partMaterials);
@@ -5960,11 +6576,10 @@ void MainWindow::checkActions()
   zeropoleAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher);
   filterDesignAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
   filterMapAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
-  filterDesignWithTzMapAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && hasFiltInp);
   filterTuneAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && (prjData.filtermapSource==IMPORTED_CIRCUIT) || hasFiltInp);
   updateAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher &&!preproc.failure());
   exitAction->setEnabled(!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher );
-
+  abortAction->setEnabled(runStatus.runningModeler);
 }
 
 /*
@@ -6062,7 +6677,6 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      dvalidator->setDecimals(1000); // (standard anyway)
      dvalidator->setNotation(QDoubleValidator::ScientificNotation);
 
-
 //****************************************
 //   Units
 
@@ -6102,39 +6716,129 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      unitsGroupBox->setLayout(unitsLayout);
 
 //****************************************
-//   Frequencies
-     QLabel *MORFreqNumLabel= new QLabel();
-     MORFreqNumLabel->setText(tr("MOR Frequency Num:"));
+//   Frequency
      QLabel *freqBandLabel= new QLabel();
-     freqBandLabel->setText(tr("Modelization Frequency Band:"));
+     freqBandLabel->setText(tr("Interp Frequency Band:"));
      QLabel *bandSepLabel= new QLabel();
      bandSepLabel->setText(tr("  :  "));
 
      f1LineEdit = new QLineEdit();
      f1LineEdit->setText(QString("%1").arg(prjData.freqBand[0], 0, 'f', 5));
      f1LineEdit->setValidator(dvalidator);		
+
      f2LineEdit = new QLineEdit();
      f2LineEdit->setText(QString("%1").arg(prjData.freqBand[1], 0, 'f', 5));
      f2LineEdit->setValidator(dvalidator);
 
-/*
+     f1LineEdit->setFixedWidth(150);
+     f2LineEdit->setFixedWidth(150);
+
+//****************************************
+//   SubDomain Modelization
+     QLabel *subDomainLabel= new QLabel();
+     subDomainLabel->setText(tr("SUBDOMAIN MODELIZATION AND RESONANCE SEARCH"));
+
+     QLabel *krylovLabel= new QLabel();
+     krylovLabel->setText(tr("Interpolation Order:"));
+
+     QLabel *MORFreqNumLabel= new QLabel();
+     MORFreqNumLabel->setText(tr("Interpol Freq Points:"));
+
      QLabel *rFreqBandLabel= new QLabel();
-     rFreqBandLabel->setText(tr("Refinement Frequency Band:"));
+     rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
 
-     bool changed=false;
-     if(prjData.refFreqBand[1]<prjData.refFreqBand[0]){
-	 prjData.refFreqBand[1]=prjData.freqBand[1];
-         changed=true;
-     }
-     if(changed) prjData.saveSettings();
-     rf1LineEdit = new QLineEdit();
-     rf1LineEdit->setText(QString("%1").arg(prjData.refFreqBand[0], 0, 'f', 5));
-     rf1LineEdit->setValidator(dvalidator);		
-     rf2LineEdit = new QLineEdit();
-     rf2LineEdit->setText(QString("%1").arg(prjData.refFreqBand[1], 0, 'f', 5));
-     rf2LineEdit->setValidator(dvalidator);
-*/
+     QLabel *MORFreqNum1Label= new QLabel();
+     MORFreqNum1Label->setText(tr("Reson Search Interval Num:"));
 
+     QIntValidator *morFreqNumValidator = new QIntValidator(this);
+     morFreqNumValidator->setRange(1,500);
+     MORFreqNumLineEdit = new QLineEdit();
+     MORFreqNumLineEdit->setText(QString("%1").arg(prjData.MORFreqNum));
+     MORFreqNumLineEdit->setValidator(morFreqNumValidator);
+     MORFreqNumLineEdit->setFixedWidth(150);
+
+     QIntValidator *krylovOrderValidator = new QIntValidator(this);
+     krylovOrderValidator->setRange(1,6);
+     krylovLineEdit = new QLineEdit();
+     krylovLineEdit->setFixedWidth(150);
+     krylovLineEdit->setText(QString("%1").arg(prjData.KrylovOrder));
+     krylovLineEdit->setValidator(krylovOrderValidator);
+     
+     QDoubleValidator *rfRatioValidator = new QDoubleValidator(this);
+     rfRatioValidator->setRange(1,1.5,2);
+          
+     rfRatioLineEdit = new QLineEdit();
+     rfRatioLineEdit->setText(QString("%1").arg(prjData.resonFreqMaxRatio, 0, 'f', 2));
+     rfRatioLineEdit->setValidator(rfRatioValidator);
+
+     rfRatioLineEdit->setFixedWidth(150);
+
+     MORFreqNum1LineEdit = new QLineEdit();
+     MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.MORFreqNum1));
+     MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
+     MORFreqNum1LineEdit->setFixedWidth(150);
+
+
+//****************************************
+//   Component Modelization
+
+     QLabel *compModLabel= new QLabel();
+     compModLabel->setText(tr("COMPONENT MODELIZATION AND RESONANCE SEARCH"));
+
+     QLabel *CMP_MORFreqNumLabel= new QLabel();
+     CMP_MORFreqNumLabel->setText(tr("Interpol Freq Points:"));
+     
+     QLabel *CMP_rFreqBandLabel= new QLabel();
+     CMP_rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
+
+     QLabel *CMP_MORFreqNum1Label= new QLabel();
+     CMP_MORFreqNum1Label->setText(tr("Reson Search Interval Number:"));
+
+     CMP_MORFreqNumLineEdit = new QLineEdit();
+     CMP_MORFreqNumLineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNum));
+     CMP_MORFreqNumLineEdit->setValidator(morFreqNumValidator);
+
+     CMP_rfRatioLineEdit = new QLineEdit();
+     CMP_rfRatioLineEdit->setText(QString("%1").arg(prjData.cmpResonFreqMaxRatio, 0, 'f', 2));
+     CMP_rfRatioLineEdit->setValidator(rfRatioValidator);
+
+     CMP_MORFreqNum1LineEdit = new QLineEdit();
+     CMP_MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNum1));
+     CMP_MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
+
+     CMP_MORFreqNumLineEdit->setFixedWidth(150);
+
+
+//****************************************
+//   Network Modelization
+
+     QLabel *netModLabel= new QLabel();
+     netModLabel->setText(tr("ASSEMBLY MODELIZATION AND RESONANCE SEARCH"));
+
+     QLabel *NET_MORFreqNumLabel= new QLabel();
+     NET_MORFreqNumLabel->setText(tr("Interpol Freq Points:"));
+     
+     QLabel *NET_rFreqBandLabel= new QLabel();
+     NET_rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
+
+     QLabel *NET_MORFreqNum1Label= new QLabel();
+     NET_MORFreqNum1Label->setText(tr("Reson Search Interval Number:"));
+
+     NET_MORFreqNumLineEdit = new QLineEdit();
+     NET_MORFreqNumLineEdit->setText(QString("%1").arg(prjData.netMORFreqNum));
+     NET_MORFreqNumLineEdit->setValidator(morFreqNumValidator);
+
+     NET_rfRatioLineEdit = new QLineEdit();
+     NET_rfRatioLineEdit->setText(QString("%1").arg(prjData.netResonFreqMaxRatio, 0, 'f', 2));
+     NET_rfRatioLineEdit->setValidator(rfRatioValidator);
+
+     NET_MORFreqNum1LineEdit = new QLineEdit();
+     NET_MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.netMORFreqNum1));
+     NET_MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
+
+     NET_MORFreqNumLineEdit->setFixedWidth(150);
+
+//     rf1LineEdit->setEnabled(false);
    
 //****************************************
 //   Mesh
@@ -6146,6 +6850,16 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      meshSizeLineEdit->setText(QString("%1").arg(prjData.meshPerWavelen));
      meshSizeLineEdit->setValidator(meshPerLenValidator);
      meshSizeLineEdit->setFixedWidth(150);
+
+     QDoubleValidator *meshRefinementValidator = new QDoubleValidator(this);
+     meshRefinementValidator->setRange(1,50,1);
+
+     QLabel *sharedMeshRefineLabel= new QLabel();
+     sharedMeshRefineLabel->setText(tr("Shared Mesh Refinement:"));
+     sharedMeshRefineLineEdit = new QLineEdit();
+     sharedMeshRefineLineEdit->setText(QString("%1").arg(prjData.sharedMeshRefine, 0, 'f', 1));
+     sharedMeshRefineLineEdit->setValidator(meshRefinementValidator);
+     sharedMeshRefineLineEdit->setFixedWidth(150);
 
      localMeshing3dCB=new QCheckBox("Local 3D Meshing", this);
      if(prjData.localMeshing3d)  localMeshing3dCB->setCheckState(Qt::Checked);
@@ -6160,6 +6874,15 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      meshPerCircleLineEdit->setValidator(meshPerCircleValidator);
      meshPerCircleLineEdit->setFixedWidth(150);
 
+     QLabel *meshRefineMinNumLabel= new QLabel();
+     meshRefineMinNumLabel->setText(tr("Mesh Refinements Min:"));
+     QIntValidator *meshRefineMinNumValidator = new QIntValidator(this);
+     meshRefineMinNumValidator->setRange(0,30);
+     meshRefineMinNumLineEdit = new QLineEdit();
+     meshRefineMinNumLineEdit->setText(QString("%1").arg(prjData.meshRefineMinNum));
+     meshRefineMinNumLineEdit->setValidator(meshRefineMinNumValidator);
+     meshRefineMinNumLineEdit->setFixedWidth(150);
+
      QLabel *meshRefineMaxNumLabel= new QLabel();
      meshRefineMaxNumLabel->setText(tr("Mesh Refinements Max:"));
      QIntValidator *meshRefineMaxNumValidator = new QIntValidator(this);
@@ -6168,6 +6891,15 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      meshRefineMaxNumLineEdit->setText(QString("%1").arg(prjData.meshRefineMaxNum));
      meshRefineMaxNumLineEdit->setValidator(meshRefineMaxNumValidator);
      meshRefineMaxNumLineEdit->setFixedWidth(150);
+
+     QLabel *meshTetMaxNumLabel= new QLabel();
+     meshTetMaxNumLabel->setText(tr("Max Tet Number for Subdomain:"));
+     QIntValidator *meshTetMaxNumValidator = new QIntValidator(this);
+     meshTetMaxNumValidator->setRange(10000,100000);
+     meshTetMaxNumLineEdit = new QLineEdit();
+     meshTetMaxNumLineEdit->setText(QString("%1").arg(prjData.meshTetMaxNum));
+     meshTetMaxNumLineEdit->setValidator(meshTetMaxNumValidator);
+     meshTetMaxNumLineEdit->setFixedWidth(150);   
 
      QLabel *meshMinEnergyRatioLabel= new QLabel();
      meshMinEnergyRatioLabel->setText(tr("Mesh Refinement Threshold [dB]:"));
@@ -6194,69 +6926,82 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
 
 
 //****************************************
-//   MOR
-     QIntValidator *morFreqNumValidator = new QIntValidator(this);
-     morFreqNumValidator->setRange(2,500);
-     MORFreqNumLineEdit = new QLineEdit();
-     MORFreqNumLineEdit->setText(QString("%1").arg(prjData.MORFreqNum));
-     MORFreqNumLineEdit->setValidator(morFreqNumValidator);
-     MORFreqNumLineEdit->setFixedWidth(150);
-
-     QLabel *krylovLabel= new QLabel();
-     krylovLabel->setText(tr("MOR Krylov Order:"));
-
-     QIntValidator *krylovOrderValidator = new QIntValidator(this);
-     krylovOrderValidator->setRange(1,6);
-     krylovLineEdit = new QLineEdit();
-     krylovLineEdit->setFixedWidth(150);
-     krylovLineEdit->setText(QString("%1").arg(prjData.KrylovOrder));
-     krylovLineEdit->setValidator(krylovOrderValidator);
-
-     f1LineEdit->setFixedWidth(150);
-     f2LineEdit->setFixedWidth(150);
-
-//     rf1LineEdit->setFixedWidth(150);
-//     rf2LineEdit->setFixedWidth(150);
 
      QGridLayout *freqLayout = new QGridLayout();
 //     freqLayout->setColumnMinimumWidth(1,30);
 
-     freqLayout->addWidget(freqBandLabel, 0, 0);
-     freqLayout->addWidget(f1LineEdit,1, 0);
-     freqLayout->addWidget(bandSepLabel,1, 1);
-     freqLayout->addWidget(f2LineEdit,1, 2);
-     freqLayout->setRowMinimumHeight(2,10);
+     freqLayout->addWidget(freqBandLabel, 1, 0);
+     freqLayout->addWidget(f1LineEdit,2, 0);
+     freqLayout->addWidget(bandSepLabel,2, 1);
+     freqLayout->addWidget(f2LineEdit,2, 2);
 
-/*     
-     freqLayout->addWidget(rFreqBandLabel, 3, 0);
-     freqLayout->addWidget(rf1LineEdit,4, 0);
-     freqLayout->addWidget(bandSepLabel,4, 1);
-     freqLayout->addWidget(rf2LineEdit,4, 2);
-*/
-     freqLayout->setRowMinimumHeight(5,10);
-     freqLayout->addWidget(MORFreqNumLabel, 6, 0);
-     freqLayout->addWidget(MORFreqNumLineEdit, 6, 2);
-     freqLayout->addWidget(krylovLabel, 7, 0);
-     freqLayout->addWidget(krylovLineEdit, 7, 2);
-
-
-     QGridLayout *otherLayout = new QGridLayout();
-
-     otherLayout->addWidget(cutoffLabel, 0, 0);
-     otherLayout->addWidget(cutoffLineEdit, 0, 2);
-     otherLayout->addWidget(meshSizeLabel, 1, 0);
-     otherLayout->addWidget(meshSizeLineEdit, 1, 2);
-     otherLayout->addWidget(meshPerCircleLabel, 2, 0);
-     otherLayout->addWidget(meshPerCircleLineEdit, 2, 2);
-     otherLayout->addWidget(meshRefineMaxNumLabel, 3, 0);
-     otherLayout->addWidget(meshRefineMaxNumLineEdit, 3, 2);
-     otherLayout->addWidget(meshMinEnergyRatioLabel, 4, 0);
-     otherLayout->addWidget(meshMinEnergyRatioLineEdit, 4, 2);
-     otherLayout->addWidget(localMeshing3dCB, 5, 0);
-     otherLayout->setRowMinimumHeight(2,30);
 
      QGroupBox *freqGroupBox=new QGroupBox();
      freqGroupBox->setLayout(freqLayout);
+
+//---------------     
+     QGridLayout *subdomLayout = new QGridLayout();
+
+     subdomLayout->addWidget(subDomainLabel, 0, 0);
+     subdomLayout->addWidget(krylovLabel, 1, 0);
+     subdomLayout->addWidget(krylovLineEdit, 1, 2);
+     subdomLayout->addWidget(MORFreqNumLabel, 2, 0);
+     subdomLayout->addWidget(MORFreqNumLineEdit, 2, 2);
+     subdomLayout->addWidget(rFreqBandLabel, 3, 0);
+     subdomLayout->addWidget(rfRatioLineEdit,3, 2);     
+     subdomLayout->addWidget(MORFreqNum1Label, 4, 0);
+     subdomLayout->addWidget(MORFreqNum1LineEdit, 4, 2);
+
+     QGroupBox *subdomGroupBox=new QGroupBox();
+     subdomGroupBox->setLayout(subdomLayout);
+
+//---------------     
+     QGridLayout *compLayout = new QGridLayout();
+     compLayout->addWidget(compModLabel, 6, 0);
+     compLayout->addWidget(CMP_rFreqBandLabel, 7, 0);
+     compLayout->addWidget(CMP_rfRatioLineEdit,7, 2);     
+     compLayout->addWidget(CMP_MORFreqNumLabel, 8, 0);
+     compLayout->addWidget(CMP_MORFreqNumLineEdit, 8, 2);
+     compLayout->addWidget(CMP_MORFreqNum1Label, 9, 0);
+     compLayout->addWidget(CMP_MORFreqNum1LineEdit, 9, 2);
+
+     QGroupBox *compGroupBox=new QGroupBox();
+     compGroupBox->setLayout(compLayout);
+
+//---------------     
+     QGridLayout *netLayout = new QGridLayout();
+     netLayout->addWidget(netModLabel, 10, 0);
+     netLayout->addWidget(NET_rFreqBandLabel, 11, 0);
+     netLayout->addWidget(NET_rfRatioLineEdit,11, 2);     
+     netLayout->addWidget(NET_MORFreqNumLabel, 12, 0);
+     netLayout->addWidget(NET_MORFreqNumLineEdit, 12, 2);
+     netLayout->addWidget(NET_MORFreqNum1Label, 13, 0);
+     netLayout->addWidget(NET_MORFreqNum1LineEdit, 13, 2);
+
+     QGroupBox *netGroupBox=new QGroupBox();
+     netGroupBox->setLayout(netLayout);
+
+//---------------     
+
+     QGridLayout *otherLayout = new QGridLayout();
+
+     otherLayout->addWidget(meshSizeLabel, 0, 0);
+     otherLayout->addWidget(meshSizeLineEdit, 0, 2);
+     otherLayout->addWidget(sharedMeshRefineLabel, 1, 0);
+     otherLayout->addWidget(sharedMeshRefineLineEdit, 1, 2);
+     otherLayout->addWidget(cutoffLabel, 2, 0);
+     otherLayout->addWidget(cutoffLineEdit, 2, 2);
+     otherLayout->addWidget(meshPerCircleLabel, 3, 0);
+     otherLayout->addWidget(meshPerCircleLineEdit, 3, 2);
+     otherLayout->addWidget(meshRefineMinNumLabel, 4, 0);
+     otherLayout->addWidget(meshRefineMinNumLineEdit, 4, 2);
+     otherLayout->addWidget(meshRefineMaxNumLabel, 5, 0);
+     otherLayout->addWidget(meshRefineMaxNumLineEdit, 5, 2);
+     otherLayout->addWidget(meshMinEnergyRatioLabel, 6, 0);
+     otherLayout->addWidget(meshMinEnergyRatioLineEdit, 6, 2);
+     otherLayout->addWidget(meshTetMaxNumLabel, 7, 0);
+     otherLayout->addWidget(meshTetMaxNumLineEdit, 7, 2);
+     otherLayout->addWidget(localMeshing3dCB, 8, 0);
 
      QGroupBox *otherGroupBox=new QGroupBox();
      otherGroupBox->setLayout(otherLayout);
@@ -6287,11 +7032,31 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
 
      setFocusPolicy(Qt::StrongFocus);
 
-     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+     QVBoxLayout *diagLayout = new QVBoxLayout(this);
+
+     setMinimumSize(650, 800);
+     setFixedWidth(650);
+
+     QWidget *window = new QWidget();
+//     window->setMinimumSize(600, 600);
+     QVBoxLayout *mainLayout = new QVBoxLayout(window);
      mainLayout->addWidget(unitsGroupBox);
      mainLayout->addWidget(freqGroupBox);
+     mainLayout->addWidget(subdomGroupBox);
+//     if(prjData.subcomponents.list.size()>1){
+     mainLayout->addWidget(compGroupBox);
+     mainLayout->addWidget(netGroupBox);
+//     }
      mainLayout->addWidget(otherGroupBox);
      mainLayout->addWidget(buttonGroupBox);
+
+     QScrollArea *scrollArea=new QScrollArea(this);
+     scrollArea->setWidget(window);
+     scrollArea->setWidgetResizable(true);
+     scrollArea->setMinimumSize(600, 800);
+     scrollArea->setSizePolicy(QSizePolicy::Minimum,QSizePolicy::MinimumExpanding);
+
+     diagLayout->addWidget(scrollArea);
 
      setFocusPolicy(Qt::StrongFocus);
 }
@@ -6331,17 +7096,29 @@ void SetGlobalsDialog::set(){
       int ms=meshSizeLineEdit->text().toInt();
       if(prjData.meshPerWavelen!=ms) { prjData.meshPerWavelen=ms; changed=true; prjData.workStatus.remeshNeeded=1;}
 
+      double sms=sharedMeshRefineLineEdit->text().toDouble();
+      if(fabs(prjData.sharedMeshRefine-sms)>1.e-4) { prjData.sharedMeshRefine=sms; changed=true; prjData.workStatus.remeshNeeded=1;}
+
       int mc=meshPerCircleLineEdit->text().toInt();
       if(prjData.meshPerCircle!=mc) { prjData.meshPerCircle=mc; changed=true; prjData.workStatus.remeshNeeded=1;}
 
-      int mrefnum=meshRefineMaxNumLineEdit->text().toInt();
-      if(prjData.meshRefineMaxNum!=mrefnum) { prjData.meshRefineMaxNum=mrefnum; changed=true; prjData.workStatus.remeshNeeded=1;}
+      int mrefmin=meshRefineMinNumLineEdit->text().toInt();
+      if(prjData.meshRefineMinNum!=mrefmin) { prjData.meshRefineMinNum=mrefmin; changed=true; prjData.workStatus.remeshNeeded=1;}
+
+      int mrefmax=meshRefineMaxNumLineEdit->text().toInt();
+      if(prjData.meshRefineMaxNum!=mrefmax) { prjData.meshRefineMaxNum=mrefmax; changed=true; prjData.workStatus.remeshNeeded=1;}
 
       double mrefratio=meshMinEnergyRatioLineEdit->text().toDouble();
       if(fabs(prjData.meshMinEnergyRatio-mrefratio)>1.e-4) {prjData.meshMinEnergyRatio=mrefratio; changed=true; prjData.workStatus.remeshNeeded=1;}
 
+      int ntetmax=meshTetMaxNumLineEdit->text().toInt();
+      if(prjData.meshTetMaxNum!=mrefmax) {prjData.meshTetMaxNum=ntetmax; changed=true;}
+
       int morfn=MORFreqNumLineEdit->text().toInt();
       if(prjData.MORFreqNum!=morfn) { prjData.MORFreqNum=morfn; changed=true; prjData.workStatus.modelizationNeeded=1;}
+      
+      int morfn1=MORFreqNum1LineEdit->text().toInt();
+      if(prjData.MORFreqNum1!=morfn1) { prjData.MORFreqNum1=morfn1; changed=true; prjData.workStatus.modelizationNeeded=1;}
       
       int k=krylovLineEdit->text().toInt();
       if(prjData.KrylovOrder!=k) { prjData.KrylovOrder=k; changed=true; prjData.workStatus.modelizationNeeded=1;}
@@ -6351,15 +7128,29 @@ void SetGlobalsDialog::set(){
       tmp=f2LineEdit->text().toDouble();
       if(fabs(prjData.freqBand[1]-tmp)>1.e-4) { prjData.freqBand[1]=tmp; changed=true; prjData.workStatus.remeshNeeded=1;}
       
-/*
-      tmp=rf1LineEdit->text().toDouble();
-      if(fabs(prjData.refFreqBand[0]-tmp)>1.e-4) { prjData.refFreqBand[0]=tmp; changed=true; prjData.workStatus.remeshNeeded=1;}
-      tmp=rf2LineEdit->text().toDouble();
-      if(fabs(prjData.refFreqBand[1]-tmp)>1.e-4) { prjData.refFreqBand[1]=tmp; changed=true; prjData.workStatus.remeshNeeded=1;}
-*/
+      tmp=rfRatioLineEdit->text().toDouble();
+      if(fabs(prjData.resonFreqMaxRatio-tmp)>1.e-4) { prjData.resonFreqMaxRatio=tmp; changed=true; prjData.workStatus.remeshNeeded=1;}
 
       tmp=cutoffLineEdit->text().toDouble();
       if(fabs(prjData.cutoffRatio-tmp)>1.e-4) { prjData.cutoffRatio=tmp; changed=true; prjData.workStatus.modelizationNeeded=1;}
+
+      int cmpmorfn=CMP_MORFreqNumLineEdit->text().toInt();
+      if(prjData.cmpMORFreqNum!=cmpmorfn) { changed=true; prjData.cmpMORFreqNum=cmpmorfn; prjData.workStatus.cmpReductionNeeded=1;}
+
+      int cmpmorfn1=CMP_MORFreqNum1LineEdit->text().toInt();
+      if(prjData.cmpMORFreqNum1!=cmpmorfn1) { changed=true; prjData.cmpMORFreqNum1=cmpmorfn1; prjData.workStatus.cmpReductionNeeded=1;}
+
+      int netmorfn=NET_MORFreqNumLineEdit->text().toInt();
+      if(prjData.netMORFreqNum!=netmorfn) { changed=true; prjData.netMORFreqNum=netmorfn; prjData.workStatus.netReductionNeeded=1;}
+
+      int netmorfn1=NET_MORFreqNum1LineEdit->text().toInt();
+      if(prjData.netMORFreqNum1!=netmorfn1) { changed=true; prjData.netMORFreqNum1=netmorfn1; prjData.workStatus.netReductionNeeded=1;}
+
+      tmp=CMP_rfRatioLineEdit->text().toDouble();
+      if(fabs(prjData.cmpResonFreqMaxRatio-tmp)>1.e-4) { prjData.cmpResonFreqMaxRatio=tmp; changed=true;  prjData.workStatus.cmpReductionNeeded=1;}
+
+      tmp=NET_rfRatioLineEdit->text().toDouble();
+      if(fabs(prjData.netResonFreqMaxRatio-tmp)>1.e-4) { prjData.netResonFreqMaxRatio=tmp; changed=true;  prjData.workStatus.netReductionNeeded=1;}
 
       if(changed) prjData.saveSettings();
 }
@@ -6389,10 +7180,6 @@ ConfigDialog::ConfigDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(pa
      AWS_secret_access_key_Label->setText(tr("AWS secret access key :"));
      AWS_secret_access_key_LineEdit = new QLineEdit();
      AWS_secret_access_key_LineEdit->setText(QString(botoConfig[std::string("aws_secret_access_key")].c_str()));
-
-     componentIsAssembly=new QCheckBox("Components defined as CAD assemblies", this);
-     if(emcadConfig[std::string("ComponentIsAssembly")]==std::string("true"))  componentIsAssembly->setCheckState(Qt::Checked);
-     else                                                                      componentIsAssembly->setCheckState(Qt::Unchecked);
 
      QGridLayout *configLayout = new QGridLayout();
      configLayout->addWidget(AWS_bucket_Label, 0, 0);
@@ -6431,7 +7218,6 @@ ConfigDialog::ConfigDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(pa
 
      QVBoxLayout *mainLayout = new QVBoxLayout(this);
      mainLayout->addWidget(configGroupBox);
-     mainLayout->addWidget(componentIsAssembly);
      mainLayout->addWidget(buttonGroupBox);
 }
 
@@ -6447,9 +7233,6 @@ void ConfigDialog::set(){
 
   tmp=std::string(AWS_bucket_LineEdit->text().toLatin1());
   if(tmp!=emcadConfig[std::string("AWS_bucket")]) { emcadConfig[std::string("AWS_bucket")]=tmp; emcad_changed=true;}
-
-  tmp=(componentIsAssembly->checkState()==Qt::Checked)? std::string("true"): std::string("false");
-  if(tmp!=emcadConfig[std::string("ComponentIsAssembly")]) {emcadConfig[std::string("ComponentIsAssembly")]=tmp; emcad_changed=true;}
 
   if(emcad_changed) WriteFile(config_filename, &emcadConfig);
 
@@ -6542,14 +7325,12 @@ FreqAnaDialog::FreqAnaDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(
 //****************************************
 //   Frequencies
      QLabel *freqBandLabel= new QLabel();
-     freqBandLabel->setText(tr("Frequency band:"));
+     freqBandLabel->setText(tr("Frequency Band:"));
 
      QLabel *anaFreqNumLabel= new QLabel();
-     anaFreqNumLabel->setText(tr("Freq Points Number:"));
+     anaFreqNumLabel->setText(tr("Freq Point Number:"));
 
-     QLabel *MORFreqNumLabel= new QLabel();
-     MORFreqNumLabel->setText(tr("MOR Freq Number:"));
-     
+
      QLabel *freqRespParLabel= new QLabel();
      freqRespParLabel->setText(tr("Parameter Type:"));
 
@@ -6573,36 +7354,27 @@ FreqAnaDialog::FreqAnaDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(
      anaFreqNumLineEdit->setText(QString("%1").arg(prjData.anaFreqNum));
      anaFreqNumLineEdit->setValidator(anaFreqNumValidator);
 
-     MORFreqNumLineEdit = new QLineEdit();
-     MORFreqNumLineEdit->setText(QString("%1").arg(prjData.anaMORFreqNum));
-     MORFreqNumLineEdit->setValidator(morFreqNumValidator);
-
      f1LineEdit->setFixedWidth(150);
      f2LineEdit->setFixedWidth(150);
      anaFreqNumLineEdit->setFixedWidth(150);
-     MORFreqNumLineEdit->setFixedWidth(150);
-
      QGridLayout *freqLayout = new QGridLayout();
 //     freqLayout->setColumnMinimumWidth(1,30);
 
      QLabel *bandSepLabel= new QLabel();
      bandSepLabel->setText(tr("  :  "));
+     
      freqLayout->addWidget(freqBandLabel, 0, 0);
      freqLayout->addWidget(f1LineEdit,1, 0);
      freqLayout->addWidget(bandSepLabel,1, 1);
      freqLayout->addWidget(f2LineEdit,1, 2);
 
-     freqLayout->setRowMinimumHeight(2,25);
 
      freqLayout->addWidget(anaFreqNumLabel, 4, 0);
      freqLayout->addWidget(anaFreqNumLineEdit, 4, 2);
      freqLayout->addWidget(freqRespParLabel, 5, 0);
      freqLayout->addWidget(parTypeChooser, 5, 2);
 
-     if(prjData.components.list.size()>1){
-       freqLayout->addWidget(MORFreqNumLabel, 6, 0);
-       freqLayout->addWidget(MORFreqNumLineEdit, 6, 2);
-     }
+
 
      QGroupBox *freqGroupBox=new QGroupBox();
      freqGroupBox->setLayout(freqLayout);
@@ -6700,7 +7472,7 @@ void FreqAnaDialog::onCircuitChanged(int circi)
 	   break;
      }
      char * jcp=JCpath.toLatin1().data();
-     startButton->setEnabled(FileExists(JCpath.toLatin1().data())||FileExists(RM_JCpath.toLatin1().data()));
+     startButton->setEnabled(FileExists(JCpath)||FileExists(RM_JCpath));
      if((circi==ELECROMAGNETICDEVICE && prjData.autoFreqResponse) || (circi==MAPPEDCIRCUIT && prjData.autoMappedFreqResponse) )
          automatic->setCheckState(Qt::Checked);
      else                            
@@ -6718,14 +7490,12 @@ void FreqAnaDialog::set(){
       int anafn=anaFreqNumLineEdit->text().toInt();
       if(prjData.anaFreqNum!=anafn) { changed=true; prjData.anaFreqNum=anafn;}
 
-      int morfn=MORFreqNumLineEdit->text().toInt();
-      if(prjData.anaMORFreqNum!=morfn) { changed=true; prjData.anaMORFreqNum=morfn; prjData.workStatus.reductionNeeded=1;}
-
       double tmp=f1LineEdit->text().toDouble();
-      if(fabs(prjData.anaFreqBand[0]-tmp)>1.e-4) { changed=true; prjData.anaFreqBand[0]=tmp; prjData.workStatus.reductionNeeded=1;}
+      if(fabs(prjData.anaFreqBand[0]-tmp)>1.e-4) { changed=true; prjData.anaFreqBand[0]=tmp; prjData.workStatus.netReductionNeeded=prjData.workStatus.cmpReductionNeeded=1;}
       tmp=f2LineEdit->text().toDouble();
-      if(fabs(prjData.anaFreqBand[1]-tmp)>1.e-4) { changed=true; prjData.anaFreqBand[1]=tmp; prjData.workStatus.reductionNeeded=1;}
+      if(fabs(prjData.anaFreqBand[1]-tmp)>1.e-4) { changed=true; prjData.anaFreqBand[1]=tmp; prjData.workStatus.netReductionNeeded=prjData.workStatus.cmpReductionNeeded=1;}
      
+
       if(prjData.freqRespParType!=parTypeChooser->currentIndex()) {
 	    changed=true;
 	    prjData.freqRespParType = (FreqRespParType) parTypeChooser->currentIndex();
@@ -6933,7 +7703,7 @@ void ZeroPoleDialog::onCircuitChanged(int circi)
            JCpath=nativePath(mainWorkPath+"/Data/Circuits/ideal_filter_mappedTZ.JC");
 	   break;
      }
-     bool dataExist=FileExists(JCpath.toLatin1().data());
+     bool dataExist=FileExists(JCpath);
      startButton->setEnabled(dataExist);
      SijCurveNumSB->setEnabled(dataExist);
 
@@ -7637,7 +8407,7 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      filterTopologyChooserLabel->setText(tr("Canonical Circuit Topology:"));
      filterTopologyChooser = new QComboBox();
      filterTopologyChooser->addItem(tr("Transverse LC"));
-     filterTopologyChooser->addItem(tr("Transverse JC"));
+     filterTopologyChooser->addItem(tr("Transverse JLC"));
      filterTopologyChooser->addItem(tr("Only LC"));
      filterTopologyChooser->addItem(tr("With magic T"));
      filterTopologyChooser->setCurrentIndex(prjData.canonicalFilterTopology);
@@ -7767,28 +8537,56 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      txZerosNumSB->setMinimum(0);
      txZerosNumSB->setValue(prjData.filterZeros.size());
 
-     txZeros= new QTableWidget(0, 1, this);
+     txZeros= new QTableWidget(0, 2, this);
+     txZeros->setColumnWidth(1,200);
      #if defined(QT5)
       txZeros->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
      #elif defined(QT4)
       txZeros->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
      #endif
-     QTableWidgetItem *Zheader = new QTableWidgetItem();
+     QTableWidgetItem *Zheader1 = new QTableWidgetItem();
      switch(fI){
-	  case 0: Zheader->setText(tr("Tx Zeros [Hz]:")); break;
-	  case 1: Zheader->setText(tr("Tx Zeros [KHz]:")); break;
-	  case 2: Zheader->setText(tr("Tx Zeros [MHz]:")); break;
-	  case 3: Zheader->setText(tr("Tx Zeros [GHz]:")); break;
+	  case 0: Zheader1->setText(tr("Re(Tx Zero) [Hz]")); break;
+	  case 1: Zheader1->setText(tr("Re(Tx Zero) [KHz]")); break;
+	  case 2: Zheader1->setText(tr("Re(Tx Zero) [MHz]")); break;
+	  case 3: Zheader1->setText(tr("Re(Tx Zero) [GHz]")); break;
      }
-     txZeros->setHorizontalHeaderItem(0, Zheader);
+     txZeros->setHorizontalHeaderItem(0, Zheader1);
+     QTableWidgetItem *Zheader2 = new QTableWidgetItem();
+     switch(fI){
+	  case 0: Zheader2->setText(tr("Im(Tx Zero) [Hz]")); break;
+	  case 1: Zheader2->setText(tr("Im(Tx Zero) [KHz]")); break;
+	  case 2: Zheader2->setText(tr("Im(Tx Zero) [MHz]")); break;
+	  case 3: Zheader2->setText(tr("Im(Tx Zero) [GHz]")); break;
+     }
+     txZeros->setHorizontalHeaderItem(1, Zheader2);
      txZeros->setRowCount(prjData.filterZeros.size());
      for (int i = 0; i <prjData.filterZeros.size(); ++i) {
-           QLineEdit* le = new QLineEdit();
-	   le->setValidator(freqvalidator);
-           le->setText(QString("%1").arg(prjData.filterZeros[i], 0, 'f', 8));
-           txZeros->setCellWidget(i,0,le);
+           QLineEdit* ler = new QLineEdit();
+	   ler->setValidator(freqvalidator);
+           ler->setText(QString("%1").arg(prjData.filterZeros[i].real(), 0, 'f', 8));
+           txZeros->setCellWidget(i,0,ler);
+           QLineEdit* lei = new QLineEdit();
+	   lei->setValidator(freqvalidator);
+           lei->setText(QString("%1").arg(prjData.filterZeros[i].imag(), 0, 'f', 8));
+           txZeros->setCellWidget(i,1,lei);
      }
+     txZeros->resizeColumnsToContents();
 
+
+     addConjTzCB=new QCheckBox("Add Conjugate Tx Zeros", this);
+     if(prjData.idealFilterAddConjugateTZ)  addConjTzCB->setCheckState(Qt::Checked);
+     else                                    addConjTzCB->setCheckState(Qt::Unchecked);
+
+     mappedTzCB=new QCheckBox("Mapped Transmission Zeros", this);
+     QString RM_SZPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.SZP");
+     mappedTzCB->setEnabled(FileExists(RM_SZPpath.toLatin1().data()));
+     if(!mappedTzCB->isEnabled()){
+	 prjData.idealFilterWithMappedTZ=false;
+         mappedTzCB->setCheckState(Qt::Unchecked);
+     }
+     if(prjData.idealFilterWithMappedTZ)  mappedTzCB->setCheckState(Qt::Checked);
+     else                                 mappedTzCB->setCheckState(Qt::Unchecked);
 
      QLabel *portImpedanceLabel= new QLabel();
      portImpedanceLabel->setText(tr("Port Impedance [ohm]:"));
@@ -7871,6 +8669,9 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
 
      nLayout->addWidget(txZerosNumLabel, 1, 0);
      nLayout->addWidget(txZerosNumSB, 1, 1);
+     
+     nLayout->addWidget(addConjTzCB, 2, 0);
+     nLayout->addWidget(mappedTzCB, 2, 1);
 
      zerosLayout->addWidget(txZeros, 0, 0);
 
@@ -7928,6 +8729,8 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
 //******
      connect(customIdealFilterCB, SIGNAL( stateChanged (int) ), this, SLOT(updateCustomIdealFilter(int)) );
      connect(symmResponseCB, SIGNAL( stateChanged (int) ), this, SLOT(updateSymmResponse(int)) );
+     connect(mappedTzCB, SIGNAL( stateChanged (int) ), this, SLOT(onMappedTxZeros(int)) );
+     connect(addConjTzCB, SIGNAL( stateChanged (int) ), this, SLOT(onAddConjugateTZ(int)) );
      connect(predistortedFilterCB, SIGNAL( stateChanged (int) ), this, SLOT(updatePredistorted(int)) );
      connect(predistFilterOptimCB, SIGNAL( stateChanged (int) ), this, SLOT(updatePredistOptim(int)) );
      connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
@@ -7961,6 +8764,34 @@ void FilterDesignDialog::setIdealFilter(){
   dialog->show();
 }
 
+void FilterDesignDialog::onMappedTxZeros(int state)
+{
+     if(state==Qt::Checked)  addConjTzCB->setCheckState(Qt::Unchecked);
+}
+
+void FilterDesignDialog::onAddConjugateTZ(int state)
+{
+     if(state==Qt::Checked){
+       std::vector<std::complex<double> > filterZeros;
+       for (int i = 0; i <txZerosNumSB->value(); ++i) {
+         QLineEdit* ler = (QLineEdit*) txZeros->cellWidget(i,0);
+         QLineEdit* lei = (QLineEdit*) txZeros->cellWidget(i,1);
+         if(lei->text().toDouble()>=0) filterZeros.push_back(std::complex<double>(ler->text().toDouble(),lei->text().toDouble()));
+       }
+       txZerosNumSB->setValue(filterZeros.size());
+       txZeros->setRowCount(filterZeros.size());
+       for (int i = 0; i <filterZeros.size(); ++i) {
+           QLineEdit* ler = new QLineEdit();
+	   ler->setValidator(freqvalidator);
+           ler->setText(QString("%1").arg(filterZeros[i].real(), 0, 'f', 8));
+           txZeros->setCellWidget(i,0,ler);
+           QLineEdit* lei = new QLineEdit();
+	   lei->setValidator(freqvalidator);
+           lei->setText(QString("%1").arg(filterZeros[i].imag(), 0, 'f', 8));
+           txZeros->setCellWidget(i,1,lei);
+       }
+     }
+}
 
 void FilterDesignDialog::updatePredistorted(int state)
 {
@@ -8013,9 +8844,12 @@ void FilterDesignDialog::setTxZerosNum(int n){
 	int n0=txZeros->rowCount();
 	txZeros->setRowCount(n);
         for (int i = n0; i <n; ++i){
-              QLineEdit* le = new QLineEdit();
-	      le->setValidator(freqvalidator);
-              txZeros->setCellWidget(i,0,le);
+              QLineEdit* ler = new QLineEdit();
+	      ler->setValidator(freqvalidator);
+              txZeros->setCellWidget(i,0,ler);
+              QLineEdit* lei = new QLineEdit();
+	      lei->setValidator(freqvalidator);
+              txZeros->setCellWidget(i,1,lei);
 	}
 }
 
@@ -8079,21 +8913,42 @@ void FilterDesignDialog::set(){
 
     bool zerosChanged=false;
     if(changed) prjData.saveSettings();
-    std::vector<double> filterZeros;
-    for (int i = 0; i <txZerosNumSB->value(); ++i) {
-       QLineEdit* le = (QLineEdit*) txZeros->cellWidget(i,0);
-       filterZeros.push_back(le->text().toDouble());
+    std::vector<std::complex<double> > filterZeros;
+    for (int i = 0; i <txZeros->rowCount(); ++i) {
+       QLineEdit* ler = (QLineEdit*) txZeros->cellWidget(i,0);
+       QLineEdit* lei = (QLineEdit*) txZeros->cellWidget(i,1);
+       filterZeros.push_back(std::complex<double>(ler->text().toDouble(),lei->text().toDouble()));
     }
     if(txZerosNumSB->value()!=prjData.filterZeros.size()) zerosChanged=true;
     else for (int i = 0; i < filterZeros.size(); ++i)
-              if(fabs(filterZeros[i])>0) 
-	         if(fabs(1-prjData.filterZeros[i]/filterZeros[i])>1.e-8) zerosChanged=true;
-
+              if(std::norm(filterZeros[i])>0)
+                 if(std::norm(prjData.filterZeros[i]/filterZeros[i]-1.0)) zerosChanged=true;
     if(zerosChanged){
      prjData.filterZeros=filterZeros;
      changed=true;
     }
 
+    int addConjTz=(addConjTzCB->checkState()==Qt::Checked)? 1 :0;
+    if(prjData.idealFilterAddConjugateTZ!=addConjTz) {changed=true; prjData.idealFilterAddConjugateTZ=addConjTz;}
+
+    int mappedTz=(mappedTzCB->checkState()==Qt::Checked)? 1 :0;
+    if(prjData.idealFilterWithMappedTZ!=mappedTz) {changed=true; prjData.idealFilterWithMappedTZ=mappedTz;}
+    QString RM_SZPpath=nativePath(mainWorkPath+"/Data/Circuits/"+prjData.mainAssName+"_RM.SZP");
+    if(mappedTz&&FileExists(RM_SZPpath.toLatin1().data())){
+       prjData.readFilterTxZeros(RM_SZPpath.toLatin1().data());
+       txZeros->setRowCount(prjData.filterZeros.size());
+       txZerosNumSB->setValue(prjData.filterZeros.size());
+       for (int i = 0; i <prjData.filterZeros.size(); ++i) {
+           QLineEdit* ler = new QLineEdit();
+	   ler->setValidator(freqvalidator);
+           ler->setText(QString("%1").arg(prjData.filterZeros[i].real(), 0, 'f', 8));
+           txZeros->setCellWidget(i,0,ler);
+           QLineEdit* lei = new QLineEdit();
+	   lei->setValidator(freqvalidator);
+           lei->setText(QString("%1").arg(prjData.filterZeros[i].imag(), 0, 'f', 8));
+           txZeros->setCellWidget(i,1,lei);
+       }
+    }
     tmp=portImpedanceLineEdit->text().toDouble();
     if(fabs(prjData.filterPortImpedance-tmp)>1.e-4) { prjData.filterPortImpedance=tmp; changed=true;}
 
@@ -8271,15 +9126,15 @@ void FilterMapDialog::atSourceChanged(int i){
      } else if (mapSourceChooser->currentIndex()==ZEROPOLES){
   	qfactorGroupBox->hide();
 	freqGroupBox->hide();
-        QString mappedCircuitName=prjData.mainAssName+"_RM_mapped_canonical";
-        QString filtInpPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCircuitName+".inp");
-        bool hasFiltInp=FileExists(filtInpPath.toLatin1().data());
+        QString mappedInputName=prjData.mainAssName+"_RM_mapped_canonical.inp";
+        QString filtInpPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedInputName);
+        bool hasFiltInp=FileExists(filtInpPath);
         startButton->setEnabled(hasFiltInp);
      } else if (mapSourceChooser->currentIndex()==IMPORTED_RESPONSE){
   	qfactorGroupBox->show();
 	freqGroupBox->show();
         QString importedS2Ppath=nativePath(mainWorkPath+"/Data/Circuits/imported_response.s2p");
-        bool hasImportedTS=FileExists(importedS2Ppath.toLatin1().data());
+        bool hasImportedTS=FileExists(importedS2Ppath);
         startButton->setEnabled(hasImportedTS);
      }
 }
@@ -8327,91 +9182,9 @@ void FilterMapDialog::help()
 }
 
 
-//*************
-FilterDesignWithTzMapDialog::FilterDesignWithTzMapDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
-{
-     mainw=parent;
-     setModal(0);
-
-
-//   Automatic
-     automatic=new QCheckBox("Automatic update", this);
-     QHBoxLayout *automaticLayout = new QHBoxLayout();
-     automaticLayout->addWidget(automatic);
-     QGroupBox *automaticGroupBox=new QGroupBox();
-     automaticGroupBox->setLayout(automaticLayout);
-
-     if(prjData.autoFilterMapping) automatic->setCheckState(Qt::Checked);
-     else                          automatic->setCheckState(Qt::Unchecked);
-
-
-//****************************************
-//   control buttons:
-//
-     setButton = new QPushButton(tr("Set"));
-     setButton->resize(1.5,3);
-     startButton =new QPushButton(tr("Start"));
-     startButton->resize(1.5,3);
-     closeButton =new QPushButton(tr("Close"));
-     closeButton->resize(1.5,3);
-     QPushButton *helpButton  = new QPushButton(tr("Help"));
-     helpButton->resize(1.5,3);
-
-     QHBoxLayout *buttonLayout = new QHBoxLayout();
-     buttonLayout->addWidget(setButton);
-     buttonLayout->addWidget(startButton);
-     buttonLayout->addWidget(closeButton);
-     buttonLayout->addWidget(helpButton);
-
-     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
-     buttonGroupBox->setLayout(buttonLayout);
-
-//******
-     connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
-     connect(parent, SIGNAL(enterPressed()), this, SLOT(set()));
-     connect(startButton,  SIGNAL(clicked()), this, SLOT(start()));
-     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
-     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
-
-     setFocusPolicy(Qt::StrongFocus);
-
-     mainLayout = new QVBoxLayout(this);
-     mainLayout->addWidget(automaticGroupBox);
-     mainLayout->addWidget(buttonGroupBox);
-
-     setFocusPolicy(Qt::StrongFocus);
-
-}
 
 
 
-void FilterDesignWithTzMapDialog::set(){
-    bool changed;
-    int autostate=(automatic->checkState()==Qt::Checked)? 1 :0;
-    if( prjData.autoDesignWithMappedTz!=autostate) {changed=true; prjData.autoDesignWithMappedTz=autostate;}
-    if(changed) prjData.saveSettings();
-}
-
-
-void FilterDesignWithTzMapDialog::start(){
- set();
- setButton->setEnabled(false);
- startButton->setEnabled(false);
- closeButton->setEnabled(false);
- mainw->startTask(FILTERDESIGNMAPPEDTXZ);
-}
-
-void FilterDesignWithTzMapDialog::atFilterDesignWithTzMapEnd(){
- setButton->setEnabled(true);
- startButton->setEnabled(true);
- closeButton->setEnabled(true);
-}
-
-
-void FilterDesignWithTzMapDialog::help()
-{
-    documentation.showDocumentation(QLatin1String("#1"));
-}
 
 
 

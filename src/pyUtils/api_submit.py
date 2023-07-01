@@ -23,6 +23,7 @@
 import os,sys,time,fnmatch
 import json
 import api_utils
+import re
 
 argv=sys.argv
 
@@ -65,10 +66,20 @@ for i,arg in enumerate(argv):
        target_cktname=argv[i+1]
        break
 
+dataFile=''
+for i,arg in enumerate(argv):
+    if arg=="-dataFile":
+       dataFile=argv[i+1]
+       break
+
+s2pFile=''
+for i,arg in enumerate(argv):
+    if arg=="-s2pFile":
+       s2pFile=argv[i+1]
+       break
 
 
 folder=project
-
 
 argv[0]=job
 
@@ -115,22 +126,39 @@ def project_file_put(fname,only_if_newer=True):
     api_utils.upload_project_file(username,password,fname,folder,only_if_newer)
     return 0
 
+subfilter=re.compile('(.*_SUB[0-9]+_IF[.]JC)|(.*_SUB[0-9]+_RM[.]JC)')
 
 def project_file_putall(job):
     project_file_put(fname+'.json')
     project_file_put(fname+'.res')
-    if job=="modelize1" or job=="modelizep":
+    if job=="modelize1":
+        project_file_put(fname+'.iter')
         if meshing==1:
             project_file_put(fname+'.tgz')
         else:
             project_file_put(fname+'.mwm')
+    elif job=="modelizep":
+        if meshing==1:
+            project_file_put(fname+'.tgz')
+        else:
+            project_file_put(fname+'.mwm')
+    elif job=="compIF":
+       for f in os.listdir("./"):
+            if fnmatch.fnmatch(f, fname+'_SUB*_IF.JC'):
+                project_file_put(f)
+            if fnmatch.fnmatch(f, fname+'_SUB*.port'):
+                project_file_put(f)
     elif job=="reduce":
-       for f in os.listdir("./"):
-            if fnmatch.fnmatch(f, '*.JC'):
-                   project_file_put(f)
-       for f in os.listdir("./"):
-            if fnmatch.fnmatch(f, '*_RM.JC'):
-                   project_file_put(f)
+        project_file_put(fname+'.JC')
+        filesToInclude=[]
+        with open(fname+'.JC', "r") as f:
+           for line in f:
+              words=line.split()
+              if len(words) >0:
+                 if words[0]=='.include':
+                    filesToInclude.append(words[1])
+        for f in filesToInclude:
+            project_file_put(f)
     elif job=="analyse" or job=="analyseszp":
        project_file_put(fname+'.JC')
        project_file_put('extern_port_loads.JC')
@@ -142,7 +170,12 @@ def project_file_putall(job):
     elif job=="filtermap":
        pippo=1
     elif job=="symmfilter":
-       project_file_put(fname+'.inp')
+       if dataFile != '':
+           project_file_put(dataFile)
+       else:
+           project_file_put(fname+'.inp')
+       if s2pFile != '' :
+           project_file_put(s2pFile)
     else:
        raise JobExecutionException("not valid job: " +job)
 
@@ -185,6 +218,9 @@ def project_file_getall(job):
              project_file_get(fname+"*.port")
     elif job=="modelizep":
              project_file_get(fname+"*.port")
+    elif job=="compIF":
+             project_file_get(fname+'.JC')
+             project_file_get(fname+'_IF.JC')
     elif job=="reduce":
              project_file_get(fname+'_RM.JC')
              project_file_get(fname+'_RM.sp')

@@ -85,6 +85,7 @@ struct  StringList_t {
  void reset();
 };
 
+enum  RoughSurfModelType { GradientModel=0, HurayTwoParam=1, HurayCannonBall=2, LossAndQfactors=3, HurayHexBase=4};
 
 class MatBuffer{
 public:
@@ -108,8 +109,13 @@ public:
   double    Sresistance;
   double    Sinductance;
   double    roughSurfFreq;
+  int       roughSurfModelType;
   double    roughSurfLossFactor;
   double    roughSurfImpedanceQ;
+  double    roughSurfBallRadius;
+  double    roughSurfSurfRatio;
+  double    roughSurfRz;
+  double    roughSurfRq;
   int       roughSurfFitPolesNum;
   int     color[4];
   static MatBuffer buff;
@@ -139,6 +145,7 @@ public:
   int        PML;
   int        invariant;
   double     meshRefinement;
+  double     cutoffRefinement;
   int        cellNum;
   std::map<int,int> Fmap, Cmap;
   Volume();

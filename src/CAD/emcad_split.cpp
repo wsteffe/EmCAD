@@ -67,6 +67,7 @@ int main(int argc, char **argv)
       ocaf->workopen(partitionDir.c_str());
       ocaf->regenerateIndexedSubShapes();
       ocaf->initFEPdataStruct();
+      ocaf->readFEproperties();
       if(ocaf->subCompNum) ocaf->setSuperFaces();
       int subCompNum=ocaf->subCompNum;
       delete ocaf;

@@ -52,6 +52,7 @@ extern int modeldebug;
 extern int model_flex_debug;
 extern int touchstonedebug;
 extern int touchstone_flex_debug;
+extern int projectDatadebug;
 
 void WriteBoto();
 
@@ -80,6 +81,7 @@ int main(int argc, char *argv[])
     readlink("/proc/self/exe", emcadPath, 256);
 #endif
 
+    projectDatadebug=0;
     modeldebug=0;
     model_flex_debug=0;
     touchstonedebug=0;
