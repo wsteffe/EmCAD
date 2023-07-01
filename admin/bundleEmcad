@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+mingw-bundledlls /c/EmCAD/bin/emcad.exe >mingw-bundledlls-tmp.txt
+mingw-bundledlls /c/EmCAD/bin/emcad_mesh.exe >>mingw-bundledlls-tmp.txt
+filterRequiredDLL -installdir c:\\EmCAD <mingw-bundledlls-tmp.txt >mingw-bundledlls.txt
+#rm mingw-bundledlls-tmp.txt
