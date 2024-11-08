@@ -22,8 +22,8 @@
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
 
-#include "ListUtils.h"
-#include "TreeUtils.h"
+#include "List.h"
+#include "Tree.h"
 
 namespace DB {
 

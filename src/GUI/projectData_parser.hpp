@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
-# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+#ifndef YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
+# define YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -94,65 +94,73 @@ extern int projectDatadebug;
     WINDOW = 295,                  /* WINDOW  */
     CURVE = 296,                   /* CURVE  */
     CIRCLE = 297,                  /* CIRCLE  */
-    IDEAL = 298,                   /* IDEAL  */
-    CANONICAL = 299,               /* CANONICAL  */
-    FILTER = 300,                  /* FILTER  */
-    CUSTOM = 301,                  /* CUSTOM  */
-    PASS = 302,                    /* PASS  */
-    KRYLOV = 303,                  /* KRYLOV  */
-    ORDER = 304,                   /* ORDER  */
-    RETURNLOSS = 305,              /* RETURNLOSS  */
-    OUTBAND = 306,                 /* OUTBAND  */
-    MAPPING = 307,                 /* MAPPING  */
-    TUNING = 308,                  /* TUNING  */
-    METHOD = 309,                  /* METHOD  */
-    SOURCE = 310,                  /* SOURCE  */
-    ITERMAX = 311,                 /* ITERMAX  */
-    AUTOMATIC = 312,               /* AUTOMATIC  */
-    DESIGN = 313,                  /* DESIGN  */
-    WITH = 314,                    /* WITH  */
-    MAPPED = 315,                  /* MAPPED  */
-    TX = 316,                      /* TX  */
-    ZEROS = 317,                   /* ZEROS  */
-    ADD = 318,                     /* ADD  */
-    CONJUGATE = 319,               /* CONJUGATE  */
-    PORT = 320,                    /* PORT  */
-    IMPEDANCE = 321,               /* IMPEDANCE  */
-    TARGET = 322,                  /* TARGET  */
-    QFACTOR = 323,                 /* QFACTOR  */
-    UNIFORM = 324,                 /* UNIFORM  */
-    INDUCTIVE = 325,               /* INDUCTIVE  */
-    SKIN = 326,                    /* SKIN  */
-    LOSSY = 327,                   /* LOSSY  */
-    PREDISTORTED = 328,            /* PREDISTORTED  */
-    OPTIMIZE = 329,                /* OPTIMIZE  */
-    ILOSSPP = 330,                 /* ILOSSPP  */
-    TRUSTR = 331,                  /* TRUSTR  */
-    CUTOFF = 332,                  /* CUTOFF  */
-    RATIO = 333,                   /* RATIO  */
-    RECOMPUTE = 334,               /* RECOMPUTE  */
-    JACOBIAN = 335,                /* JACOBIAN  */
-    ERRORT = 336,                  /* ERRORT  */
-    ONLY = 337,                    /* ONLY  */
-    TRANSVERSEJ = 338,             /* TRANSVERSEJ  */
-    XTOL = 339,                    /* XTOL  */
-    GRADDX = 340,                  /* GRADDX  */
-    REMESH = 341,                  /* REMESH  */
-    FIRST = 342,                   /* FIRST  */
-    DECOMPOSITION = 343,           /* DECOMPOSITION  */
-    MATERIAL = 344,                /* MATERIAL  */
-    MODELIZATION = 345,            /* MODELIZATION  */
-    COMPONENT = 346,               /* COMPONENT  */
-    SAVE = 347,                    /* SAVE  */
-    REDUCTION = 348,               /* REDUCTION  */
-    RELOAD = 349,                  /* RELOAD  */
-    NEEDED = 350,                  /* NEEDED  */
-    DONE = 351,                    /* DONE  */
-    CHANGED = 352,                 /* CHANGED  */
-    tMIN = 353,                    /* tMIN  */
-    tMAX = 354,                    /* tMAX  */
-    PLUSI = 355,                   /* PLUSI  */
-    MINUSI = 356                   /* MINUSI  */
+    XYPLANE = 298,                 /* XYPLANE  */
+    YZPLANE = 299,                 /* YZPLANE  */
+    ZXPLANE = 300,                 /* ZXPLANE  */
+    SYMMETRY = 301,                /* SYMMETRY  */
+    IDEAL = 302,                   /* IDEAL  */
+    CANONICAL = 303,               /* CANONICAL  */
+    FILTER = 304,                  /* FILTER  */
+    CUSTOM = 305,                  /* CUSTOM  */
+    PASS = 306,                    /* PASS  */
+    KRYLOV = 307,                  /* KRYLOV  */
+    ORDER = 308,                   /* ORDER  */
+    RETURNLOSS = 309,              /* RETURNLOSS  */
+    OUTBAND = 310,                 /* OUTBAND  */
+    MAPPING = 311,                 /* MAPPING  */
+    TUNING = 312,                  /* TUNING  */
+    METHOD = 313,                  /* METHOD  */
+    SOURCE = 314,                  /* SOURCE  */
+    ITERMAX = 315,                 /* ITERMAX  */
+    AUTOMATIC = 316,               /* AUTOMATIC  */
+    DESIGN = 317,                  /* DESIGN  */
+    WITH = 318,                    /* WITH  */
+    MAPPED = 319,                  /* MAPPED  */
+    TX = 320,                      /* TX  */
+    ZEROS = 321,                   /* ZEROS  */
+    SPICE = 322,                   /* SPICE  */
+    SET = 323,                     /* SET  */
+    CENTRAL = 324,                 /* CENTRAL  */
+    CONFIG = 325,                  /* CONFIG  */
+    ADD = 326,                     /* ADD  */
+    CONJUGATE = 327,               /* CONJUGATE  */
+    PORT = 328,                    /* PORT  */
+    IMPEDANCE = 329,               /* IMPEDANCE  */
+    TARGET = 330,                  /* TARGET  */
+    QFACTOR = 331,                 /* QFACTOR  */
+    UNIFORM = 332,                 /* UNIFORM  */
+    INDUCTIVE = 333,               /* INDUCTIVE  */
+    SKIN = 334,                    /* SKIN  */
+    LOSSY = 335,                   /* LOSSY  */
+    PREDISTORTED = 336,            /* PREDISTORTED  */
+    OPTIMIZE = 337,                /* OPTIMIZE  */
+    ILOSSPP = 338,                 /* ILOSSPP  */
+    TRUSTR = 339,                  /* TRUSTR  */
+    CUTOFF = 340,                  /* CUTOFF  */
+    RATIO = 341,                   /* RATIO  */
+    RECOMPUTE = 342,               /* RECOMPUTE  */
+    JACOBIAN = 343,                /* JACOBIAN  */
+    ERRORT = 344,                  /* ERRORT  */
+    ONLY = 345,                    /* ONLY  */
+    TRANSVERSEJ = 346,             /* TRANSVERSEJ  */
+    XTOL = 347,                    /* XTOL  */
+    GRADDX = 348,                  /* GRADDX  */
+    REMESH = 349,                  /* REMESH  */
+    FIRST = 350,                   /* FIRST  */
+    DECOMPOSITION = 351,           /* DECOMPOSITION  */
+    MATERIAL = 352,                /* MATERIAL  */
+    MODELIZATION = 353,            /* MODELIZATION  */
+    COMPONENT = 354,               /* COMPONENT  */
+    SAVE = 355,                    /* SAVE  */
+    REDUCTION = 356,               /* REDUCTION  */
+    RELOAD = 357,                  /* RELOAD  */
+    NEEDED = 358,                  /* NEEDED  */
+    DONE = 359,                    /* DONE  */
+    CHANGED = 360,                 /* CHANGED  */
+    tMIN = 361,                    /* tMIN  */
+    tMAX = 362,                    /* tMAX  */
+    PLUSI = 363,                   /* PLUSI  */
+    MINUSI = 364                   /* MINUSI  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -161,13 +169,13 @@ extern int projectDatadebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 69 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 69 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 171 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.hpp"
+#line 179 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -182,4 +190,4 @@ extern YYSTYPE projectDatalval;
 int projectDataparse (void);
 
 
-#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */
+#endif /* !YY_PROJECTDATA_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_GUI_PROJECTDATA_PARSER_HPP_INCLUDED  */

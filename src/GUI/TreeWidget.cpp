@@ -51,6 +51,7 @@
 #include <QSizePolicy>
 
 #include <TDF_ChildIterator.hxx>
+#include <TDataStd_Name.hxx>
 
 #include <QFocusEvent>
 
@@ -100,11 +101,8 @@ TreeWidget::TreeWidget(){
       connect(aboutAction, SIGNAL(triggered()), this, SLOT(about()));
 //      connect(aboutAction, SIGNAL(triggered()), this, SIGNAL(buttonClicked()));
 
-      openCompOrPartitionAction = new QAction(tr("&Open Component OR Partition"), this);
-      connect(openCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(openCompOrPartition()));
-
-      openCompAndPartitionAction = new QAction(tr("&Open Component AND Partition"), this);
-      connect(openCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(openCompAndPartition()));
+      openComponentAction = new QAction(tr("&Open Component OR Subdomain"), this);
+      connect(openComponentAction, SIGNAL(triggered()), this, SLOT(openComp()));
 
       viewSubCompConvergenceAction = new QAction(tr("&View Component Convergence"), this);
       connect(viewSubCompConvergenceAction, SIGNAL(triggered()), this, SLOT(viewSubCompConvergence()));
@@ -386,12 +384,18 @@ void TreeWidget::makeSubTree(TreeWidgetItem * troot, TDF_Label root)
  for (TDF_ChildIterator it(root,Standard_False); it.More(); it.Next()) 
  {
      TDF_Label label = it.Value();
+/*
+     Handle(TDataStd_Name)  nameAtt;
+     TCollection_AsciiString name;
+     if(label.FindAttribute(TDataStd_Name::GetID(),nameAtt)) name=nameAtt->Get();
+*/
      if (label.HasAttribute()){
 //       bool skip=mainOCAF->hasAssembly()&&mainOCAF->isTopLevel(label) && mainOCAF->isSimpleShape(label);
 //       bool skip=mainOCAF->hasAssembly()&&mainOCAF->isTopLevel(label)&&(!mainOCAF->isFree(label) ||mainOCAF->isFree(label) && mainOCAF->isSimpleShape(label));
        bool skip= mainOCAF->isShape(label) && mainOCAF->isTopLevel(label) && !mainOCAF->isFree(label);
        skip=skip || mainOCAF->isMaterial(label) || mainOCAF->isDGTs(label) || mainOCAF->isParts(label) || mainOCAF->isDisabled(label);
        QString qtext; getLabelName(label, qtext);
+       std::string strname=std::string(qtext.toLatin1().data());
        skip = skip || (qtext.length()==0);
        if (!skip) {
          TreeWidgetItem *item =new TreeWidgetItem(troot);
@@ -491,6 +495,7 @@ void TreeWidget::setDefaultBC(){
      theDefaultMaterial=*mat;
      strcpy(theDefaultMaterial.name,mat->name);
      strcpy(mainOCAF->EmP->defaultBC,currentMaterialName.toLatin1().data());
+     mainOCAF->worksave();
      prjData.workStatus.decompositionNeeded=true;
      mainWindow->recursiveAssignDefaultMaterial();
    }else
@@ -661,6 +666,14 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      TMnumSB->setValue(0);
      TMnumSB->setMinimum(0);
 
+     QLabel *TEM_TabularOrderLabel= new QLabel();
+     TEM_TabularOrderLabel->setText(tr("TEM tabular order:"));
+     TEM_TabularOrder= new QComboBox();
+     TEM_TabularOrder->addItem(tr("None"));
+     TEM_TabularOrder->addItem(tr("Left-Right"));
+     TEM_TabularOrder->addItem(tr("Right-Left"));
+     TEM_TabularOrder->setCurrentIndex(0);
+
      QGridLayout *WgLayout = new QGridLayout();
      WgLayout->addWidget(WgLabel,     0, 0);
      WgLayout->addWidget(TEMnumLabel, 1, 0);
@@ -669,6 +682,8 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      WgLayout->addWidget(TEnumSB,     2, 1);
      WgLayout->addWidget(TMnumLabel,  3, 0);
      WgLayout->addWidget(TMnumSB,     3, 1);
+     WgLayout->addWidget(TEM_TabularOrderLabel,  4, 0);
+     WgLayout->addWidget(TEM_TabularOrder,     4, 1);
      
      WgGroupBox=new QGroupBox();
      WgGroupBox->setLayout(WgLayout);
@@ -751,7 +766,7 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      cutoffRefValidator->setNotation(QDoubleValidator::StandardNotation);
 
      QLabel *cutoffRefLabel= new QLabel(); 
-     cutoffRefLabel->setText(tr("Cutoff Ratio"));
+     cutoffRefLabel->setText(tr("Cutoff Refinement"));
      cutoffRefLineEdit = new QLineEdit();
      cutoffRefLineEdit->setText(QString("%1").arg(1.0));
      cutoffRefLineEdit->setValidator(cutoffRefValidator);		
@@ -848,6 +863,7 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
   TEMnumLE->setText(TEMnum);
   TEnumSB->setValue(vol->TEportsNum);
   TMnumSB->setValue(vol->TMportsNum);
+  TEM_TabularOrder->setCurrentIndex(vol->TEM_TabularOrder);
   updateType(vol->type);
   if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND  || vol->type==SPLITTER)  meshRefLineEdit->setText(QString("%1").arg(vol->meshRefinement));
   if(vol->type==SPLITTER)  cutoffRefLineEdit->setText(QString("%1").arg(vol->cutoffRefinement));
@@ -891,6 +907,7 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
         bool portChanged=false;	
 	if(vol->TEportsNum!=TEnumSB->value())  {vol->TEportsNum=TEnumSB->value(); portChanged=changed=true;}
 	if(vol->TMportsNum!=TMnumSB->value())  {vol->TMportsNum=TMnumSB->value(); portChanged=changed=true;}
+	if(vol->TEM_TabularOrder!=TEM_TabularOrder->currentIndex())  {vol->TEM_TabularOrder=TEM_TabularOrder->currentIndex(); portChanged=changed=true;}
 	if(portChanged) {
            mainOCAF->setPartsStatus();
            prjData.workStatus.decompositionNeeded=true;
@@ -1174,8 +1191,6 @@ DefineMaterialDialog::DefineMaterialDialog(TreeWidget *parent) : QDialog(parent)
 //****************************************
 //   Surface Properties
 
-     QLabel *roughModelChooserLabel= new QLabel();
-     roughModelChooserLabel->setText(tr("Rough Surface Definition Type:"));
      roughModelChooser = new QComboBox();
      roughModelChooser->addItem(tr("Gradient Model"));
      roughModelChooser->addItem(tr("Two Parameters Huray Model"));
@@ -1969,6 +1984,7 @@ void DefineMaterialDialog::set(){
 	setMaterialData(mat);
 	mainWindow->saveMaterials();
 	mainOCAF->updatePartColors();
+        mainOCAF->worksave();
         prjData.workStatus.materialChanged=1;
         prjData.workStatus.componentsaveNeeded=1;
 }
@@ -2035,10 +2051,13 @@ void ImportCompPropertiesDialog::getVolumeData(QString volname){
   DB::Volume* vol = mainOCAF->EmP->FindVolume(volname.toLatin1().data());
   if(!vol) return;
   nameLineEdit->setText(volname);
+/*
   QString filter1=genericName(volname)+".emc";
   QString filter2=genericName(volname)+"_*.emc";
   QString filters="("+filter1+" "+filter2+")";
-  fdialog->setNameFilter(filters);
+*/
+  const QStringList filters({"CMP files (CMP_*.emc)", "EMC files (*.emc)"});
+  fdialog->setNameFilters(filters);
 }
 
 void ImportCompPropertiesDialog::help()
@@ -2168,8 +2187,7 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
        currentPart=item;
        getLabelName(label, currentPartName);
        emit sendPartName(currentPartName);
-       mainWindow->openCompOrPartitionAction->setEnabled(true);
-       mainWindow->openCompAndPartitionAction->setEnabled(true);
+       mainWindow->openComponentAction->setEnabled(true);
        viewSubCompConvergenceAction->setEnabled(false);
        return;
    } 
@@ -2177,8 +2195,7 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
        currentLayer=item;
        getLabelName(label, currentLayerName);
        emit sendLayerName(currentLayerName);
-       mainWindow->openCompOrPartitionAction->setEnabled(false);
-       mainWindow->openCompAndPartitionAction->setEnabled(false);
+       mainWindow->openComponentAction->setEnabled(false);
        viewSubCompConvergenceAction->setEnabled(false);
        return;
    }
@@ -2186,24 +2203,21 @@ void TreeWidget::setCurrentItem(QTreeWidgetItem * qitem, int column){
       currentMaterial=item;
       currentMaterialName=mat->name;
       emit sendMaterialName(currentMaterialName);
-      mainWindow->openCompOrPartitionAction->setEnabled(false);
-      mainWindow->openCompAndPartitionAction->setEnabled(false);
+      mainWindow->openComponentAction->setEnabled(false);
       viewSubCompConvergenceAction->setEnabled(false);
       return;
    }
    if(!label.IsNull())
-    if(mainOCAF->isPartition()){
+    if(mainOCAF->EmP->assemblyType==COMPONENT){
       QString labelName;
       getLabelName(label, labelName);
       if(mainOCAF->subComp) currentSubComp=mainOCAF->subComp;
       else currentSubComp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(labelName.toLatin1().data()) : 0;
-      mainWindow->openCompOrPartitionAction->setEnabled(currentSubComp>0);
-      mainWindow->openCompAndPartitionAction->setEnabled(currentSubComp>0);
+      mainWindow->openComponentAction->setEnabled(currentSubComp>0);
       viewSubCompConvergenceAction->setEnabled(currentSubComp>0);
       return;
    }
-   mainWindow->openCompOrPartitionAction->setEnabled(false);
-   mainWindow->openCompAndPartitionAction->setEnabled(false);
+   mainWindow->openComponentAction->setEnabled(false);
    viewSubCompConvergenceAction->setEnabled(false);
 }
 
@@ -2309,14 +2323,12 @@ void  TreeWidget::showWgModes()
 
 
 
-void TreeWidget::openCompAndPartition()
+void TreeWidget::openComp()
 {    
-     mainWindow->openCompAndPartition();
+     mainWindow->openComp();
 }
-void TreeWidget::openCompOrPartition()
-{    
-     mainWindow->openCompOrPartition();
-}
+
+
 void TreeWidget::viewSubCompConvergence()
 {    
      mainWindow->viewSubCompConvergence();
@@ -2484,15 +2496,13 @@ void TreeWidget::contextMenuEvent(QContextMenuEvent *event)
       }
       if(showlayers)      menu.addAction(assignLayerAction);
       if(mainOCAF->isPart(selectedLabel)){
-	      menu.addAction(openCompOrPartitionAction);
-	      menu.addAction(openCompAndPartitionAction);
-      } else if(mainOCAF->isPartition()){
+	      menu.addAction(openComponentAction);
+      } else if(mainOCAF->EmP->assemblyType==COMPONENT){
        int currentSubCmp=0;
        if(mainOCAF->subComp) currentSubComp=mainOCAF->subComp;
        else currentSubCmp=mainOCAF->subCompNum>0? mainOCAF->partNameCompMap(selectedLabelName.toLatin1().data()) : 0;
        if(currentSubCmp>0) {
-	     menu.addAction(openCompOrPartitionAction);
-	     menu.addAction(openCompAndPartitionAction);
+	     menu.addAction(openComponentAction);
 	     menu.addAction(viewSubCompConvergenceAction);
        }
       }

@@ -1,8 +1,11 @@
-import os,time,datetime
+import os,sys,time,datetime
 from dateutil import tz
 from base64 import b64encode
 import requests
 import json
+import api_proxy
+from pypac import PACSession, pac_context_for_url
+
 
 def make_token(username,password):
    nameAndPass=username+":"+password
@@ -11,38 +14,32 @@ def make_token(username,password):
    return token
 
 
-def get_file_headers(username,password,folder,filename):
+def get_file_headers(token,folder,filename):
    nretry=4
-   token =make_token(username,password)
-   serverurl="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
    headers = { 'Authorization' : token}
    params={"method": "head", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
-      try:
-        r=requests.get(serverurl, headers=headers, params=params, verify=False )
-        r.raise_for_status()
-        break
-        time.sleep(1)
-      except requests.exceptions.RequestException as e:
-        if count==nretry:
-           print(e)
-           return 1
-   if r.status_code !=200:
-      print(r.content)
-      r.raise_for_status()
+       try:
+          with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+             r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+          r.raise_for_status()
+          break
+       except requests.RequestException as e:
+          print(f"Error requesting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             return None
    fileurl=r.content.decode("ascii")
    for count in  range(1,nretry):
-      try:
-         headr=requests.head(fileurl)
-         headr.raise_for_status()
-         break
-         time.sleep(1)
-      except requests.exceptions.RequestException as e:
-         if count==nretry:
-            print(e)
-            return None
-   if headr.status_code !=200:
-      return None
+       try:
+          with pac_context_for_url(fileurl, proxy_auth=None, pac=api_proxy.proxyPac):
+            headr=requests.head(fileurl)
+          headr.raise_for_status()
+          break
+       except requests.RequestException as e:
+          print(f"Error getting headers of {fileurl}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             return None
    return headr.headers
 
 
@@ -86,77 +83,69 @@ def remote_file_is_expiring(headers):
    return is_expiring
 
 
-def upload_project_file_with_put(username,password,filename,folder):
+def upload_project_file_with_put(token,filename,folder):
+   global  proxyPac
    nretry=4
-   token =make_token(username,password)
-   serverurl="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
    headers = { 'Authorization' : token}
    params={"method": "put", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
-      try:
-         r=requests.get(serverurl, headers=headers, params=params, verify=False )
-         r.raise_for_status()
-         break
-         time.sleep(1)
-      except requests.exceptions.RequestException as e:
-         if count==nretry:
-            print(e)
-   if r.status_code !=200:
-      print(r.content)
-      r.raise_for_status()
-   fileurl=r.content
-   for count in  range(1,nretry):
-      try:
-        with open(filename, 'rb') as data:
-          putr=requests.put(fileurl, data=data, verify=False)
-          putr.raise_for_status()
+       try:
+          with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+            r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+          r.raise_for_status()
           break
-          time.sleep(1)
-      except requests.exceptions.RequestException as e:
-        if count==nretry:
-          print(e)
-   if putr.status_code !=200:
-      print(putr.content)
-      putr.raise_for_status()
+       except requests.RequestException as e:
+          print(f"Error requesting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+            raise
+   for count in  range(1,nretry):
+       try:
+          with open(filename, 'rb') as data:
+            with pac_context_for_url(fileurl, proxy_auth=None, pac=api_proxy.proxyPac):
+              putr=requests.put(fileurl, data=data, verify=True)
+            putr.raise_for_status()
+            break
+       except requests.RequestException as e:
+          print(f"Error putting data into {fileurl}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             raise
 
 
-def upload_project_file(username,password,filename,folder, only_if_newer=False):
+def upload_project_file(token,filename,folder, only_if_newer=False):
+   global  proxyPac
    nretry=4
    if only_if_newer :
-       headers=get_file_headers(username,password,folder,filename)
+       headers=get_file_headers(token,folder,filename)
        if not local_file_is_newer(filename,headers):
            if not remote_file_is_expiring(headers):
                 return
-   token =make_token(username,password)
-   serverurl="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
    headers = { 'Authorization' : token}
    length=int(os.path.getsize(filename))
    params={"method": "post", "filename": filename, "folder": folder, "content-length": length}
    for count in  range(1,nretry):
-      try:
-        r=requests.get(serverurl, headers=headers, params=params, verify=False )
-        r.raise_for_status()
-        break
-        time.sleep(1)
-      except requests.exceptions.RequestException as e:
-        if count==nretry:
-           print(e)
-   if r.status_code !=200:
-      print(r.content)
-      r.raise_for_status()
+       try:
+          with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+             r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+          r.raise_for_status()
+          break
+       except requests.RequestException as e:
+          print(f"Error requesting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             raise
    content=json.loads(r.content.decode("ascii"))
+   url=content["url"]
    for count in  range(1,nretry):
-      try:
-         postr=requests.post(content["url"], data=content["fields"],files={'file': open(filename, 'rb')}, verify=False)
-         postr.raise_for_status()
-         break
-         time.sleep(1)
-      except requests.exceptions.RequestException as e:
-        if count==nretry:
-            print(e)
-   if postr.status_code !=200:
-      print(postr.content)
-      postr.raise_for_status()
+       try:
+          with pac_context_for_url(url, proxy_auth=None, pac=api_proxy.proxyPac):
+             postr=requests.post(url, data=content["fields"],files={'file': open(filename, 'rb')}, verify=True)
+          postr.raise_for_status()
+          break
+       except requests.RequestException as e:
+          print(f"Error posting data into {url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             raise
 
 
 def url_filename(fileurl):
@@ -167,82 +156,96 @@ def url_filename(fileurl):
 
 
 def download_signed_url(signedUrl):
-   nretry=4
-   if signedUrl is None:
+    global  proxyPac
+    nretry=4
+    if signedUrl is None:
         return None
-   filename=url_filename(signedUrl)
-   for count in  range(1,nretry):
-     try:
-        getr=requests.get(signedUrl, verify=False)
-        getr.raise_for_status()
-        break
-        time.sleep(1)
-     except requests.exceptions.RequestException as e:
-        if count==nretry:
-            print(e)
-            return 1
-   if getr.status_code==200:
-        with open(filename, 'wb') as f:
-             f.write(getr.content)
-        lmStr=getr.headers["Last-Modified"]
-        lmTime=utcStr_to_local_time(lmStr)
-        os.utime(filename, (lmTime, lmTime))
-        return 0
-   else:
-        print(getr.content)
-        return 1
+    filename=url_filename(signedUrl)
+    for count in  range(1,nretry):
+       try:
+          with pac_context_for_url(signedUrl, proxy_auth=None, pac=api_proxy.proxyPac):
+            getr=requests.get(signedUrl, verify=True)
+          getr.raise_for_status()
+          break
+       except requests.RequestException as e:
+          print(f"Error getting data from {signedUrl}: {e}", file=sys.stderr)
+          if count==nretry-1:
+             return 1
+    with open(filename, 'wb') as f:
+        f.write(getr.content)
+    lmStr=getr.headers["Last-Modified"]
+    lmTime=utcStr_to_local_time(lmStr)
+    os.utime(filename, (lmTime, lmTime))
+    return 0
 
 
 # filename can a patten with wild chars (like *.txt) to select multiple files
 # the signedUrl argument can be used only with a single file
-def download_project_file(username,password,folder,filename,signedUrl=None):
+def download_project_file(token,folder,filename,signedUrl=None):
+   global  proxyPac
    nretry=4
    if signedUrl is not None:
       if(download_signed_url(signedUrl)==0):
           return [signedUrl]
-   token =make_token(username,password)
-   serverurl="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/signed_url"
    headers = { 'Authorization' : token}
    params={"method": "get", "filename": filename, "folder": folder}
    for count in  range(1,nretry):
-     try:
-        r=requests.get(serverurl, headers=headers, params=params, verify=False )
-        r.raise_for_status()
-        break
-        time.sleep(1)
-     except requests.exceptions.RequestException as e:
-        if count==nretry:
-            print(e)
-   if r.status_code !=200:
-       print(r.content)
-       r.raise_for_status()
+      try:
+         with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+            r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+         r.raise_for_status()
+         break
+      except requests.RequestException as e:
+          print(f"Error getting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+            return None
    signedUrls=json.loads(r.content.decode("ascii"))
    for signedUrl in signedUrls:
        download_signed_url(signedUrl)
    return signedUrls
 
 
-def submit_job(username,password,folder,filename,job):
+
+def submit_job(token,folder,filename,job):
+   global  proxyPac
    nretry=4
-   token =make_token(username,password)
-   serverurl="https://api.hierarchical-electromagnetics.com/MwModeler/submit_job"
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/submit_job"
    headers = { 'Authorization' : token}
    params={"filename": filename, "folder": folder, "job": job}
    for count in  range(1,nretry):
-     try:
-        r=requests.get(serverurl, headers=headers, params=params, verify=False )
-        r.raise_for_status()
-        break
-        time.sleep(1)
-     except requests.exceptions.RequestException as e:
-        if count==nretry:
-            print(e)
-   if r.status_code !=200:
-       print(r.content)
-       r.raise_for_status()
+      try:
+         with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+           r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+         r.raise_for_status()
+         break
+      except requests.RequestException as e:
+          print(f"Error getting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+            return None
    response=json.loads(r.content.decode("ascii"))
    return response
 
+
+def get_credit(token):
+   nretry=4
+   api_modeler_url="https://api.hierarchical-electromagnetics.com/MwModeler/credit"
+   headers = { 'Authorization' : token}
+   params={"method": "get"}
+   for count in  range(1,nretry):
+      try:
+         with pac_context_for_url(api_modeler_url, proxy_auth=None, pac=api_proxy.proxyPac):
+           r=requests.get(api_modeler_url, headers=headers, params=params, verify=api_proxy.verify )
+         r.raise_for_status()
+         if r.status_code !=200:
+           print(r.content, file=sys.stderr)
+         break
+      except requests.RequestException as e:
+          print(f"Error getting data from {api_modeler_url}: {e}", file=sys.stderr)
+          if count==nretry-1:
+            return None
+   credit=json.loads(r.content.decode())["credit"]
+   return credit
 
 
 

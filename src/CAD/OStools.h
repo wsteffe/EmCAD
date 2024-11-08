@@ -23,6 +23,7 @@
 #define PORTABILITY_H
 
 #include<string>
+#include<set>
 #include<istream>
 
 std::istream& getLine( std::istream& is, std::string& str);
@@ -32,6 +33,7 @@ bool FileIsSymlink(const char* filename);
 void removeFile(const char* filename);
 bool removeAllFilesInDir(const char *dirname);
 bool removeAllFilesInDirStartingWith(const char *dirname, const char *start);
+bool removeAllFilesInDirExcludingEndingWith(const char *dirname, std::set<std::string> exclude);
 void createLink(const char* to, const char* link);
 std::string nativePath(const char *name);
 std::string nativePath(std::string name);

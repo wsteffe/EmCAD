@@ -30,6 +30,7 @@
 #include "gmsh.h"
 #include "GmshGlobal.h"
 #include "GModel.h"
+#include "GModelIO_OCC.h"
 #include "GRegion.h"
 #include "MPrism.h"
 #include "MPyramid.h"
@@ -45,6 +46,7 @@
 #include "GmshDefines.h"
 #include "Context.h"
 #include "meshGEdge.h"
+#include "meshGFace.h"
 #include "OCCEdge.h"
 #include "MLine.h"
 #include "Field.h"
@@ -53,6 +55,7 @@
 #include <string>
 
 #include "mesher.h"
+#include "mwm.h"
 //#include "mymeshGFaceBamg.h"
 
 #include <TopoDS.hxx>
@@ -98,10 +101,20 @@
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
 
+#define DOT(v1, v2) \
+  ((v1)[0] * (v2)[0] + (v1)[1] * (v2)[1] + (v1)[2] * (v2)[2])
+
 #ifdef WNT
 #define snprintf _snprintf
 #endif
 
+int loadMwm(const char *fName);
+
+namespace MWM {
+  extern MWM::Mesh *mesh;
+}
+
+int GfaceOCCfaceSign(GFace *gf);
 
 bool mesh_aniso=false; 
 bool useFaceAttractor=false;
@@ -199,530 +212,8 @@ void invertMap(const std::map<int,int> &a, std::map<int,int> &b){
 }
 
 
+
 gp_Vec  supNormal(Handle(Geom_Surface) GS, gp_Pnt GP);
-
-#if defined(MAKEMASTERS)
-
-void makeInvMasters(MwOCAF* ocaf, 
-		std::vector<int> &Emaster, std::vector<std::vector<double> > &ETransf,
-	       	std::vector<int> &Fmaster, std::vector<std::vector<double> > &FTransf
-		)
-{
-  std::vector<int> Vmaster;
-  std::map< std::set<int>, int > PIset2EI;
-  int NE=ocaf->indexedEdges->Extent();
-  int NF=ocaf->indexedFaces->Extent();
-  int NV=ocaf->indexedSolids->Extent();
-  Emaster.resize(NE,0); ETransf.resize(NE);
-  Fmaster.resize(NF,0); FTransf.resize(NF);
-  Vmaster.resize(NV,0); 
-  for (int EI=1; EI<=NE; EI++){
-     TopoDS_Edge E= TopoDS::Edge(ocaf->indexedEdges->FindKey(EI));
-     std::set<int> Iset;
-     Iset.insert(-EI);
-     TopoDS_Vertex V1,V2;
-     TopExp::Vertices(E,V1,V2);
-     int IV1=ocaf->indexedVertices->FindIndex(V1); Iset.insert(IV1);
-     int IV2=ocaf->indexedVertices->FindIndex(V2); Iset.insert(IV2);
-     PIset2EI[Iset]=EI;
-  }
-  std::map< std::set<int>, int > EIset2FI;
-  for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++){
-     TopoDS_Shape F = ocaf->indexedFaces->FindKey(FI);
-     std::set<int> Iset;
-     for (TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
-       TopoDS_Shape E = exp.Current();
-       E.Orientation(TopAbs_FORWARD);
-       int EI=ocaf->indexedEdges->FindIndex(E);
-       Iset.insert(EI);
-     }
-     EIset2FI[Iset]=FI;
-  }
-  DB::List_T *invariants=DB::Tree2List(ocaf->EmP->invariants);
-  std::map< std::set<int>, int > FIset2VI;
-  typedef std::set<int >::iterator IsetIt;
-  typedef std::map<int,int>::iterator ImapIt;
-  std::vector< std::map<int,int> > VFmap, VEmap;
-  VFmap.resize(NV); VEmap.resize(NV);
-  std::vector< std::vector< std::map<int,int> > > VFmap_i, VEmap_i;
-  VFmap_i.resize(List_Nbr(invariants)); VEmap_i.resize(List_Nbr(invariants));
-  for(int inv=0; inv<List_Nbr(invariants); inv++){ VFmap_i[inv].resize(NV); VEmap_i[inv].resize(NV);}
-  for (int VI=1; VI<=ocaf->indexedSolids->Extent(); VI++){
-     TopoDS_Shape V = ocaf->indexedSolids->FindKey(VI);
-     std::set<int> Iset;
-     for (TopExp_Explorer exp(V,TopAbs_FACE); exp.More(); exp.Next()){
-       TopoDS_Shape F = exp.Current();
-       F.Orientation(TopAbs_FORWARD);
-       int FI=ocaf->indexedFaces->FindIndex(F);
-       Iset.insert(FI);
-     }
-     FIset2VI[Iset]=VI;
-     for (IsetIt it=Iset.begin(); it!= Iset.end(); it++){
-	 int FI=*it;
-	 VFmap[VI-1][FI]=FI;
-         for(int inv=0; inv<List_Nbr(invariants); inv++) VFmap_i[inv][VI-1][FI]=FI;
-     }
-     Iset.clear();
-     for (TopExp_Explorer exp(V,TopAbs_EDGE); exp.More(); exp.Next()){
-       TopoDS_Shape E = exp.Current();
-       E.Orientation(TopAbs_FORWARD);
-       int EI=ocaf->indexedEdges->FindIndex(E);
-       Iset.insert(EI);
-     }
-     for (IsetIt it=Iset.begin(); it!= Iset.end(); it++){
-	  int EI=*it;
-	  VEmap[VI-1][EI]=EI;
-          for(int inv=0; inv<List_Nbr(invariants); inv++) VEmap_i[inv][VI-1][EI]=EI;
-     }
-  }
-  int inv=0;
-  std::vector<std::vector<int> > Emaster_i; Emaster_i.resize(List_Nbr(invariants));
-  std::vector<std::vector<int> > Fmaster_i; Fmaster_i.resize(List_Nbr(invariants));
-  std::vector<std::vector<int> > Vmaster_i; Vmaster_i.resize(List_Nbr(invariants));
-  std::vector<std::vector<std::vector<double> > > ETransf_i; ETransf_i.resize(List_Nbr(invariants));
-  std::vector<std::vector<std::vector<double> > > FTransf_i; FTransf_i.resize(List_Nbr(invariants));
-  for(int inv=0; inv<List_Nbr(invariants); inv++){
-    Emaster_i[inv].resize(NE,0);
-    Fmaster_i[inv].resize(NF,0);
-    Vmaster_i[inv].resize(NV,0);
-    ETransf_i[inv].resize(NE);
-    FTransf_i[inv].resize(NF);
-    std::map<int,int> PEmap_i;
-    DB::Transform *invar;
-    List_Read(invariants, inv, &invar);
-    std::string str_name=std::string(invar->name);
-    gp_Trsf trsf,itrsf;
-    computeAffineTransf(invar, trsf);
-    computeAffineTransf(invar, itrsf,-1);
-    std::vector<double> tfo,itfo;
-    gp_trsf_2_gmsh(trsf,tfo);
-    gp_trsf_2_gmsh(itrsf,itfo);
-    double tol=1.e-10;
-    for (int PI=1; PI<=ocaf->indexedVertices->Extent(); PI++){
-      TopoDS_Vertex P = TopoDS::Vertex(ocaf->indexedVertices->FindKey(PI));
-      gp_Pnt gP = BRep_Tool::Pnt(P);
-      double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
-      double p_m[3]={0,0,0};
-      for (size_t i=0,ij=0;i<3;i++)
-          for (size_t j=0;j<4;j++,ij++) p_m[i] += itfo[ij] * p[j];
-      gp_Pnt gP_m =gp_Pnt(p_m[0],p_m[1],p_m[2]);
-      for (int QI=1; QI<=ocaf->indexedVertices->Extent(); QI++){
-        TopoDS_Vertex Q = TopoDS::Vertex(ocaf->indexedVertices->FindKey(QI));
-        gp_Pnt gQ=BRep_Tool::Pnt(Q);
-        gp_Vec PQ=gp_Vec(gP_m, gQ);
-        if (PQ.Magnitude() < tol) {
-		PEmap_i[PI]=QI;
-		break;
-        }
-      }
-    }
-    for (int IE=1; IE<=ocaf->indexedEdges->Extent(); IE++){
-      TopoDS_Edge EI = TopoDS::Edge(ocaf->indexedEdges->FindKey(IE));
-      double ui1,ui2;
-      Handle(Geom_Curve) gci=BRep_Tool::Curve (EI, ui1, ui2);
-      gp_Pnt gP = gci->Value((ui1+ui2)/2);
-      double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
-      double p_m[3]={0,0,0};
-      for (size_t i=0,ij=0;i<3;i++)
-          for (size_t j=0;j<4;j++,ij++) p_m[i] += itfo[ij] * p[j];
-      gp_Pnt gP_m =gp_Pnt(p_m[0],p_m[1],p_m[2]);
-      for (int JE=1; JE<=ocaf->indexedEdges->Extent(); JE++){
-        TopoDS_Edge EJ = TopoDS::Edge(ocaf->indexedEdges->FindKey(JE));
-        double uj1,uj2;
-        Handle(Geom_Curve) gcj=BRep_Tool::Curve (EJ, uj1, uj2);
-        gp_Pnt gQ = gcj->Value((uj1+uj2)/2);
-        gp_Vec PQ=gp_Vec(gP_m, gQ);
-        if (PQ.Magnitude() < tol) {
-	    PEmap_i[-IE]=-JE;
-	    break;
-        }
-      }
-    }
-    for (int IE=1; IE<=NE; IE++){
-       double refri=sqrt(ocaf->edgeData[IE-1].epsr * ocaf->edgeData[IE-1].mur)*ocaf->edgeData[IE-1].meshref;
-       std::set<int> Iset;
-       TopoDS_Edge E= TopoDS::Edge(ocaf->indexedEdges->FindKey(IE));
-       Iset.insert(PEmap_i[-IE]);
-       TopoDS_Vertex V1,V2;
-       TopExp::Vertices(E,V1,V2);
-       int IV1=ocaf->indexedVertices->FindIndex(V1); Iset.insert(PEmap_i[IV1]);
-       int IV2=ocaf->indexedVertices->FindIndex(V2); Iset.insert(PEmap_i[IV2]);
-       if(PIset2EI.find(Iset)!=PIset2EI.end()){
-	   int IE_m=PIset2EI[Iset];
-	   double refri_m=sqrt(ocaf->edgeData[IE_m-1].epsr * ocaf->edgeData[IE_m-1].mur)*ocaf->edgeData[IE_m-1].meshref;
-	   if(fabs(refri_m-refri)<1.e-3*refri){
-            TopoDS_Edge E_m= TopoDS::Edge(ocaf->indexedEdges->FindKey(IE_m));
-            TopoDS_Vertex V1_m,V2_m;
-            TopExp::Vertices(E_m,V1_m,V2_m);
-            int IV1_m=ocaf->indexedVertices->FindIndex(V1_m);
-	    int sgn=PEmap_i[IV1]==IV1_m? 1:-1;
-	    Emaster_i[inv][IE-1]=IE_m*sgn;
-	    ETransf_i[inv][IE-1]=tfo;
-	   }
-       }
-    }
-    for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++){
-       TopoDS_Face F = TopoDS::Face(ocaf->indexedFaces->FindKey(FI));
-       std::set<int> Iset;
-       for (TopExp_Explorer exp(F,TopAbs_EDGE); exp.More(); exp.Next()){
-         TopoDS_Shape E = exp.Current();
-         E.Orientation(TopAbs_FORWARD);
-         int EI=ocaf->indexedEdges->FindIndex(E);
-         Iset.insert(abs(Emaster_i[inv][EI-1]));
-       }
-       if(EIset2FI.find(Iset)!=EIset2FI.end()){
-	   int FIm=EIset2FI[Iset];
-	   FTransf_i[inv][FI-1]=tfo;
-           TopoDS_Face Fm = TopoDS::Face(ocaf->indexedFaces->FindKey(FIm));
-	   Handle(Geom_Surface) GS  = BRep_Tool::Surface(F);
-	   Handle(Geom_Surface) GSm = BRep_Tool::Surface(Fm);
-	   TopExp_Explorer vexp(F,TopAbs_VERTEX);
-           TopoDS_Vertex P = TopoDS::Vertex(vexp.Current());
-           gp_Pnt gP = BRep_Tool::Pnt(P);
-	   gp_Vec N=supNormal(GS, gP);
-           double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
-           double pm[3]={0,0,0};
-           for (size_t i=0,ij=0;i<3;i++)
-             for (size_t j=0;j<4;j++,ij++) pm[i] += itfo[ij] * p[j];
-           gp_Pnt gPm =gp_Pnt(pm[0],pm[1],pm[2]);
-	   gp_Vec Nm=supNormal(GSm, gPm);
-           double n[4] = {N.X(), N.Y(), N.Z(),0};
-           double tfn[3]={0,0,0};
-           for (size_t i=0,ij=0;i<3;i++)
-             for (size_t j=0;j<4;j++,ij++) tfn[i] += itfo[ij] * n[j];
-	   gp_Vec tfN=gp_Vec(tfn[0],tfn[1],tfn[2]);
-	   Fmaster_i[inv][FI-1]=FIm*SIGN(tfN*Nm);
-       }
-    }
-    for (int VI=1; VI<=ocaf->indexedSolids->Extent(); VI++){
-       char vname[100]; sprintf(vname,"Vol%d",VI);
-       DB::Volume* vol=ocaf->EmP->FindVolume(vname);
-       TopoDS_Shape V = ocaf->indexedSolids->FindKey(VI);
-       std::set<int> Iset;
-       for (TopExp_Explorer exp(V,TopAbs_FACE); exp.More(); exp.Next()){
-         TopoDS_Shape F = exp.Current();
-         F.Orientation(TopAbs_FORWARD);
-         int FI=ocaf->indexedFaces->FindIndex(F);
-         Iset.insert(abs(Fmaster_i[inv][FI-1]));
-       }
-       if(FIset2VI.find(Iset)!=FIset2VI.end()){
-	   int VIm=FIset2VI[Iset];
-           char vmname[100]; sprintf(vmname,"Vol%d",VIm);
-           DB::Volume* volm=ocaf->EmP->FindVolume(vmname);
-	   if(!strcmp(volm->material,vol->material)){
-	    Vmaster_i[inv][VI-1]=VIm;
-            for (ImapIt it=VFmap_i[inv][VI-1].begin(); it!= VFmap_i[inv][VI-1].end(); it++)  (*it).second=Fmaster_i[inv][(*it).first-1];
-            for (ImapIt it=VEmap_i[inv][VI-1].begin(); it!= VEmap_i[inv][VI-1].end(); it++)  (*it).second=Emaster_i[inv][(*it).first-1];
-	   }
-       }
-    }
-  }
-
-
-  std::vector<std::set<int> > EeqivClass;
-  EeqivClass.reserve(NE);
-  for (int I=1; I<=NE; I++){
-    std::set<int> eqi; eqi.insert(I);
-    Emaster[I-1]=I;
-    gp_Trsf trsf=gp_Trsf();
-    gp_trsf_2_gmsh(trsf,ETransf[I-1]);
-    EeqivClass.push_back(eqi);
-  }
-//  for (int I=1; I<=NE; I++){
-//    int M=abs(Emaster[I-1]);
-//    if(M>0) EeqivClass[M-1].insert(I);
-//  }
-  bool changed=true;
-  while(changed){ 
-     changed=false;
-     escapeE: 
-     for (int I1=1; I1<=NE; I1++)  if(EeqivClass[I1-1].size()>0)
-     for (std::set<int>::const_iterator it=EeqivClass[I1-1].begin(); it!= EeqivClass[I1-1].end(); it++) {
-	 int I=*it;
-	 assert(abs(Emaster[I-1])==I1);
-         gp_Trsf trsf;
-         for(int inv=0; inv<List_Nbr(invariants); inv++){
-          int I2=Emaster_i[inv][I-1]; I2=abs(I2);
-          int I3=Emaster[I2-1]; I3=abs(I3);
-          if(I2 && I3!=I1){  //I2 is not in the class I1
-           gmsh_2_gp_trsf(ETransf[I-1],trsf);
-	   trsf.Invert();
-	   std::vector<double> invTfo_I;
-           gp_trsf_2_gmsh(trsf,invTfo_I);
-	   int sgnTfoI=SIGN(Emaster[I-1]);
-	   std::vector<double> tfo2;
-           multiplyAffineTransf(ETransf_i[inv][I-1],ETransf[I2-1],tfo2);
-	   int sgnTfo2=SIGN(Emaster_i[inv][I-1])*SIGN(Emaster[I2-1]);
-           for (std::set<int>::const_iterator jt=EeqivClass[I1-1].begin(); jt!= EeqivClass[I1-1].end(); jt++) {
-	    int J=*jt;
-	    int sgnTfoJ=SIGN(Emaster[J-1]);
-	    std::vector<double> tmp,tmp2;
-            multiplyAffineTransf(ETransf[J-1],invTfo_I, tmp);
-            multiplyAffineTransf(tmp,tfo2,tmp2); 
-	    ETransf[J-1]=tmp2;
-	    Emaster[J-1]=I3*sgnTfoJ*sgnTfoI*sgnTfo2;
-	   }
-           for (std::set<int>::const_iterator jt=EeqivClass[I1-1].begin(); jt!= EeqivClass[I1-1].end(); jt++)  EeqivClass[I3-1].insert(*jt);
-           EeqivClass[I1-1].clear();
-           changed=true;
-	   goto escapeE;
-          }
-         }
-     }
-  }
-
-  std::vector<std::set<int> > FeqivClass;
-  FeqivClass.reserve(NF);
-  for (int I=1; I<=NF; I++){
-    std::set<int> eqi; eqi.insert(I);
-    Fmaster[I-1]=I;
-    gp_Trsf trsf=gp_Trsf();
-    gp_trsf_2_gmsh(trsf,FTransf[I-1]);
-    FeqivClass.push_back(eqi);
-  }
-  changed=true;
-  while(changed){ 
-     changed=false;
-     escapeF: 
-         for (int I1=1; I1<=NF; I1++)  if(FeqivClass[I1-1].size()>0)
-	 for (std::set<int>::const_iterator it=FeqivClass[I1-1].begin(); it!= FeqivClass[I1-1].end(); it++) {
-	 int I=*it;
-	 assert(abs(Fmaster[I-1])==I1);
-         gp_Trsf trsf;
-         for(int inv=0; inv<List_Nbr(invariants); inv++){
-          int I2=Fmaster_i[inv][I-1]; I2=abs(I2);
-          int I3=Fmaster[I2-1]; I3=abs(I3);
-          if(I2 && I3 && I3!=I1){  //I2 is not in the class I1
-           gmsh_2_gp_trsf(FTransf[I-1],trsf);
-	   trsf.Invert();
-	   std::vector<double> invTfo_I;
-           gp_trsf_2_gmsh(trsf,invTfo_I);
-	   int sgnTfoI=SIGN(Fmaster[I-1]);
-	   std::vector<double> tfo2;
-           multiplyAffineTransf(FTransf_i[inv][I-1],FTransf[I2-1],tfo2);
-	   int sgnTfo2=SIGN(Fmaster_i[inv][I-1])*SIGN(Fmaster[I2-1]);
-           for (std::set<int>::const_iterator jt=FeqivClass[I1-1].begin(); jt!= FeqivClass[I1-1].end(); jt++) {
-	    int J=*jt;
-	    int sgnTfoJ=SIGN(Fmaster[J-1]);
-	    std::vector<double> tmp,tmp2;
-            multiplyAffineTransf(FTransf[J-1],invTfo_I, tmp);
-            multiplyAffineTransf(tmp,tfo2,tmp2); 
-	    FTransf[J-1]=tmp2;
-	    Fmaster[J-1]=I3*sgnTfoJ*sgnTfoI*sgnTfo2;
-	   }
-           for (std::set<int>::const_iterator jt=FeqivClass[I1-1].begin(); jt!= FeqivClass[I1-1].end(); jt++)  FeqivClass[I3-1].insert(*jt);
-           FeqivClass[I1-1].clear();
-           changed=true;
-	   goto escapeF;
-          }
-         }
-     }
-  }
-
-
-
-  std::vector<std::set<int> > VeqivClass;
-  VeqivClass.reserve(NV);
-  for (int I=1; I<=NV; I++){
-    std::set<int> eqi; eqi.insert(I);
-    Vmaster[I-1]=I;
-    VeqivClass.push_back(eqi);
-  }
-  changed=true;
-  while(changed){ 
-     changed=false;
-     escapeV: 
-         for (int I1=1; I1<=NV; I1++)  if(VeqivClass[I1-1].size()>0)
-	 for (std::set<int>::const_iterator it=VeqivClass[I1-1].begin(); it!= VeqivClass[I1-1].end(); it++) {
-	 int I=*it;
-	 assert(Vmaster[I-1]==I1);
-         gp_Trsf trsf;
-         for(int inv=0; inv<List_Nbr(invariants); inv++){
-          int I2=Vmaster_i[inv][I-1];
-          int I3=Vmaster[I2-1];
-          if(I2 && I3 && I3!=I1){  //I2 is not in the class I1
-	   std::map<int,int> invVFMap_I,invVEMap_I;
-	   invertMap(VFmap[I-1],invVFMap_I);
-	   invertMap(VEmap[I-1],invVEMap_I);
-	   std::map<int,int> VFMap2,VEMap2;
-           multiplyMaps(VFmap_i[inv][I-1],VFmap[I2-1],VFMap2);
-           multiplyMaps(VEmap_i[inv][I-1],VEmap[I2-1],VEMap2);
-           for (std::set<int>::const_iterator jt=VeqivClass[I1-1].begin(); jt!= VeqivClass[I1-1].end(); jt++) {
-	    int J=*jt;
-	    std::map<int,int> tmp,tmp2;
-            multiplyMaps(VFmap[J-1],invVFMap_I, tmp);
-            multiplyMaps(tmp,VFMap2,tmp2); 
-	    VFmap[J-1]=tmp2;
-	    tmp.clear();tmp2.clear();
-            multiplyMaps(VEmap[J-1],invVEMap_I, tmp);
-            multiplyMaps(tmp,VEMap2,tmp2); 
-	    VEmap[J-1]=tmp2;
-	    Vmaster[J-1]=I3;
-	   }
-           for (std::set<int>::const_iterator jt=VeqivClass[I1-1].begin(); jt!= VeqivClass[I1-1].end(); jt++)  VeqivClass[I3-1].insert(*jt);
-           VeqivClass[I1-1].clear();
-           changed=true;
-	   goto escapeV;
-          }
-         }
-     }
-  }
-
-
-  List_Delete(invariants);
-
-  for (int I=1; I<=NE; I++) if(Emaster[I-1]==I) Emaster[I-1]=0;
-  for (int I=1; I<=NF; I++) if(Fmaster[I-1]==I) Fmaster[I-1]=0;
-  for (int I=1; I<=NV; I++) if(Vmaster[I-1]==I) Vmaster[I-1]=0;
-
-  for (int I=1; I<=NE; I++) if(Emaster[I-1]) {
-       int M=abs(Emaster[I-1]); Emaster[M-1]=M;
-  }
-  for (int I=1; I<=NF; I++) if(Fmaster[I-1]) {
-       int M=abs(Fmaster[I-1]); Fmaster[M-1]=M;
-  }
-  for (int I=1; I<=NV; I++) if(Vmaster[I-1]) {
-       int M=Vmaster[I-1];
-       if(M) Vmaster[M-1]=M;
-  }
-  for (int I=1; I<=NV; I++) if(Vmaster[I-1]) {
-       char vname[100]; sprintf(vname,"Vol%d",I);
-       DB::Volume* vol=ocaf->EmP->FindVolume(vname);
-       vol->master=Vmaster[I-1];
-       vol->Fmap=VFmap[I-1];
-       vol->Cmap=VEmap[I-1];
-  }
-
-
-}
-
-
-void checkMasterEdges(
-		GModel *gm,
-		TopTools_IndexedMapOfShape *indexedEdges,
-	       	std::vector<int> &Emaster,
-		std::vector<std::vector<double> > &ETransf
-	   )
-{
-     
-    for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
-         GEdge *ge=*eit;
-         TopoDS_Edge E1=* (TopoDS_Edge *) ge->getNativePtr();
-         int I1=indexedEdges->FindIndex(E1);
-         assert(I1);
-         TopoDS_Vertex V1_1,V1_2;
-         TopExp::Vertices(E1,V1_1,V1_2);
-	 int I2=Emaster[I1-1];
-	 int sgn2=SIGN(I2); I2=abs(I2);
-         TopoDS_Edge E2= TopoDS::Edge(indexedEdges->FindKey(I2));
-         TopoDS_Vertex V2_1,V2_2;
-         TopExp::Vertices(E2,V2_1,V2_2);
-         double tol=1.e-10;
-         gp_Pnt gP = BRep_Tool::Pnt(V2_1);
-         double p[4] = {gP.X(), gP.Y(), gP.Z(),1};
-         double p_t[3]={0,0,0};
-         std::vector<double> tf1=ETransf[I1-1];
-         for (size_t i=0,ij=0;i<3;i++)
-           for (size_t j=0;j<4;j++,ij++) p_t[i] += tf1[ij] * p[j];
-         gp_Pnt gP_t =gp_Pnt(p_t[0],p_t[1],p_t[2]);
-         gp_Pnt gQ = sgn2>0 ? BRep_Tool::Pnt(V1_1):BRep_Tool::Pnt(V1_2) ;
-         gp_Vec PQ=gp_Vec(gP_t, gQ);
-         assert (PQ.Magnitude() < tol);
-    }
-
-}
-
-void setMasterEdges(
-		GModel *gm,
-		TopTools_IndexedMapOfShape *indexedEdges,
-		std::map< int, GEdge * > &indexedGmshEdges,
-	       	std::vector<int> &Emaster,
-		std::vector<std::vector<double> > &ETransf
-	   )
-{
-     
-    for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
-         GEdge *ge=*eit;
-         TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
-         int EI=indexedEdges->FindIndex(E);
-         assert(EI);
-         if(EI) if(Emaster[EI-1]) if(Emaster[EI-1] !=EI) {
-	  int ori=SIGN(Emaster[EI-1]);
-	  int EI_m=abs(Emaster[EI-1]);
-          GEdge *ge_m=indexedGmshEdges[EI_m];
-	  ge->setMeshMaster(ge_m,ETransf[EI-1]);
-	 }
-    }
-
-}
-
-
-void setMasterFaces(
-		GModel *gm,
-		TopTools_IndexedMapOfShape *indexedFaces,
-		std::map< int, GFace * > &indexedGmshFaces,
-	       	std::vector<int> &Fmaster,
-		std::vector<std::vector<double> > &FTransf
-	   )
-{
-    for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
-         GFace *gf=*fit;
-         TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
-         int FI=indexedFaces->FindIndex(F);
-         assert(FI);
-         if(FI) if(Fmaster.size()>FI-1) if(Fmaster[FI-1]) if(Fmaster[FI-1] !=FI) {
-	  int FI_m=abs(Fmaster[FI-1]);
-          GFace *gf_m=indexedGmshFaces[FI_m];
-	  gf->setMeshMaster(gf_m,FTransf[FI-1]);
-	 }
-    }
-
-}
-
-void checkMasterFaces(
-		GModel *gm,
-		TopTools_IndexedMapOfShape *indexedFaces,
-		TopTools_IndexedMapOfShape *indexedEdges,
-		std::map< int, GFace * > &indexedGmshFaces,
-	       	std::vector<int> &Fmaster,
-	       	std::vector<int> &Emaster
-	   )
-{
-      for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
-         GFace *gf=*fit;
-         TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
-         int FI=indexedFaces->FindIndex(F);
-         assert(FI);
-         if(FI) if(Fmaster.size()>FI-1) if(Fmaster[FI-1]) if(Fmaster[FI-1] !=FI) {
-	  int FI_m=abs(Fmaster[FI-1]);
-          GFace *gf_m=indexedGmshFaces[FI_m];
-	  std::set<int> gf_m_EI;
-	  int fenum=gf_m->edges().size();
-	  std::list<GEdge*> gf_m_edges = gf_m->edges();
-          for(std::list<GEdge*>::const_iterator eit = gf_m_edges.begin(); eit != gf_m_edges.end(); ++eit){
-            GEdge *ge=*eit;
-            TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
-            E.Orientation(TopAbs_FORWARD);
-            int EI=indexedEdges->FindIndex(E);
-            gf_m_EI.insert(abs(Emaster[EI-1]));
-	  }
-	  std::list<GEdge*> gf_edges = gf->edges();
-          for(std::list<GEdge*>::const_iterator eit = gf_edges.begin(); eit != gf_edges.end(); ++eit){
-            GEdge *ge=*eit;
-            TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
-            E.Orientation(TopAbs_FORWARD);
-            int EI=indexedEdges->FindIndex(E);
-            assert(gf_m_EI.find(abs(Emaster[EI-1]))!=gf_m_EI.end());
-	  }
-         }
-
-      }
-
-}
-
-
-#endif
-
 
 
 void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
@@ -812,6 +303,519 @@ void mesher_refine(GEdge *ge, double edgeMeshSize){
   }
 }
 
+MVertex * MWM::Curve::mesh_vertices(int i){
+ int ii = masterSign>0? i : points.n-1-i;
+ GEdge *me =dynamic_cast<GEdge *>(ge->getMeshMaster());
+ if(!me || me==ge) return NULL;
+ if(ii==0)                    return me->getBeginVertex()->mesh_vertices[0]; 
+ if(ii==points.n-1)           return me->getEndVertex()->mesh_vertices[0]; 
+ if(ii>0 && ii<points.n-1)    return me->mesh_vertices[ii-1];
+ return NULL;
+}
+
+MVertex * MWM::Curve::master_mesh_vertices(int i){
+ int ii = masterSign>0? i : points.n-1-i;
+ GEdge *me =dynamic_cast<GEdge *>(ge->getMeshMaster());
+ if(!me || me==ge) return NULL;
+ if(ii==0)                    return me->getBeginVertex()->mesh_vertices[0]; 
+ if(ii==points.n-1)           return me->getEndVertex()->mesh_vertices[0]; 
+ if(ii>0 && ii<points.n-1)    return me->mesh_vertices[ii-1];
+ return NULL;
+}
+
+
+void MWM::Curve::setGEdge(GEdge * ge_, int GMSH_Esign){
+  ge=ge_;
+  masterSign=GMSH_Esign;
+}
+
+
+
+void MWM::Curve::setMesh(){
+  int N = points.n;
+  if(N<3) return;
+  GVertex *gv;
+  gv=ge->getBeginVertex();
+  if(gv->mesh_vertices.empty()){
+     gv->mesh_vertices.push_back(new MVertex(gv->x(), gv->y(), gv->z(), gv));
+     MVertex *mshv=new MVertex(gv->point().x(), gv->point().y(), gv->point().z(), gv);
+     gv->mesh_vertices.push_back(mshv);
+  }
+  gv=ge->getEndVertex();
+  if(gv->mesh_vertices.empty()){
+     gv->mesh_vertices.push_back(new MVertex(gv->x(), gv->y(), gv->z(), gv));
+     MVertex *mshv=new MVertex(gv->point().x(), gv->point().y(), gv->point().z(), gv);
+     gv->mesh_vertices.push_back(mshv);
+  }
+
+/*
+  ge->mesh_vertices.resize(N-2);
+  Range<double> bounds = ge->parBounds(0);
+  double u_begin = bounds.low();
+  double u_end = bounds.high();
+  GVertex *gv1=ge->getBeginVertex();
+  if(gv1->mesh_vertices.size()==0){
+       MVertex *v1 = new MVertex(gv1->x(),gv1->y(),gv1->z(),gv1,gv1->prescribedMeshSizeAtVertex());
+       gv1->addMeshVertex(v1);
+  }
+*/
+
+/*  
+  GVertex *gv1=ge->getBeginVertex();
+  GPoint P1=gv1->point();
+  GPoint CP1((&points[0])[0],(&points[0])[1],(&points[0])[2]);
+
+  GVertex *gv2=ge->getEndVertex();
+  GPoint P2=gv2->point();
+  GPoint CP2((&points[N-1])[0],(&points[N-1])[1],(&points[N-1])[2]);
+  double d11=P1.distance(CP1);
+  double d12=P1.distance(CP2);
+  double d21=P2.distance(CP1);
+  double d22=P2.distance(CP2);
+  assert(min(d11,d12)<1.e-5);
+  assert(min(d21,d22)<1.e-5);
+  int GMSH_Esign=d11<d12 ? 1 : -1;
+*/
+
+  deMeshGEdge dem;
+  dem(ge);
+  ge->mesh_vertices.clear();
+  Range<double> bounds = ge->parBounds(0);
+/*
+  double u_min=min(pointsU[0],pointsU[N-1]);
+  double u_max=max(pointsU[0],pointsU[N-1]);
+  double to_u_min = bounds.low();
+  double to_u_max = bounds.high();
+*/
+  for(int i = 1; i < N-1; i++){
+    int ii=masterSign > 0 ? i : N-1-i;
+/*
+    double u=pointsU[ii];
+    double newu= (GMSH_Esign > 0) ? (u - u_min + to_u_min) : (u_max - u + to_u_min);;
+    GPoint P = ge->point(newu);
+*/
+    SPoint3 P((&points[ii])[0],(&points[ii])[1],(&points[ii])[2]);
+    double u = ge->parFromPoint(P);
+    MVertex *v=new MEdgeVertex(P.x(),P.y(),P.z(), ge, u, ge->meshAttributes.meshSize);
+    ge->mesh_vertices.push_back(v);
+  }
+  for(int i = 0; i <  points.n-1; i++)
+    ge->lines.push_back(new MLine(mesh_vertices(i), mesh_vertices(i+1)));
+
+  ge->setFixedMeshIF(true);
+}
+
+
+void MWM::Curve::setMasterMesh(){
+  GEdge *me = dynamic_cast<GEdge *>(ge->getMeshMaster());
+  if(!me || me==ge) return;
+  int N = points.n;
+  if(N<3) return;
+
+  deMeshGEdge dem;
+  dem(me);
+  me->mesh_vertices.clear();
+  Range<double> bounds = me->parBounds(0);
+/*
+  double u_min=min(pointsU[0],pointsU[N-1]);
+  double u_max=max(pointsU[0],pointsU[N-1]);
+  double to_u_min = bounds.low();
+  double to_u_max = bounds.high();
+*/
+  for(int i = 1; i < N-1; i++){
+    int ii=masterSign > 0 ? i : N-1-i;
+/*
+    double u=pointsU[ii];
+    double newu= (GMSH_Esign > 0) ? (u - u_min + to_u_min) : (u_max - u + to_u_min);;
+    GPoint P = ge->point(newu);
+*/
+    SPoint3 P((&points[ii])[0],(&points[ii])[1],(&points[ii])[2]);
+    double u = me->parFromPoint(P);
+    MVertex *v=new MEdgeVertex(P.x(),P.y(),P.z(), me, u, ge->meshAttributes.meshSize);
+    me->mesh_vertices.push_back(v);
+  }
+  for(int i = 0; i <  points.n-1; i++)
+    me->lines.push_back(new MLine(master_mesh_vertices(i), master_mesh_vertices(i+1)));
+
+  me->setVisibility(false);
+  me->setFixedMeshIF(true);
+}
+
+int MWM::Surface::GFaceSign(GFace *gf){
+    SPoint3 P[3];
+    for(int j=0; j<3; j++){
+       int i=(&(triangles[0]))[j];
+       P[j]=SPoint3((&points[i])[0],(&points[i])[1],(&points[i])[2]);
+    }
+    SPoint2 uv = gf->parFromPoint(P[0], true, true);
+    SVector3 n=gf->normal(uv);
+    SVector3 A=SVector3(P[0],P[1]);
+    SVector3 B=SVector3(P[0],P[2]);
+    return SIGN(dot(n,crossprod(A,B)));
+}
+
+void MWM::Surface::setGFace(GFace * gf_){
+  gf=gf_;
+  masterSign=GFaceSign(gf);
+}
+
+
+void MWM::Surface::setMesh(){
+
+  int N = points.n;
+  bool checkMesh=true;
+
+  deMeshGFace dem;
+  dem(gf);
+  for(int ic=0; ic< NumOfCurves; ic++)
+    for(int j=0; j< curvePoints[ic].size(); j++)
+       mesh_vertices[curvePoints[ic][j]]=curves[ic]->mesh_vertices(j);
+
+  for(int i = 0; i < N; i++) if(!mesh_vertices[i]){
+    SPoint3 P((&points[i])[0],(&points[i])[1],(&points[i])[2]);
+    SPoint2 uv = gf->parFromPoint(P, true, true);
+    MVertex *v = new MFaceVertex(P.x(),P.y(),P.z(),gf,uv.x(), uv.y());
+    mesh_vertices[i]=v;
+    gf->mesh_vertices.push_back(v);
+  }
+  for(int itr=0; itr<triangles.n; itr++){
+    MVertex *tv[3];
+    for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       tv[j]=mesh_vertices[i];
+       SPoint3 TP=mesh_vertices[i]->point();
+/*
+       int I=pointsI[iS];
+       MVertex *v=getMeshVertexByTag(I);
+*/
+    }
+    gf->triangles.push_back(new MTriangle(tv[0],tv[1],tv[2]));
+    if(checkMesh) for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       SPoint3 TP=mesh_vertices[i]->point();
+       SPoint3 SP=gf->triangles[itr]->getVertex(j)->point();
+       assert(TP.distance(SP)<1.e-5);
+     }
+  }
+  
+  gf->setFixedMeshIF(true);
+  
+}
+
+void MWM::Surface::checkMesh(){
+  int N = points.n;
+  for(int itr=0; itr<triangles.n; itr++){
+    for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       SPoint3 TP=mesh_vertices[i]->point();
+       SPoint3 SP=gf->triangles[itr]->getVertex(j)->point();
+       assert(TP.distance(SP)<1.e-5);
+     }
+  }
+}
+
+
+
+void MWM::Surface::setMasterMesh(){
+  GFace *mf = dynamic_cast<GFace *>(gf->getMeshMaster());
+  if(!mf || mf==gf) return;
+
+  int N = points.n;
+  bool checkMesh=true;
+
+  deMeshGFace dem;
+  dem(mf);
+  for(int ic=0; ic< NumOfCurves; ic++)
+    for(int j=0; j< curvePoints[ic].size(); j++)
+       mesh_vertices[curvePoints[ic][j]]=curves[ic]->mesh_vertices(j);
+
+  for(int i = 0; i < N; i++) if(!mesh_vertices[i]){
+    SPoint3 P((&points[i])[0],(&points[i])[1],(&points[i])[2]);
+    SPoint2 uv = mf->parFromPoint(P, true, true);
+    MVertex *v = new MFaceVertex(P.x(),P.y(),P.z(),mf,uv.x(), uv.y());
+    mesh_vertices[i]=v;
+    mf->mesh_vertices.push_back(v);
+  }
+  for(int itr=0; itr<triangles.n; itr++){
+    MVertex *tv[3];
+    for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       tv[j]=mesh_vertices[i];
+       SPoint3 TP=mesh_vertices[i]->point();
+/*
+       int I=pointsI[iS];
+       MVertex *v=getMeshVertexByTag(I);
+*/
+    }
+    mf->triangles.push_back(new MTriangle(tv[0],tv[1],tv[2]));
+    if(checkMesh) for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       SPoint3 TP=mesh_vertices[i]->point();
+       SPoint3 SP=mf->triangles[itr]->getVertex(j)->point();
+       assert(TP.distance(SP)<1.e-5);
+     }
+  }
+  
+  mf->setVisibility(false);
+  mf->setFixedMeshIF(true);
+}
+
+void MWM::Surface::checkMasterMesh(){
+  GFace *mf = dynamic_cast<GFace *>(gf->getMeshMaster());
+  if(!mf || mf==gf) return;
+  int N = points.n;
+  for(int itr=0; itr<triangles.n; itr++){
+    for(int j=0; j<3; j++){
+       int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
+       SPoint3 TP=mesh_vertices[i]->point();
+       SPoint3 SP=mf->triangles[itr]->getVertex(j)->point();
+       assert(TP.distance(SP)<1.e-5);
+     }
+  }
+}
+
+static SPoint3 transform(MVertex *vsource, const std::vector<double> &tfo)
+{
+  double ps[4] = {vsource->x(), vsource->y(), vsource->z(), 1.};
+  double res[4] = {0., 0., 0., 0.};
+  int idx = 0;
+  for(int i = 0; i < 4; i++)
+    for(int j = 0; j < 4; j++) res[i] += tfo[idx++] * ps[j];
+
+  return SPoint3(res[0], res[1], res[2]);
+}
+
+
+static void copyMesh(GFace *source, GFace *target)
+{
+  std::map<MVertex *, MVertex *> vs2vt;
+
+  // add principal GVertex pairs
+
+  std::vector<GVertex *> s_vtcs = source->vertices();
+  s_vtcs.insert(s_vtcs.end(), source->embeddedVertices().begin(),
+                source->embeddedVertices().end());
+  for(auto it = source->embeddedEdges().begin();
+      it != source->embeddedEdges().end(); it++) {
+    if((*it)->getBeginVertex()) s_vtcs.push_back((*it)->getBeginVertex());
+    if((*it)->getEndVertex()) s_vtcs.push_back((*it)->getEndVertex());
+  }
+  std::vector<GVertex *> t_vtcs = target->vertices();
+  t_vtcs.insert(t_vtcs.end(), target->embeddedVertices().begin(),
+                target->embeddedVertices().end());
+  for(auto it = target->embeddedEdges().begin();
+      it != target->embeddedEdges().end(); it++) {
+    if((*it)->getBeginVertex()) t_vtcs.push_back((*it)->getBeginVertex());
+    if((*it)->getEndVertex()) t_vtcs.push_back((*it)->getEndVertex());
+  }
+
+  if(s_vtcs.size() != t_vtcs.size()) {
+    Msg::Info("Periodicity imposed on topologically incompatible surfaces"
+              "(%d vs %d points)",
+              s_vtcs.size(), t_vtcs.size());
+  }
+
+  std::set<GVertex *> checkVtcs(s_vtcs.begin(), s_vtcs.end());
+
+  for(auto tvIter = t_vtcs.begin(); tvIter != t_vtcs.end(); ++tvIter) {
+    GVertex *gvt = *tvIter;
+    auto gvsIter = target->vertexCounterparts.find(gvt);
+
+    if(gvsIter == target->vertexCounterparts.end()) {
+      Msg::Error("Periodic meshing of surface %d with surface %d: "
+                 "point %d has no periodic counterpart",
+                 target->tag(), source->tag(), gvt->tag());
+    }
+    else {
+      GVertex *gvs = gvsIter->second;
+      if(checkVtcs.find(gvs) == checkVtcs.end()) {
+        if(gvs)
+          Msg::Error(
+            "Periodic meshing of surface %d with surface %d: "
+            "point %d has periodic counterpart %d outside of source surface",
+            target->tag(), source->tag(), gvt->tag(), gvs->tag());
+
+        else
+          Msg::Error("Periodic meshing of surface %d with surface %d: "
+                     "point %d has no periodic counterpart",
+                     target->tag(), source->tag(), gvt->tag());
+      }
+      if(gvs) {
+        MVertex *vs = gvs->mesh_vertices[0];
+        MVertex *vt = gvt->mesh_vertices[0];
+        vs2vt[vs] = vt;
+        target->correspondingVertices[vt] = vs;
+      }
+    }
+  }
+
+  // add corresponding curve nodes assuming curves were correctly meshed already
+
+  std::vector<GEdge *> s_edges = source->edges();
+  s_edges.insert(s_edges.end(), source->embeddedEdges().begin(),
+                 source->embeddedEdges().end());
+  std::vector<GEdge *> t_edges = target->edges();
+  t_edges.insert(t_edges.end(), target->embeddedEdges().begin(),
+                 target->embeddedEdges().end());
+
+  std::set<GEdge *> checkEdges;
+  checkEdges.insert(s_edges.begin(), s_edges.end());
+
+  for(auto te_iter = t_edges.begin(); te_iter != t_edges.end(); ++te_iter) {
+    GEdge *get = *te_iter;
+
+    auto gesIter = target->edgeCounterparts.find(get);
+    if(gesIter == target->edgeCounterparts.end()) {
+      Msg::Error("Periodic meshing of surface %d with surface %d: "
+                 "curve %d has no periodic counterpart",
+                 target->tag(), source->tag(), get->tag());
+    }
+    else {
+      GEdge *ges = gesIter->second.first;
+      if(checkEdges.find(ges) == checkEdges.end()) {
+        Msg::Error("Periodic meshing of surface %d with surface %d: "
+                   "curve %d has periodic counterpart %d",
+                   target->tag(), source->tag(), get->tag(), ges->tag());
+      }
+      if(get->mesh_vertices.size() != ges->mesh_vertices.size()) {
+        Msg::Error("Periodic meshing of surface %d with surface %d: "
+                   "curve %d has %d vertices, whereas correspondant %d has %d",
+                   target->tag(), source->tag(), get->tag(),
+                   get->mesh_vertices.size(), ges->tag(),
+                   ges->mesh_vertices.size());
+      }
+      int orientation = gesIter->second.second;
+      int is = orientation == 1 ? 0 : get->mesh_vertices.size() - 1;
+      for(unsigned it = 0; it < get->mesh_vertices.size();
+          it++, is += orientation) {
+        MVertex *vs = ges->mesh_vertices[is];
+        MVertex *vt = get->mesh_vertices[it];
+        vs2vt[vs] = vt;
+        target->correspondingVertices[vt] = vs;
+      }
+    }
+   }
+
+  // transform interior nodes
+  std::vector<double> &tfo = target->affineTransform;
+
+  for(std::size_t i = 0; i < source->mesh_vertices.size(); i++) {
+    MVertex *vs = source->mesh_vertices[i];
+    SPoint2 XXX;
+
+    double ps[4] = {vs->x(), vs->y(), vs->z(), 1.};
+    double res[4] = {0., 0., 0., 0.};
+    int idx = 0;
+    for(int i = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++) res[i] += tfo[idx++] * ps[j];
+
+    SPoint3 tp(res[0], res[1], res[2]);
+    XXX = target->parFromPoint(tp);
+
+    GPoint gp = target->point(XXX);
+    MVertex *vt =
+      new MFaceVertex(gp.x(), gp.y(), gp.z(), target, gp.u(), gp.v());
+    target->mesh_vertices.push_back(vt);
+    target->correspondingVertices[vt] = vs;
+    vs2vt[vs] = vt;
+  }
+
+  // create new elements
+  for(unsigned i = 0; i < source->triangles.size(); i++) {
+    MVertex *v1 = vs2vt[source->triangles[i]->getVertex(0)];
+    MVertex *v2 = vs2vt[source->triangles[i]->getVertex(1)];
+    MVertex *v3 = vs2vt[source->triangles[i]->getVertex(2)];
+    if(v1 && v2 && v3) {
+      target->triangles.push_back(new MTriangle(v1, v2, v3));
+    }
+    else {
+      Msg::Error("Could not find periodic counterpart of triangle nodes "
+                 "%lu %lu %lu",
+                 source->triangles[i]->getVertex(0)->getNum(),
+                 source->triangles[i]->getVertex(1)->getNum(),
+                 source->triangles[i]->getVertex(2)->getNum());
+    }
+  }
+
+  for(unsigned i = 0; i < source->quadrangles.size(); i++) {
+    MVertex *v1 = vs2vt[source->quadrangles[i]->getVertex(0)];
+    MVertex *v2 = vs2vt[source->quadrangles[i]->getVertex(1)];
+    MVertex *v3 = vs2vt[source->quadrangles[i]->getVertex(2)];
+    MVertex *v4 = vs2vt[source->quadrangles[i]->getVertex(3)];
+    if(v1 && v2 && v3 && v4) {
+      target->quadrangles.push_back(new MQuadrangle(v1, v2, v3, v4));
+    }
+    else {
+      Msg::Error("Could not find periodic counterpart of quadrangle nodes "
+                 "%lu %lu %lu %lu",
+                 source->quadrangles[i]->getVertex(0)->getNum(),
+                 source->quadrangles[i]->getVertex(1)->getNum(),
+                 source->quadrangles[i]->getVertex(2)->getNum(),
+                 source->quadrangles[i]->getVertex(3)->getNum());
+    }
+  }
+}
+
+
+namespace MWM {
+  void setMasterMesh(GModel *gm){
+     DB::List_T  *surfs=DB::Tree2List(MWM::mesh->surfaces);
+     DB::List_T  *curvs=DB::Tree2List(MWM::mesh->curves);
+     int ns=DB::List_Nbr(surfs);
+     int nc=DB::List_Nbr(curvs);
+     std::vector<std::pair<int, int> > inDimTags, outDimTags;
+     for(int is=0; is< ns; is++){
+       MWM::Surface *s;  DB::List_Read(surfs,is,&s);
+       inDimTags.push_back(std::pair<int,int>(s->gf->dim(),s->gf->tag()));
+     }
+     bool r = gm->getOCCInternals()->copy(inDimTags, outDimTags);
+     GModel::current()->getOCCInternals()->synchronize(GModel::current());
+     for(int is=0; is< ns; is++){
+         MWM::Surface *s;  DB::List_Read(surfs,is,&s);
+	 GFace *mf=gm->getFaceByTag(outDimTags[is].second);
+	 std::vector<double> tfo={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+         s->gf->setMeshMaster(mf,tfo);
+     }
+     std::set<GVertex *> verts;
+     for(int ic=0; ic< nc; ic++){
+         MWM::Curve *c;  DB::List_Read(curvs,ic,&c);
+         verts.insert(c->ge->getBeginVertex());
+         verts.insert(c->ge->getEndVertex());
+     }
+     for (std::set<GVertex *>::iterator it=verts.begin(); it!= verts.end(); it++){
+	  GVertex *gv=*it;
+          GVertex *mv = dynamic_cast<GVertex *>(gv->getMeshMaster());
+	  if(!mv || mv==gv) continue;
+	  if(mv->mesh_vertices.empty()){
+            MVertex *mshv=new MVertex(mv->point().x(), mv->point().y(), mv->point().z(), mv);
+	    mv->mesh_vertices.push_back(mshv);
+            mv->setVisibility(false);
+	  }
+     }
+     for(int ic=0; ic< nc; ic++){
+          MWM::Curve *c;  DB::List_Read(curvs,ic,&c);
+          c->setMasterMesh();
+     }
+     for(int is=0; is< ns; is++){
+           MWM::Surface *s;  DB::List_Read(surfs,is,&s);
+           s->setMasterMesh();
+     }
+     List_Delete(curvs);
+     List_Delete(surfs);
+  }
+  void checkCopyFaceMesh(GModel *gm){
+     DB::List_T  *surfs=DB::Tree2List(MWM::mesh->surfaces);
+     int ns=DB::List_Nbr(surfs);
+     for(int is=0; is< ns; is++){
+         MWM::Surface *s;  DB::List_Read(surfs,is,&s);
+         GFace *mf = dynamic_cast<GFace *>(s->gf->getMeshMaster());
+         if(!mf || mf==s->gf) return;
+         copyMesh(mf,s->gf);
+     }
+  }
+}
+
+
 
 void mesher_setTags(GModel *gm, 
 	            TopTools_IndexedMapOfShape *indexedFaces,
@@ -871,6 +875,7 @@ void mesher_setGlobalAniso(GModel *gm,
 void mesher_setSingularEdges(GModel *gm, MwOCAF* ocaf)
 {
   std::map<int,int> Emult;
+  std::set<int> BDRedges;
   typedef std::map<int,int>::const_iterator IntMapIt;
   std::map<int,std::pair<gp_Vec, gp_Vec > > Enormals;
   for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
@@ -926,11 +931,13 @@ void mesher_setSingularEdges(GModel *gm, MwOCAF* ocaf)
              gp_Vec FN=supNormal(gs, GP1);
              double u1,u2;
              Handle(Geom_Curve) gec=BRep_Tool::Curve(E, u1, u2);
+	     if(gec.IsNull()) continue;
              gp_Pnt CP1; gp_Vec ET1;
 	     gec->D1(u1, CP1,ET1); ET1/=ET1.Magnitude(); ET1*=EFsign;
              gp_Vec BN=ET1.Crossed(FN);
 	     gp_Vec DN=FN*FDsign;
              int EI=ocaf->indexedEdges->FindIndex(E);
+             BDRedges.insert(EI);
 	     if(Enormals.find(EI)==Enormals.end()){
                   Enormals[EI]=std::pair<gp_Vec, gp_Vec >(DN,BN);
 	     } else {
@@ -943,7 +950,8 @@ void mesher_setSingularEdges(GModel *gm, MwOCAF* ocaf)
          }
      }
   }
-  for (IntMapIt it=Emult.begin(); it!= Emult.end(); it++) if(Emult[(*it).second]==1) ocaf->edgeData[Emult[(*it).first]-1].singular=2;
+  for (IntMapIt it=Emult.begin(); it!= Emult.end(); it++) if((*it).second==1) 
+	  if(BDRedges.find((*it).first)==BDRedges.end()) ocaf->edgeData[(*it).first-1].singular=2;
 
 }
 
@@ -1762,7 +1770,7 @@ void mesher_setMeshSizeField(GModel *gm, int meshSizeViewTag, std::list<int> &ms
 
 }
 
-
+double singularEdgeMeshRefinement[2]={2,4};
 
 void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D, 
 	            TopTools_IndexedMapOfShape *indexedEdges,
@@ -1781,8 +1789,8 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 	      int mshrefI=10*edgeRef+0.2;
 	      double emeshSize=10*meshsize/mshrefI;
 	      if(mesh3D) if (edgeData[EI-1].singular){
-	           int singmshrefI=10*edgeRef*edgeData[EI-1].singular+0.2;
-		   singElist[singmshrefI].push_back(ge->tag());
+	          int singmshrefI=10*edgeRef*singularEdgeMeshRefinement[edgeData[EI-1].singular-1]+0.2;
+		  singElist[singmshrefI].push_back(ge->tag());
 	      }
 	      ge->meshAttributes.meshSize=min(ge->meshAttributes.meshSize,emeshSize);
              /*	      
@@ -1823,9 +1831,9 @@ void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D,
 	     int fieldTag=fields->newId(); mshFieldList.push_back(fieldTag);
              Field *thsld=fields->newField(fieldTag, "Threshold");
              thsld->options["IField"]->numericalValue(fieldTag1);
-             thsld->options["DistMin"]->numericalValue(meshsize/2);
-             thsld->options["DistMax"]->numericalValue(meshsize);
-             thsld->options["SizeMin"]->numericalValue(meshsize/4);
+             thsld->options["DistMin"]->numericalValue(emeshSize);
+             thsld->options["DistMax"]->numericalValue(meshsize/2);
+             thsld->options["SizeMin"]->numericalValue(emeshSize);
              thsld->options["SizeMax"]->numericalValue(meshsize);
 	  }
       }
@@ -1871,7 +1879,7 @@ void mesher_setRegionMeshAttribute(GModel *gm, MwOCAF* ocaf,
 
 void mesher_setFaceMeshAttribute(GModel *gm,
 	            TopTools_IndexedMapOfShape *indexedFaces,
-		    double meshsize, double sharedMeshRef, FaceData  *faceData,
+		    double meshsize, double sharedMeshsize, FaceData  *faceData,
 		    bool onlyOnWG=false
 	      )
 {
@@ -1882,8 +1890,8 @@ void mesher_setFaceMeshAttribute(GModel *gm,
 	      if(onlyOnWG && !faceData[FI-1].Shared()) continue;
 	      double refri=sqrt(faceData[FI-1].epsr * faceData[FI-1].mur);
 	      gf->meshAttributes.meshSize = meshsize/(refri*faceData[FI-1].meshref);
-	      if(faceData[FI-1].shared){
-		     if(sharedMeshRef>1) gf->meshAttributes.meshSize/=sharedMeshRef;
+	      if(faceData[FI-1].cmp1!=faceData[FI-1].cmp2){
+		     if(sharedMeshsize>0) gf->meshAttributes.meshSize=MIN(gf->meshAttributes.meshSize,sharedMeshsize/refri);
 		     std::vector<GEdge*> Fedges=gf->edges();
                      for (std::vector<GEdge*>::const_iterator eit=Fedges.begin(); eit!=Fedges.end(); ++eit){
                        GEdge *ge=*eit;
@@ -1902,7 +1910,7 @@ void mesher_setFaceMeshAttribute(GModel *gm,
 
 void mesher_setFaceMeshAttribute(GModel *gm,
 	            TopTools_IndexedMapOfShape *indexedFaces,
-		    double meshsize, double sharedMeshRef, FaceData  *faceData,
+		    double meshsize, double sharedMeshsize, FaceData  *faceData,
 		    std::list<int> &mshFieldList)
 {
       std::map<int, std::list<int> > refFlist;
@@ -1957,11 +1965,9 @@ void laplaceSmoothing(GFace *gf);
 
 void writeIFmap(GModel *gm,  MwOCAF* ocaf, const char* dirName){
 
-  std::string intIFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
-  std::string extIFfileName=std::string(dirName)+std::string("/../interfaces/IF.map");
-  FILE *fIntIF=NULL;
-  FILE *fExtIF=NULL;
-  std::set<int> intUFIset,extUFIset;
+  std::string IFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
+  FILE *fIF=NULL;
+  std::set<int> FIset;
   {
    for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
     GFace *gf=*fit;
@@ -1970,22 +1976,13 @@ void writeIFmap(GModel *gm,  MwOCAF* ocaf, const char* dirName){
     int FI=ocaf->indexedFaces->FindIndex(F);
     if(!FI) continue;
     if(ocaf->faceData[FI-1].sfname==std::string("-")) continue;
-    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
-    int UUFI=UFI;
-    int internal=ocaf->splitFacesMap[UFI-1]==0;
-    if(!internal) UUFI=ocaf->splitFacesMap[UFI-1];
-    if(internal) intUFIset.insert(UFI);
-    else         extUFIset.insert(UUFI);
+    FIset.insert(FI);
    }
-   int intIFfaceNum=intUFIset.size();
-   int extIFfaceNum=extUFIset.size();
-   fIntIF=fopen(nativePath(intIFfileName).c_str(), "w");
-   fExtIF=fopen(nativePath(extIFfileName).c_str(), "w");
-   fprintf(fIntIF, "%d  faceNum \n", intIFfaceNum );
-   fprintf(fExtIF, "%d  faceNum \n", extIFfaceNum );
+   int IFfaceNum=FIset.size();
+   fIF=fopen(nativePath(IFfileName).c_str(), "w");
+   fprintf(fIF, "%d  faceNum \n", IFfaceNum );
   }
-  intUFIset.clear();
-  extUFIset.clear();
+  FIset.clear();
 
   for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
     GFace *gf=*fit;
@@ -1994,25 +1991,17 @@ void writeIFmap(GModel *gm,  MwOCAF* ocaf, const char* dirName){
     F.Orientation(TopAbs_FORWARD);
     int FI=ocaf->indexedFaces->FindIndex(F);
     if(!FI) continue;
-    int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
-    int internal=1;
-    if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
-    int UUFI=UFI;
-    if(ocaf->isPartition()) if(ocaf->splitFacesMap[UFI-1]) UUFI=ocaf->splitFacesMap[UFI-1];
     if(ocaf->faceData[FI-1].sfname!=std::string("-") ){
-	if(internal)   if(intUFIset.find(UFI)==intUFIset.end())  {fprintf(fIntIF, "%d  %s\n", UFI,  ocaf->faceData[FI-1].sfname.c_str()); intUFIset.insert(UFI);}
-	if(!internal)  if(extUFIset.find(UUFI)==extUFIset.end()) {fprintf(fExtIF, "%d  %s\n", UUFI, ocaf->faceData[FI-1].sfname.c_str()); extUFIset.insert(UUFI);}
+	if(FIset.find(FI)==FIset.end()) {fprintf(fIF, "%d  %s\n", FI, ocaf->faceData[FI-1].sfname.c_str()); FIset.insert(FI);}
     }
   }
-  fclose(fIntIF); fclose(fExtIF);
+  fclose(fIF);
 }
 
 
-void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, double sharedMeshRef, int meshpercircle, const char* dirName, const char* modelDir)
+void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, double meshsize, double sharedMeshsize, int meshpercircle, const char* dirName, const char* modelDir)
 {
     bool CHECK=false;
-
-    CTX::instance()->geom.tolerance=1.e-6;
 
     ocaf->regenerateIndexedSubShapes();
     if(mesh3D || meshWG) ocaf->makeFaceAdjCells();
@@ -2051,12 +2040,6 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
 
     std::vector<int> Fmaster;
-#if defined(MAKEMASTERS)
-    std::vector<int> Emaster;
-    std::vector<std::vector<double> > ETransf;
-    std::vector<std::vector<double> > FTransf;
-    if(mesh3D) makeInvMasters(ocaf, Emaster,ETransf,Fmaster,FTransf);
-#endif
 
 /*
     int SI=0;
@@ -2096,6 +2079,8 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
       gmsh::initialize();
       Msg::SetVerbosity(0);
+      CTX::instance()->geom.tolerance=1.e-6;
+
 
       std::string mshrefFilePath=mshFilePath+".mshref";
       int meshSizeViewTag=-1;
@@ -2165,19 +2150,13 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 		 mesher_setSingularVertices(gm, ocaf, meshsize, mshFieldList);
       }
       if(useFaceAttractor)
-         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshRef, ocaf->faceData, mshFieldList);
+         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshsize, ocaf->faceData, mshFieldList);
       else{
-	 bool onlyOnWG=meshSizeViewTag>=0;
-         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshRef, ocaf->faceData, onlyOnWG);
+//	 bool onlyOnWG=meshSizeViewTag>=0;
+	 bool onlyOnWG=false;
+         mesher_setFaceMeshAttribute(gm, ocaf->indexedFaces, 0.9*meshsize, sharedMeshsize, ocaf->faceData, onlyOnWG);
       }
       if(mesh3D) mesher_setRegionMeshAttribute(gm, ocaf, meshsize, solidNames);
-
-#if defined(MAKEMASTERS)
-      if(mesh3D){
-        if(CHECK) checkMasterEdges(gm, ocaf->indexedEdges, Emaster, ETransf);
-        setMasterEdges(gm, ocaf->indexedEdges, indexedGmshEdges, Emaster, ETransf);
-      }
-#endif
 
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
          GFace *gf=*fit;
@@ -2188,7 +2167,11 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
            gf->meshAttributes.method=MESH_UNSTRUCTURED;
 //	   if(gf->geomType()==GEntity::Plane) gf->setMeshingAlgo(ALGO_2D_MESHADAPT);
 //	   else                               gf->setMeshingAlgo(ALGO_2D_MESHADAPT);
-	 } else if(ocaf->faceData[FI-1].shared && ocaf->faceData[FI-1].level>=ocaf->EmP->level)
+	 } else if(ocaf->faceData[FI-1].cmp1!=ocaf->faceData[FI-1].cmp2 
+		&& ocaf->faceData[FI-1].level>=ocaf->EmP->level
+		&& ocaf->faceData[FI-1].cmp1!=std::string("-")
+		&& ocaf->faceData[FI-1].cmp2!=std::string("-")
+		)
            gf->meshAttributes.method=MESH_UNSTRUCTURED;
 	 else
            gf->meshAttributes.method=MESH_NONE;
@@ -2198,10 +2181,9 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 //         CTX::instance()->mesh.algo2d=ALGO_2D_MESHADAPT;
       else            
 //        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
-        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
-//        if(meshIF)  CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
-//        else        CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
-         CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
+//        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
+        if(meshIF)  CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
+        else        CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
       CTX::instance()->mesh.lcFromPoints=1;
       CTX::instance()->mesh.lcFromCurvature=1;
       CTX::instance()->mesh.lcExtendFromBoundary=0;
@@ -2234,7 +2216,7 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       CTX::instance()->mesh.optimizeThreshold=0.6;
       CTX::instance()->mesh.optimize=5;
 //      CTX::instance()->mesh.optimizeNetgen=(meshSizeViewTag>=0)? 1 : 2;
-      CTX::instance()->mesh.optimizeNetgen=5;
+      CTX::instance()->mesh.optimizeNetgen=0;
 #endif
 
 /*
@@ -2256,7 +2238,6 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
       mesher_setBackgroundField(gm, mshFieldList);
 
-
       std::map< int, GFace * > indexedGmshFaces;
       for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
          GFace *gf=*fit;
@@ -2268,31 +2249,102 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       }
 
 
-      gm->mesh(1);
 
-#if defined(MAKEMASTERS)
-      if(CHECK) for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
-        GEdge *ge=*eit;
-	if (ge->meshMaster() != ge){
-	   GEdge *gem = dynamic_cast<GEdge*> (ge->meshMaster());
-	   assert(ge->mesh_vertices.size()==gem->mesh_vertices.size());
-        }
+     MWM::newMesh();
+
+     bool useMaster=true;
+
+     if(ocaf->EmP->level>0 || ocaf->subComp) for(GModel::eiter it = gm->firstEdge(); it != gm->lastEdge(); it++){
+        GEdge *ge=(*it);
+        unsigned int ElineNum=ge->getNumMeshElements();
+        TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
+        int EI=ocaf->indexedEdges->FindIndex(E);
+        if(ge->meshAttributes.method!=MESH_NONE){
+	   std::string edgeFileName=dirName;
+	   int UEI=ocaf->subComp? ocaf->subSplitEdgesMap[EI-1] : EI;
+           char ename[50]; sprintf(ename,"E%d.mwm",UEI);
+           edgeFileName+="/interfaces/";
+           edgeFileName+=ename;
+	   if(!FileExists(nativePath(edgeFileName).c_str())) continue;
+	   loadMwm(nativePath(edgeFileName).c_str());
+	   MWM::Curve *mwmc=MWM::mesh->FindCurve(ocaf->edgeData[EI-1].name.c_str());
+           GVertex *gv1=ge->getBeginVertex();
+           GVertex *gv2=ge->getEndVertex();
+           TopoDS_Vertex V1= *(TopoDS_Vertex *) gv1->getNativePtr();
+           int IP1=ocaf->indexedVertices->FindIndex(V1);
+           TopoDS_Vertex V2= *(TopoDS_Vertex *) gv2->getNativePtr();
+           int IP2=ocaf->indexedVertices->FindIndex(V2);
+           int GMSH_Esign=ocaf->vertexData[IP1-1].name < ocaf->vertexData[IP2-1].name ? 1:-1;
+           if(mwmc){
+		    mwmc->setGEdge(ge,GMSH_Esign); 
+ 		    if(!useMaster) mwmc->setMesh();
+	           }
+	}
+     }
+     
+      if(!useMaster) gm->mesh(1);
+
+      if(mesh3D) for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+         GFace *gf=*fit;
+	 if(gf->meshAttributes.method!=MESH_NONE){
+           TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+           int Ssign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
+           F.Orientation(TopAbs_FORWARD);
+           int FI=ocaf->indexedFaces->FindIndex(F);
+           if(!FI) continue;
+	   std::string faceFileName=dirName;
+	   int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
+           char fname[50]; sprintf(fname,"F%d.mwm",UFI);
+           faceFileName+="/interfaces/";
+           faceFileName+=fname;
+	   if(!FileExists(nativePath(faceFileName).c_str())) continue;
+	   loadMwm(nativePath(faceFileName).c_str());
+	   std::string upFaceName="UF"+ocaf->faceData[FI-1].name;
+	   MWM::Surface *mwms=MWM::mesh->FindSurface(upFaceName.c_str());
+           if(mwms){
+		    mwms->setGFace(gf); 
+		    if(!useMaster) mwms->setMesh();
+	           }
+	 }
       }
-      if(CHECK) checkMasterFaces(gm, ocaf->indexedFaces, ocaf->indexedEdges, indexedGmshFaces, Fmaster, Emaster);
-      setMasterFaces(gm, ocaf->indexedFaces, indexedGmshFaces, Fmaster, FTransf);
-#endif
+
+      if(useMaster){
+       MWM::setMasterMesh(gm);
+       gm->mesh(1);
+      }
+
 
       gm->mesh(2);
 
-#if defined(MAKEMASTERS)
-      if(CHECK) for(GModel::eiter eit = gm->firstEdge(); eit != gm->lastEdge(); ++eit){
-        GEdge *ge=*eit;
-	if (ge->meshMaster() != ge){
-	   GEdge *gem = dynamic_cast<GEdge*> (ge->meshMaster());
-	   assert(ge->mesh_vertices.size()==gem->mesh_vertices.size());
-        }
+
+      bool checkMesh2D=false;
+      if(checkMesh2D){
+	 if(mesh3D) for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+            GFace *gf=*fit;
+	    if(gf->meshAttributes.method!=MESH_NONE){
+               TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+               int Ssign=(F.Orientation()==TopAbs_FORWARD) ? 1 : -1;
+               F.Orientation(TopAbs_FORWARD);
+               int FI=ocaf->indexedFaces->FindIndex(F);
+               if(!FI) continue;
+	       std::string upFaceName="UF"+ocaf->faceData[FI-1].name;
+	       MWM::Surface *mwms=MWM::mesh->FindSurface(upFaceName.c_str());
+               if(mwms) mwms->checkMasterMesh();
+            }
+	 }
+         gm->writeMSH(mshFilePath+".msh");
+	 if(meshIF){
+             print_mwm(gm, ocaf, meshIF, mesh3D, meshWG,
+		dirName, modelDir,
+		solidNames,
+		Fmaster
+	     );
+         }
+         if(ocaf->EmP->assemblyType==COMPONENT && !ocaf->subComp) writeIFmap(gm, ocaf, dirName);
+         gmsh::finalize();
+	 return;
       }
-#endif
+
 
 #if defined(GMSH3D)
 //      if(meshSizeViewTag>=0) CTX::instance()->mesh.nbSmoothing=0;
@@ -2301,13 +2353,11 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 #endif
 
 
-
-
 //      GmshWriteFile(mshFilePath);
 
       gm->writeMSH(mshFilePath+".msh");
 
-      if(ocaf->isPartition()) writeIFmap(gm, ocaf, dirName);
+      if(ocaf->EmP->assemblyType==COMPONENT && !ocaf->subComp) writeIFmap(gm, ocaf, dirName);
 
       if(mesh3D) addIF(ocaf, dirName, modelDir);
       if(mesh3D) ocaf->setConductorMap();
@@ -2340,7 +2390,6 @@ void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
 
     TCollection_AsciiString assName; ocaf->getAssName(assName);
     TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
-    TCollection_AsciiString compName=remove_SUB(assName);
 
     FILE *fout=fopen(nativePath(modelFileName.ToCString()).c_str(), "w"); if(!fout) return;
 
@@ -2348,48 +2397,30 @@ void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
     ocaf->readFEproperties();
 
     std::map<std::string,std::vector<int>, std::less<std::string> > WGIF_FI;
-    if(ocaf->isPartition()){
-     std::string IFfileName=std::string(dirName)+std::string("/../interfaces/IF.map");
-     FILE *fIFmap=fopen(nativePath(IFfileName).c_str(), "r");
-     int UFNum; char cstr[100];
-     fscanf(fIFmap, "%d", &UFNum);  fgets(cstr,100,fIFmap);
-     int FI; char str[100];
-     for (int i =0; i < UFNum; i++){ fscanf(fIFmap, "%d %s", &FI, str); WGIF_FI[std::string(str)].push_back(FI);}
-     fclose(fIFmap);
-    }
-    if(ocaf->isPartition()){
-     std::string IFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
-     FILE *fIFmap=fopen(nativePath(IFfileName).c_str(), "r");
-     int UFNum; char cstr[100];
-     fscanf(fIFmap, "%d", &UFNum);  fgets(cstr,100,fIFmap);
-     int FI; char str[100];
-     for (int i =0; i < UFNum; i++){ fscanf(fIFmap, "%d %s", &FI, str); WGIF_FI[std::string(str)].push_back(FI);}
-     fclose(fIFmap);
-    }
+    std::string IFfileName=std::string(dirName)+std::string("/interfaces/IF.map");
+    FILE *fIFmap=fopen(nativePath(IFfileName).c_str(), "r");
+    int UFNum; char cstr[100];
+    fscanf(fIFmap, "%d", &UFNum);  fgets(cstr,100,fIFmap);
+    int FI; char str[100];
+    for (int i =0; i < UFNum; i++){ fscanf(fIFmap, "%d %s", &FI, str); WGIF_FI[std::string(str)].push_back(FI);}
+    fclose(fIFmap);
 
-    std::map<std::string, int, std::less<std::string> > WGIF;
-    typedef std::map<std::string, int, std::less<std::string> >::const_iterator WGIFIt;
+    std::set<std::string> WGIF;
+    typedef std::set<std::string>::const_iterator WGIFIt;
 
     for (int FI=1; FI<=ocaf->indexedFaces->Extent(); FI++)  
 	if(ocaf->faceData[FI-1].Shared())
-            if(WGIF.find(ocaf->faceData[FI-1].sfname)==WGIF.end()){
-                 int UFI=ocaf->subComp? ocaf->subSplitFacesMap[FI-1] : FI;
-                 int internal=1;
-                 if(ocaf->isPartition()) internal=ocaf->splitFacesMap[UFI-1]==0;
-		 WGIF[ocaf->faceData[FI-1].sfname]=internal;
-	    }
+            if(WGIF.find(ocaf->faceData[FI-1].sfname)==WGIF.end()) WGIF.insert(ocaf->faceData[FI-1].sfname);
     for (WGIFIt it=WGIF.begin(); it!= WGIF.end(); it++){
-       std::string sfname=(*it).first;
+       std::string sfname=(*it);
        fprintf(fout, "DEF %s  MWM_Volume {\n",  sfname.c_str());
        fprintf(fout, "  type  WaveGuide\n");
        fprintf(fout, "}\n\n");
-       bool internal=WGIF[sfname];
        std::vector<int> FI=WGIF_FI[sfname];
        for (int j=0; j<FI.size(); j++){
          char fname[50]; sprintf(fname,"F%d",FI[j]);
          std::string faceFileName=dirName;
-         if (internal) faceFileName+="/interfaces/";
-         else          faceFileName+="/../interfaces/";
+         faceFileName+="/interfaces/";
          faceFileName+=fname;
 
          std::string mwmFileName=faceFileName+std::string(".mwm");
@@ -2401,21 +2432,8 @@ void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
          FD.read(fp);
          fclose(fp);
 
-         fprintf(fout, "DEF UF%s  MWM_Surface {\n", FD.name.c_str());
-// Volumes Data associated with the UpperFace are the Current Component (indicated as '-') and the Superface.
-// The two volumes are ordered according to the UpperFace orientation.
-         int foreward;
-	 if(internal) foreward= (FD.cmp1 == std::string(assName.ToCString())) ? 1: 0;
-	 else         foreward= (FD.cmp1 == std::string(compName.ToCString())) ? 1: 0;
-         if(foreward)
-          fprintf(fout, "  volumes  [\"-\", \"%s\"]\n",  FD.sfname.c_str());
-         else
-          fprintf(fout, "  volumes  [\"%s\", \"-\"]\n",  FD.sfname.c_str());
-         fprintf(fout, "  cutoffRefinement  %f \n", FD.cutoffref);
          std::string str;
          while (!getLine(mwmin, str).eof()) fprintf(fout, "%s\n", str.c_str());
-         fprintf(fout, "\tcolor 0.878 0.000 0.000\n");
-         fprintf(fout, "}\n\n");
          mwmin.close();
  /* ---*/
          fprintf(fout, "DEF mat_%s  MWM_Material {\n",   FD.name.c_str());

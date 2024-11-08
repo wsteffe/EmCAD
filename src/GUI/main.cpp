@@ -30,23 +30,26 @@
 #include <Standard.hxx>
 #include <stdio.h> 
 #include <stdlib.h> 
-#include <sys/stat.h>
 #include <string.h>
 
 MainWindow *mainWindow;
 
-std::string account_filename;
-std::string config_filename;
-std::string botoConfig_filename;
+std::string configdir;
+
+std::string proxy_filepath;
+std::string api_pem_filepath;
+std::string account_filepath;
+std::string config_filepath;
+std::string EmCADuser_filepath;
 std::map<std::string, std::string> emcadConfig;
 std::map<std::string, std::string> emcadAccount;
-std::map<std::string, std::string> botoConfig;
+std::map<std::string, std::string> EmCADuser;
 
 char emcadPath[256];
-extern int useAWS;
-extern int useServer;
-extern int useAPI;
-extern int useDOCKER;
+int useAWS=0;
+int useServer=0;
+int useAPI=1;
+int useDOCKER=0;
 
 extern int modeldebug;
 extern int model_flex_debug;
@@ -54,7 +57,22 @@ extern int touchstonedebug;
 extern int touchstone_flex_debug;
 extern int projectDatadebug;
 
-void WriteBoto();
+namespace DB {
+ char yyFileName[256];
+ int yyLineNum;
+ void yyMsg(int type, const char *fmt, ...){
+  va_list args;
+  char tmp[1024];
+  va_start (args, fmt);
+  vsprintf (tmp, fmt, args);
+  va_end (args);
+  Msg(type, "'%s', line %d : %s", yyFileName, yyLineNum, tmp);
+ }
+}
+
+bool userHasCredit=false;
+
+extern void api_renew_if_expired(bool wait=true);
 
 #ifdef WNT
 #include <windows.h>
@@ -91,49 +109,49 @@ int main(int argc, char *argv[])
 
     #ifdef WNT
     char *home=getenv("USERPROFILE");
+    configdir=std::string(home)+std::string("/EmCAD");
     #else
     char *home=getenv("HOME");
+    configdir=std::string(home)+std::string("/.config/EmCAD");
     #endif
 
     if(home==NULL) return 1;
 
-    std::string homedir=std::string(home);
+    if(!FileExists(configdir.c_str())) createdir(configdir.c_str());
 
-    struct stat configInfo;
-    config_filename=homedir+"/.emcad";
-    if(!stat(config_filename.c_str(), &configInfo)) ReadFile(config_filename, &emcadConfig);
+    config_filepath=configdir+"/emcad_config";
+    if(FileExists(config_filepath.c_str())) ReadFile(config_filepath, &emcadConfig);
 
-    struct stat accountInfo;
-    account_filename=homedir+"/.emcad_account";
-    if(!stat(account_filename.c_str(), &accountInfo)) ReadFile(account_filename, &emcadAccount);
+    proxy_filepath=configdir+"/proxy.pac";
+    api_pem_filepath=configdir+"/api-hierarchical-electromagnetics-com-bundle.pem";
 
-    struct stat botoConfigInfo;
-    botoConfig_filename=homedir+"/.boto";
-    if(!stat(botoConfig_filename.c_str(), &botoConfigInfo)) ReadFile(botoConfig_filename, &botoConfig);
-
-    useAWS=emcadConfig[std::string("modeler")]==std::string("aws");
-    useAPI=emcadConfig[std::string("modeler")]==std::string("api");
-    useServer=emcadConfig[std::string("modeler")]==std::string("lan");
-    useDOCKER=useServer || emcadConfig[std::string("modeler")]==std::string("docker");
-
-    if(emcadAccount[std::string("credit")].empty()) emcadAccount[std::string("credit")]="0";
-
-#ifdef WNT
-    std::string cacertsPath=emcadPath; 
-    cacertsPath=cacertsPath.substr (0, cacertsPath.find("bin\\emcad.exe"));
-    cacertsPath+="aws\\cacerts.txt";
-    cacertsPath=nativePath(cacertsPath);
-    if(botoConfig[std::string("ca_certificates_file")]!=cacertsPath){
-      botoConfig[std::string("ca_certificates_file")]=cacertsPath;
-      WriteBoto();
+    account_filepath=configdir+"/emcad_account";
+    if(FileExists(account_filepath.c_str())){
+	ReadFile(account_filepath, &emcadAccount);
+        if(emcadAccount[std::string("credit")].empty()) emcadAccount[std::string("credit")]="0";
+        float credit=std::stof(emcadAccount[std::string("credit")]);
+        userHasCredit=credit>1.0;
     }
-#endif
+
+    EmCADuser_filepath=configdir+"/emcad_user";
+    if(FileExists(EmCADuser_filepath.c_str())) ReadFile(EmCADuser_filepath, &EmCADuser);
+
+    useAPI=1; useAWS=0;
+    if(emcadConfig.find(std::string("modeler"))!=emcadConfig.end()){
+      useAPI=emcadConfig[std::string("modeler")]==std::string("api");
+      useAWS=emcadConfig[std::string("modeler")]==std::string("aws");
+      useServer=emcadConfig[std::string("modeler")]==std::string("lan");
+      useDOCKER=useServer || emcadConfig[std::string("modeler")]==std::string("docker");
+    }
 
     bool useGUI = true;
     QApplication app( argc, argv, useGUI);
 
     mainWindow=new MainWindow;
     mainWindow->show();
+    if(useAPI && FileExists(EmCADuser_filepath.c_str())){
+	mainWindow->api_renew_if_expired(false);
+    }
     int ierr= app.exec();
     delete mainWindow;
     return ierr;

@@ -23,11 +23,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <model_parser.hpp>
-#include<ListUtils.h>
+#include <List.h>
 #include <Message.h>
 
-extern char modelFileName[256];
-int modelLineNum=1;
+namespace DB {
+ extern char yyFileName[256];
+ extern int yyLineNum;
+}
+
 
 typedef struct {
   char fileName[256];
@@ -103,8 +106,8 @@ ID    [[:alnum:]_\.\|\^]*
 
 <*>[ \t]+			{ }
 #.*				{ }
-#.*\n				{ modelLineNum++;}
-\n				{ modelLineNum++;}
+#.*\n				{ DB::yyLineNum++;}
+\n				{ DB::yyLineNum++;}
 
 {string}			{ yytext[yyleng-1] = '\0'; modellval.sval = &yytext[1]; return STRING; }
 <expectID>{ID}			{ /*puts back ID onto the input stream as a string enclosed in '"' */
@@ -130,10 +133,10 @@ ID    [[:alnum:]_\.\|\^]*
         include_stack[include_stack_ptr++] =
             YY_CURRENT_BUFFER;
 
-        fStack.push(modelFileName,modelLineNum);
-        strcpy(modelFileName, yytext);
+        fStack.push(DB::yyFileName,DB::yyLineNum);
+        strcpy(DB::yyFileName, yytext);
         changedBinFile=1;
-        modelLineNum =1;
+        DB::yyLineNum =1;
 
         yyin = fopen( yytext, "r" );
 
@@ -156,7 +159,7 @@ ID    [[:alnum:]_\.\|\^]*
 
         else
             {
-             fStack.pop(modelFileName,modelLineNum);
+             fStack.pop(DB::yyFileName,DB::yyLineNum);
 
              yy_delete_buffer( YY_CURRENT_BUFFER );
              yy_switch_to_buffer(
@@ -229,6 +232,7 @@ material			{ return MATERIAL; }
 TEMportsNum			{ return TEMPORTSNUM; }
 TEportsNum			{ return TEPORTSNUM; }
 TMportsNum			{ return TMPORTSNUM; }
+TEMTabularOrder 		{ return TEMTABULARORDER; }
 gridNum			        { return GRIDNUM; }
 PML			        { return PML; }
 invariant			{ return INVARIANT; }
@@ -245,32 +249,32 @@ volumes				{ return VOLUMES; }
 solid				{ return SOLID; }
 PROTO {
 	   int c=0, bigBracket;
-	   while ((c=yyinput()) != '[' && c != EOF) if (c== '\n') modelLineNum++;
+	   while ((c=yyinput()) != '[' && c != EOF) if (c== '\n') DB::yyLineNum++;
 
 	   bigBracket =1;
 	   while (bigBracket && (c=yyinput())!=EOF) {
 	      switch(c) {
 		 case ']' :  bigBracket--;   break;
 		 case '[' :  bigBracket++;   break;
-		 case '\n':  modelLineNum++;    break;
+		 case '\n':  DB::yyLineNum++;    break;
 		 case '#'  : /* skip comment */ {
 		    do {c = yyinput();} while (c != '\n');
-		    modelLineNum++;
+		    DB::yyLineNum++;
              	 }
 	      }
 	   } 
 
-	   while ((c=yyinput()) != '{' && c != EOF) if (c== '\n') modelLineNum++;
+	   while ((c=yyinput()) != '{' && c != EOF) if (c== '\n') DB::yyLineNum++;
 
 	   bigBracket =1;
 	   while (bigBracket && (c=yyinput())!=EOF) {
 	      switch(c) {
 		 case '}' :  bigBracket--;   break;
 		 case '{' :  bigBracket++;   break;
-		 case '\n':  modelLineNum++;    break;
+		 case '\n':  DB::yyLineNum++;    break;
 		 case '#'  : /* skip comment */ {
 		    do {c = yyinput();} while (c != '\n');
-		    modelLineNum++;
+		    DB::yyLineNum++;
              	 }
 	      }
 	   } 
@@ -281,9 +285,9 @@ PROTO {
 %%
 
 
-void SetInputFile(FILE *fp)
+void modelSetInputFile(FILE *fp)
 {
-  modelLineNum = 1;
+  DB::yyLineNum = 1;
   yyrestart(fp);
 }
 

@@ -110,8 +110,7 @@ class TreeWidget : public QTreeWidget
       void setLastEntered(QTreeWidgetItem * qitem, int column ) {lastEntered=(TreeWidgetItem*) qitem;}
       void about();
       void setCurrentItem(QTreeWidgetItem * qitem, int column );
-      void openCompAndPartition();
-      void openCompOrPartition();
+      void openComp();
       void viewSubCompConvergence();
       void atImportedPartProperties();
       void assignLayer();
@@ -159,8 +158,7 @@ class TreeWidget : public QTreeWidget
 
    private:
       QAction *aboutAction;
-      QAction *openCompOrPartitionAction;
-      QAction *openCompAndPartitionAction;
+      QAction *openComponentAction;
       QAction *viewSubCompConvergenceAction;
       QAction *assignLayerAction;
       QAction *assignMaterialAction;
@@ -283,6 +281,7 @@ class SetCompPropertiesDialog : public QDialog
      QLineEdit *TEMnumLE;
      QSpinBox  *TEnumSB;
      QSpinBox  *TMnumSB;
+     QComboBox *TEM_TabularOrder;
      QCheckBox *PML;
 #if defined(EXPLICIT_INVARIANT)
      QCheckBox *invariant;

@@ -145,6 +145,34 @@ bool removeAllFilesInDirStartingWith(const char *dirname, const char *start)
     return true;
 }
 
+bool removeAllFilesInDirExcludingEndingWith(const char *dirname, std::set<std::string> exclude)
+{
+    path p(dirname);
+    if (!exists(p)){
+        fprintf(stderr, "Null Directory Error\n");
+        return false;
+    }
+    typedef std::set<std::string>::const_iterator StrSetIt;
+    if (is_directory(p)){
+       typedef std::vector<path> vec;     // store paths,
+       vec v;                       // so we can sort them later
+       copy(directory_iterator(p), directory_iterator(), back_inserter(v));
+       for (vec::const_iterator it(v.begin()), it_end(v.end()); it != it_end; ++it) if (!is_directory(*it)){
+	    std::string strpath=it->string();
+	    bool rm=true;
+	    int l=strpath.size();
+	    for (StrSetIt eit=exclude.begin(); eit!= exclude.end(); eit++){
+             std::string strend=*eit;
+	     int le=strend.size();
+             rm=rm && strpath.substr(l-le,l)!=strend;
+	    }
+	    if(rm) remove(*it);
+       }
+    }
+    return true;
+}
+
+
 
 std::string nativePath(std::string name)
 {

@@ -42,6 +42,10 @@ int yylex ();
 int changedBinFile=1;
 int openBinFile=0;
 
+namespace DB {
+ extern char yyFileName[256];
+ extern int yyLineNum;
+}
 
 //debug:
 typedef union YYSTYPE
@@ -56,8 +60,6 @@ char	*sval;
 static void yyprint (FILE *file, int type, YYSTYPE value);
 //debug
 
-
-void model_msg(int type, char *fmt, ...);
 
 char mainCircName[256];
 
@@ -107,7 +109,7 @@ char	*sval;
 %token IMPORT
 %token ASSEMBLYTYPE LEVEL
 %token DEF SET CIRCUITNAME DEFAULTBC
-%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
+%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM TEMTABULARORDER GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
 %token LENGTH FREQUENCY BAND SURFACE RESISTANCE INDUCTANCE IMPEDANCE LOSSFACTOR QFACTOR SURFRATIO BALLRADIUS ROUGH MODELTYPE RZ RQ
 %token MESHREFINEMENT CUTOFFREFINEMENT COMPSOLID
 %token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ POLESRESIDUES POLESNUM ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
@@ -352,17 +354,17 @@ InvariantElement
 	:  ROTATION  ANGLE   {Fbuff = NULL;}    SFFloat             {invt->rotAngle=$4; }
 	|  ROTATION  AXIS {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
             {
-              DoubleBuffer.flush(&dVec); 
+              DoubleBuffer.flush(dVec); 
               for(int i=0; i<3; i++) invt->rotAxis[i]=dVec[i];
             }
 	|  ROTATION  ORIGIN {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
             {
-              DoubleBuffer.flush(&dVec); 
+              DoubleBuffer.flush(dVec); 
               for(int i=0; i<3; i++) invt->rotOrigin[i]=dVec[i];
             }
         |  TRANSLATION    {Fbuff = &DoubleBuffer; Fbuff->reset();}      MFVec3f
             {
-              DoubleBuffer.flush(&dVec); 
+              DoubleBuffer.flush(dVec); 
               for(int i=0; i<3; i++) invt->trasl[i]=dVec[i];
             }
 	;
@@ -413,7 +415,7 @@ MaterialElement
         |  ROUGH SURFACE RQ         {Fbuff = NULL;}    SFFloat             {mat->roughSurfRq=$5;}
         |  COLOR                    { Ibuff = &IntBuffer; Ibuff->reset();}	   MFInt32
             {
-              IntBuffer.flush(&matColor); 
+              IntBuffer.flush(matColor); 
               for(int i=0; i<4; i++) mat->color[i]=matColor[i];
             }
 	;
@@ -502,7 +504,7 @@ VolumeElement
 	:  MATERIAL    STRING
                 {
                    if (strlen($2) > sizeof(DB::str_t)-1) YYERROR;
-                   if(!loadingEmP->FindMaterial($2))  model_msg(FATAL, "Undefined material %s\n", $2);
+                   if(!loadingEmP->FindMaterial($2))  DB::yyMsg(FATAL, "Undefined material %s\n", $2);
 		   strcpy(vol->material,$2);
                 }
 	|  TEMPORTSNUM	{Ibuff  =NULL;}       SFInt32
@@ -516,6 +518,10 @@ VolumeElement
 	|  TMPORTSNUM	{Ibuff  =NULL;}       SFInt32
                 {
                   vol->TMportsNum =$3;
+                }
+	|  TEMTABULARORDER	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->TEM_TabularOrder=$3;
                 }
 	|  GRIDNUM	{Ibuff  =NULL;}       SFInt32
                 {
@@ -565,14 +571,11 @@ CircuitName
 %%
 
 
-extern int modelLineNum;
-extern void SetInputFile(FILE *fp);
-
-char modelFileName[256];
+extern void modelSetInputFile(FILE *fp);
 
 
 void yyerror(char *s){
-  printf("\n  %s (%s) at file: %s, line: %d\n\n", s, modeltext, modelFileName, modelLineNum);
+  printf("\n  %s (%s) at file: %s, line: %d\n\n", s, modeltext, DB::yyFileName, DB::yyLineNum);
 }
 
 static void yyprint (FILE *file, int type, YYSTYPE value)
@@ -594,7 +597,7 @@ void model_msg(int type, char *fmt, ...){
   vsprintf (tmp, fmt, args);
   va_end (args);
 
-  DB::Msg(type, "'%s', line %d : %s", modelFileName, modelLineNum, tmp);
+  DB::Msg(type, "'%s', line %d : %s", DB::yyFileName, DB::yyLineNum, tmp);
 
 }
 
@@ -609,8 +612,8 @@ int loadModel(MwOCAF* ocaf, const char *fName, bool update)
 		DB::Msg(ERROR, "Cannot open file %s\n", fName);
 		return 1;
 	}
-        strncpy(modelFileName, fName, 255);
-        SetInputFile(fid);
+        strncpy(DB::yyFileName, fName, 255);
+        modelSetInputFile(fid);
         step_file_reloaded=false;
         int result=yyparse();
         if(strcmp(fName,"-")) fclose(fid);
@@ -627,8 +630,8 @@ int loadProblem(DB::EmProblem* EmP, const char *fName)
 		DB::Msg(ERROR, "Cannot open file %s\n", fName);
 		return 1;
 	}
-        strncpy(modelFileName, fName, 255);
-        SetInputFile(fid);
+        strncpy(DB::yyFileName, fName, 255);
+        modelSetInputFile(fid);
         step_file_reloaded=false;
         int result=yyparse();
         if(strcmp(fName,"-")) fclose(fid);

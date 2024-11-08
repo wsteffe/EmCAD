@@ -21,6 +21,11 @@ if(${useGmshTetrahedra} EQUAL 1)
   add_definitions(-DGMSH3D)
 endif()
 
+FIND_PACKAGE(BISON)
+FIND_PACKAGE(FLEX)
+BISON_TARGET(mwmParser ${CMAKE_CURRENT_SOURCE_DIR}/mwm.ypp ${CMAKE_CURRENT_BINARY_DIR}/mwm_parser.cpp COMPILE_FLAGS "-p mwm")
+FLEX_TARGET(mwmLexer ${CMAKE_CURRENT_SOURCE_DIR}/mwm.l ${CMAKE_CURRENT_BINARY_DIR}/mwm_lexer.cpp COMPILE_FLAGS "-P mwm")
+ADD_FLEX_BISON_DEPENDENCY(mwmLexer mwmParser)
 
 include_directories (
 	${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
@@ -37,13 +42,17 @@ set ( Mesher_HDRS
 	tetmesher.h
 	meshutils.h
 	tetgen.h
+	mwm.h
 	)
 
 
 set ( Mesher_SRCS
 	mesher.cpp
 	output.cpp
-	)
+	mwm.cpp
+	${BISON_mwmParser_OUTPUTS} 
+	${FLEX_mwmLexer_OUTPUTS}
+     )
 
 add_library ( Mesher STATIC ${Mesher_SRCS}  )
 
@@ -98,9 +107,6 @@ add_executable ( emcad_mesh ${EMCAD_MESH_SRCS})
       )
   endif(MSVC)
 
-  if(MSVC)
-   SET_TARGET_PROPERTIES(emcad_mesh PROPERTIES LINK_FLAGS ${MINGW_LINK_FLAGS})
-  endif()
 
 install(TARGETS emcad_mesh  DESTINATION bin)
 if(WIN32)

@@ -6,17 +6,10 @@
 #ifndef _LIST_UTILS_H_
 #define _LIST_UTILS_H_
 
+#include<List.h> 
+
 namespace DB {
 
-class List_T {
-public:
-  int nmax;
-  int size;
-  int incr;
-  int n;
-  int isorder;
-  char *array;
-};
 
 List_T *List_Create(int n, int incr, int size);
 void    List_Delete(List_T *liste);

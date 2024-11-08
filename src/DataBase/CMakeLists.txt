@@ -24,15 +24,17 @@ include_directories (
 	../CAD
 	)
 set ( DataBase_HDRS
+      Message.h	
       DataBase.h	
+      Buffer.h	
      )
 
 set ( DataBase_SRCS
 	DataBase.cpp
-	ListUtils.cpp
+	List.cpp
+	Tree.cpp
 	MallocUtils.cpp
 	Message.cpp
-	TreeUtils.cpp
 	# Tools.cpp
 	avl.cpp
 	model_lexer.cpp

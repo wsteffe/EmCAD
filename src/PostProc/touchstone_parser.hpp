@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
-# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+#ifndef YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
+# define YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -88,13 +88,13 @@ extern int touchstonedebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 73 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 73 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
 
 int	ival;
 double	fval;
 char	*sval;
 
-#line 98 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.hpp"
+#line 98 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -109,4 +109,4 @@ extern YYSTYPE touchstonelval;
 int touchstoneparse (void);
 
 
-#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_EMCAD_DEV_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */
+#endif /* !YY_TOUCHSTONE_HOME_WALTER_MWCAD_EMCAD_CONFORMALMESH_SRC_POSTPROC_TOUCHSTONE_PARSER_HPP_INCLUDED  */

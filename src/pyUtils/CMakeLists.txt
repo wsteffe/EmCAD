@@ -25,20 +25,23 @@ add_custom_target(modeler ALL
    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 set(PYUTILS_EXE_FILES
-	build/exe.mingw_x86_64-3.10/api_utils.exe
-	build/exe.mingw_x86_64-3.10/api_download.exe
-	build/exe.mingw_x86_64-3.10/api_upload_file.exe
-	build/exe.mingw_x86_64-3.10/api_submit.exe
-	build/exe.mingw_x86_64-3.10/filter_tune.exe
-	build/exe.mingw_x86_64-3.10/remove_dir.exe
-	build/exe.mingw_x86_64-3.10/tar_extract.exe
-	build/exe.mingw_x86_64-3.10/tar_create.exe
-	build/exe.mingw_x86_64-3.10/tar_component.exe
-	build/exe.mingw_x86_64-3.10/touchstone2to1.exe
-	build/exe.mingw_x86_64-3.10/roughSurfaceFit.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/api_utils.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/api_proxy.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/api_download.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/api_upload_file.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/api_submit.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/filter_tune.exe
+#	build/exe.mingw_x86_64_ucrt-${PythonVersion}/parametrize_spice.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/remove_dir.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/tar_extract.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/tar_create.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/tar_component.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/touchstone2to1.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/roughSurfaceFit.exe
+	build/exe.mingw_x86_64_ucrt-${PythonVersion}/mappedPhaseShifters.exe
 )
 set(PYUTILS_DLL_FILES
-	build//exe.mingw_x86_64-3.10/libpython3.10.dll
+	build//exe.mingw_x86_64_ucrt-${PythonVersion}/libpython${PythonVersion}.dll
 )
 foreach(EXE ${PYUTILS_EXE_FILES})
 install(PROGRAMS  ${EXE}
@@ -54,9 +57,17 @@ install(PROGRAMS  ${DLL}
         )
 endforeach(DLL)
 
-install(DIRECTORY "build/exe.mingw_x86_64-3.10/lib" 
-	DESTINATION bin
+install(DIRECTORY "build/exe.mingw_x86_64_ucrt-${PythonVersion}/lib/"
+	DESTINATION bin/lib
+	PATTERN "*.pyc"
+	PATTERN "*.pem"
+	PATTERN "*.zip"
+	#PATTERN "*.dll" EXCLUDE
         )
+
+file(GLOB lib_dlls "build/exe.mingw_x86_64_ucrt-${PythonVersion}/lib/*.dll")
+install(FILES ${lib_dlls} DESTINATION bin)
+
 
 else(WIN32)
 
@@ -66,9 +77,9 @@ install(PROGRAMS  api_utils.py
        	DESTINATION bin
 	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
-install(PROGRAMS  api_download.py
+install(PROGRAMS  api_proxy.py
        	DESTINATION bin
-	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+	PERMISSIONS OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
 install(PROGRAMS  api_upload_file.py
        	DESTINATION bin
@@ -80,6 +91,11 @@ install(PROGRAMS  api_submit.py
         )
 
 install(PROGRAMS  filter_tune.py
+       	DESTINATION bin
+	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+        )
+
+install(PROGRAMS  parametrize_spice.py
        	DESTINATION bin
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
@@ -117,9 +133,21 @@ install(PROGRAMS  tar_component.py
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
 
+install(PROGRAMS mappedPhaseShifters.py
+       	DESTINATION bin
+	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+        )
+
+
 install(PROGRAMS  splitdxf.py
        	DESTINATION bin
 	RENAME splitdxf
+	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
+        )
+
+install(PROGRAMS  flatdxf.py
+       	DESTINATION bin
+	RENAME flatdxf
 	PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ
         )
 

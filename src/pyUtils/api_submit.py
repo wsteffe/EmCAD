@@ -23,6 +23,7 @@
 import os,sys,time,fnmatch
 import json
 import api_utils
+import api_proxy
 import re
 
 argv=sys.argv
@@ -33,18 +34,24 @@ for i,arg in enumerate(argv):
        job=argv.pop(i)
        break
 
-username=None
+token=None
 for i,arg in enumerate(argv):
-    if arg=="-user":
+    if arg=="-token":
        argv.pop(i)
-       username=argv.pop(i)
+       token=argv.pop(i)
        break
 
-password=None
 for i,arg in enumerate(argv):
-    if arg=="-password":
+    if arg=="-proxyPacFile":
        argv.pop(i)
-       password=argv.pop(i)
+       api_proxy.getPac(argv.pop(i))
+       break
+
+api_proxy.verify=True
+for i,arg in enumerate(argv):
+    if arg=="-apiPemFile":
+       argv.pop(i)
+       api_proxy.verify=argv.pop(i)
        break
 
 project=''
@@ -106,8 +113,13 @@ with open('%s' % fname+'.json','w') as outfile:
 res_fname=fname+'.res'
 with open(res_fname, 'w') as f:
     f.write("-1\n")
-api_utils.upload_project_file(username,password,res_fname,folder,False)
+api_utils.upload_project_file(token,res_fname,folder,False)
 
+if job=="modelize1":
+  iter_fname=fname+'.iter'
+  with open(iter_fname, 'w') as f:
+     f.write("0\n")
+  api_utils.upload_project_file(token,iter_fname,folder,False)
 
 class JobExecutionException(Exception):
     def __init__(self, value):
@@ -117,13 +129,13 @@ class JobExecutionException(Exception):
 
 
 def project_file_get(fname):
-    return api_utils.download_project_file(username,password,folder,fname)
+    return api_utils.download_project_file(token,folder,fname)
 
 
 def project_file_put(fname,only_if_newer=True):
     if(not os.path.exists(fname)):
          return 1
-    api_utils.upload_project_file(username,password,fname,folder,only_if_newer)
+    api_utils.upload_project_file(token,fname,folder,only_if_newer)
     return 0
 
 subfilter=re.compile('(.*_SUB[0-9]+_IF[.]JC)|(.*_SUB[0-9]+_RM[.]JC)')
@@ -197,7 +209,7 @@ def wait_for_job_completed():
     completed=False
     exitcode=-1
     while not completed:
-       signedUrls=api_utils.download_project_file(username,password,folder,fname+'.res',signedUrl=signedUrl)
+       signedUrls=api_utils.download_project_file(token,folder,fname+'.res',signedUrl=signedUrl)
        if len(signedUrls)==1:
           signedUrl=signedUrls[0]
        with open(fname+'.res', 'r') as f:
@@ -247,7 +259,7 @@ def project_file_getall(job):
 exitcode=0
 project_file_putall(job)
 
-response=api_utils.submit_job(username,password,folder,fname,job)
+response=api_utils.submit_job(token,folder,fname,job)
 if job!="modelize1" and job!="modelizep":
   exitcode=wait_for_job_completed()
   project_file_getall(job)

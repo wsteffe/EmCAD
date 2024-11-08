@@ -22,6 +22,7 @@
 #include <iostream>
 #include "ocaf.h"
 #include "mesher.h"
+#include "mwm.h"
 
 #if defined(TETMESHER)
 #include "tetmesher.h"
@@ -34,6 +35,18 @@
 extern int modeldebug;
 extern int model_flex_debug;
 
+namespace DB {
+ char yyFileName[256];
+ int yyLineNum;
+ void yyMsg(int type, const char *fmt, ...){
+  va_list args;
+  char tmp[1024];
+  va_start (args, fmt);
+  vsprintf (tmp, fmt, args);
+  va_end (args);
+  Msg(type, "'%s', line %d : %s", yyFileName, yyLineNum, tmp);
+ }
+}
 
 int main(int argc, char **argv)
 {
@@ -68,7 +81,7 @@ int main(int argc, char **argv)
 
     int assType= COMPONENT;
     double meshsize=0;
-    double sharedMeshRef=2.0;
+    double sharedMeshsize=1.0;
     int meshpercircle=0;
     int subCompI=0;
     std::string subprojDir;
@@ -91,9 +104,9 @@ int main(int argc, char **argv)
          i++; 
          meshpercircle=(int) atoi(argv[i++]);
        }
-       else if ( !strcmp(argv[i], "-sharedmeshref")  ) { 
+       else if ( !strcmp(argv[i], "-sharedmeshsize")  ) { 
          i++; 
-         sharedMeshRef=(double) atof(argv[i++]);
+         sharedMeshsize=(double) atof(argv[i++]);
        }
        else if ( !strcmp(argv[i], "-subcomp")  ) { 
          i++; 
@@ -132,21 +145,20 @@ int main(int argc, char **argv)
 
  if(assType==COMPONENT){
       MwOCAF* ocaf=new MwOCAF();
-      std::string partitionDir=subprojDir; partitionDir+="/Partition";
-      std::string modelPath=partitionDir+"/model.xml";
+      std::string modelPath=subprojDir+"/model.xml";
       int subCompNum=0;
       if(FileExists(modelPath.c_str())){
-        ocaf->workopen((nativePath(partitionDir)).c_str());
+        ocaf->workopen((nativePath(subprojDir)).c_str());
         bool meshWG=!ocaf->subCompNum;
         if(onServer){
          bool mesh3D=!ocaf->subCompNum;
          bool meshIF=false;
-         if(mesh3D) MESHER::addIF(ocaf, partitionDir.c_str(),outDir.c_str());
-         if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
+//         if(mesh3D) MESHER::addIF(ocaf, subprojDir.c_str(),outDir.c_str());
+         if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         } else {
          bool mesh3D=!ocaf->subCompNum && mesh3DonClient;
          bool meshIF=ocaf->subCompNum;
-         if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
+         if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         }
         subCompNum=ocaf->subCompNum;
         ocaf->closeDoc();
@@ -156,13 +168,13 @@ int main(int argc, char **argv)
       if(onServer and subCompI>0){subcmpMin=subcmpMax=subCompI;}
       else if(!onServer) {subcmpMin=1; subcmpMax=subCompNum;}
       else {subcmpMin=1; subcmpMax=0;}
-      for (int subcmpI=subcmpMin; subcmpI<=subcmpMax; subcmpI++) {
+      bool mesh3D=onServer|| (!onServer && mesh3DonClient);
+      bool meshIF=false;
+      bool meshWG=true;
+      if(mesh3D || meshIF) for (int subcmpI=subcmpMin; subcmpI<=subcmpMax; subcmpI++) {
          ocaf=new MwOCAF();
-         ocaf->workopen(partitionDir.c_str(),subcmpI);
-	 bool mesh3D=onServer|| (!onServer && mesh3DonClient);
-         bool meshIF=false;
-         bool meshWG=true;
-	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, partitionDir.c_str(),outDir.c_str());
+         ocaf->workopen(subprojDir.c_str(),subcmpI);
+	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
          ocaf->closeDoc();
          delete ocaf;
       }
@@ -172,7 +184,7 @@ int main(int argc, char **argv)
       bool mesh3D=false;
       bool meshWG=false;
       bool meshIF=true;
-      MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshRef, meshpercircle, subprojDir.c_str(),outDir.c_str());
+      MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
       ocaf->closeDoc();
       delete ocaf;
  }

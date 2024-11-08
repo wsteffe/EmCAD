@@ -27,8 +27,8 @@
 #include<string>
 #include<vector>
 #include<map>
-#include<ListUtils.h>
-#include<TreeUtils.h>
+#include<List.h>
+#include<Tree.h>
 #include<Message.h>
 #include<string.h>
 
@@ -49,6 +49,8 @@
 #define PARTITION         13
 #define GRID              14
 
+#define RIGHT          1
+#define LEFT           2
 
 
 
@@ -139,6 +141,7 @@ public:
   int        TEMportsNum;
   int        TEportsNum;
   int        TMportsNum;
+  int        TEM_TabularOrder;
   int        defined;
   int        disabled;
   int        gridNum;

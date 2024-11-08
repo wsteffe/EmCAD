@@ -30,6 +30,30 @@
 
 namespace DB {
 
+int fcmp_int(const void *a, const void *b)
+{
+  return (*(int *)a - *(int *)b);
+}
+
+int fcmp_absint(const void *a, const void *b)
+{
+  return (abs(*(int *)a) - abs(*(int *)b));
+}
+
+int fcmp_double(const void *a, const void *b)
+{
+  double cmp;
+
+  cmp = *(double *)a - *(double *)b;
+  if(cmp > 1.e-16)
+    return 1;
+  else if(cmp < -1.e-16)
+    return -1;
+  else
+    return 0;
+}
+
+
 static char *startptr;
 
 List_T *List_Create(int n, int incr, int size)
@@ -68,7 +92,10 @@ void List_Realloc(List_T * liste, int n)
     return;
 
   if(liste->array == NULL) {
-    liste->nmax = ((n - 1) / liste->incr + 1) * liste->incr;
+    // This does not permit to allocate lists smaller that liste->incr:
+    //liste->nmax = ((n - 1) / liste->incr + 1) * liste->incr;
+    // So this is much better
+    liste->nmax = n;
     liste->array = (char *)Malloc(liste->nmax * liste->size);
   }
   else if(n > liste->nmax) {
@@ -85,6 +112,12 @@ void List_Add(List_T * liste, void *data)
   liste->isorder = 0;
   memcpy(&liste->array[(liste->n - 1) * liste->size], data, liste->size);
 }
+
+void List_Add(List_T *liste, int data)
+{
+  List_Add(liste, &data);
+}
+
 
 int List_Nbr(List_T * liste)
 {
@@ -150,6 +183,13 @@ void List_Put(List_T * liste, int index, void *data)
   }
 }
 
+void List_Pop(List_T * liste)
+{
+  if(liste->n > 0)
+    liste->n--;
+}
+
+
 void List_Pop(List_T * liste, void *data)
 {
   if(liste->n > 0){
@@ -193,6 +233,25 @@ void List_Sort(List_T * liste, int (*fcmp) (const void *a, const void *b))
 {
   qsort(liste->array, liste->n, liste->size, fcmp);
 }
+
+
+void List_Unique(List_T * liste, int (*fcmp) (const void *a, const void *b))
+{
+  if(liste->isorder != 1) {
+    List_Sort(liste, fcmp);
+    liste->isorder = 1;
+  }
+  if(!List_Nbr(liste))
+    return;
+  int write_index=0;
+  for( int i=1; i < List_Nbr(liste); i++){
+     void *data=List_Pointer(liste,i);
+    if((fcmp(data,(void*)List_Pointer(liste,write_index))))
+      List_Write(liste,++write_index,data);
+  }
+  liste->n=write_index+1;
+}
+
 
 int List_Search(List_T * liste, void *data,
                 int (*fcmp) (const void *a, const void *b))
@@ -269,6 +328,20 @@ int List_Query(List_T * liste, void *data,
   return (1);
 }
 
+
+void *List_PQuery(List_T * liste, void *data,
+                  int (*fcmp) (const void *a, const void *b))
+{
+  void *ptr;
+
+  if(liste->isorder != 1)
+    List_Sort(liste, fcmp);
+  liste->isorder = 1;
+  ptr = (void *)bsearch(data, liste->array, liste->n, liste->size, fcmp);
+  return (ptr);
+}
+
+
 void *lolofind(void *data, void *array, int n, int size,
                int (*fcmp) (const void *a, const void *b))
 {
@@ -311,17 +384,6 @@ int List_LQuery(List_T * liste, void *data,
   return (1);
 }
 
-void *List_PQuery(List_T * liste, void *data,
-                  int (*fcmp) (const void *a, const void *b))
-{
-  void *ptr;
-
-  if(liste->isorder != 1)
-    List_Sort(liste, fcmp);
-  liste->isorder = 1;
-  ptr = (void *)bsearch(data, liste->array, liste->n, liste->size, fcmp);
-  return (ptr);
-}
 
 int List_Suppress(List_T * liste, void *data,
                   int (*fcmp) (const void *a, const void *b))
@@ -400,6 +462,14 @@ void List_Copy(List_T * a, List_T * b)
   for(i = 0; i < N; i++) {
     List_Add(b, List_Pointer(a, i));
   }
+}
+
+
+void List_Remove(List_T *a, int i)
+{
+  memcpy(&a->array[i * a->size], &a->array[(i + 1) * a->size],
+         a->size * (a->n - i - 1));
+  a->n--;
 }
 
 void swap_bytes(char *array, int size, int n)
@@ -501,5 +571,30 @@ void List_WriteToFile(List_T * liste, FILE * file, int format)
   }
 }
 
+//insert a in b before i
+void List_Insert_In_List(List_T *a, int i, List_T *b)
+{
+  int oldn = b->n;
+  b->n += a->n;
+  List_Realloc(b, b->n);
+  for(int j = 0; j < oldn - i; j++)
+    memcpy(List_Pointer_Fast(b, b->n - j - 1), List_Pointer_Fast(b, oldn - j - 1),
+           b->size);
+  for(int j = 0;j < a->n; j++)
+    memcpy(List_Pointer_Fast(b, i + j), List_Pointer_Fast(a, j), b->size);
+}
+
+List_T *ListOfDouble2ListOfInt(List_T *dList)
+{
+  int n = List_Nbr(dList);
+  List_T *iList = List_Create(n, n, sizeof(int));
+  for(int i = 0; i < n; i++){
+    double d;
+    List_Read(dList, i, &d);
+    int j = (int)d;
+    List_Add(iList, &j);
+  }
+  return iList;
+}
 
 }

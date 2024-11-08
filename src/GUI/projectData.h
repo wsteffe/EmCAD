@@ -105,6 +105,9 @@ struct ProjectData
     int    meshTetMaxNum;
     double meshMinEnergyRatio;
     int    localMeshing3d;
+    int    XYplaneSymmetry;
+    int    YZplaneSymmetry;
+    int    ZXplaneSymmetry;
     double freqBand[2];
     double resonFreqMaxRatio;
     double cmpResonFreqMaxRatio;
@@ -170,6 +173,7 @@ struct ProjectData
     int    filterTuneRecomputeJaco;
     int    filterSymmetricTuning;
     int    filterTuneOnlyJt;
+    int    spiceSetCentralConfig;
     double filterTuneXtol;
     double filterTuneTrustR;
     std::vector<std::complex<double> > filterZeros;

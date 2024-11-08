@@ -32,6 +32,19 @@
 extern int modeldebug;
 extern int model_flex_debug;
 
+namespace DB {
+ char yyFileName[256];
+ int yyLineNum;
+ void yyMsg(int type, const char *fmt, ...){
+  va_list args;
+  char tmp[1024];
+  va_start (args, fmt);
+  vsprintf (tmp, fmt, args);
+  va_end (args);
+  Msg(type, "'%s', line %d : %s", yyFileName, yyLineNum, tmp);
+ }
+}
+
 int main(int argc, char **argv)
 {
       modeldebug=0;
@@ -60,25 +73,20 @@ int main(int argc, char **argv)
 //      ocaf->checkPartNF(ocaf->mainDoc);
       ocaf->regenerateIndexedSubShapes();
       ocaf->split();
-      ocaf->closeDoc();
-      std::string partitionDir=subprojDir+std::string("/Partition");
-      delete ocaf;
-      ocaf=new MwOCAF();
-      ocaf->workopen(partitionDir.c_str());
       ocaf->regenerateIndexedSubShapes();
       ocaf->initFEPdataStruct();
       ocaf->readFEproperties();
-      if(ocaf->subCompNum) ocaf->setSuperFaces();
+      if(ocaf->subCompNum>1) ocaf->setSuperFaces();
       int subCompNum=ocaf->subCompNum;
       delete ocaf;
       for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {
        ocaf=new MwOCAF();
-       ocaf->workopen(partitionDir.c_str());
+       ocaf->workopen(subprojDir.c_str());
        ocaf->regenerateIndexedSubShapes();
        ocaf->extractSubcomp(subcmpI);
-       ocaf->saveSubPartitionMap();
+       ocaf->saveSubdomainMap();
        std::string subSplitModel=subprojDir;
-       subSplitModel+="/Partition/model";
+       subSplitModel+="/model";
        char tag[10]; sprintf(tag,"_%d",subcmpI);
        subSplitModel+=tag;
        if(USEXMLXCAF)  subSplitModel+=".xml";

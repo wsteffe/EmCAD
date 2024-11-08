@@ -30,6 +30,7 @@
 #endif
 
 #include<vector>
+#include<Message.h>
 
 namespace DB {
 
@@ -97,23 +98,26 @@ template<class T, int len, int stride=1> class Buffer: public BufferIn<T>{
   void reset(){
     List_Reset(liste);
   }
-  void flush(Vec<T> *vec){
-    vec->stride=stride;
-    if(vec->data) Free(vec->data);
-    vec->alloc(liste->n/stride);
-    memcpy(vec->data, liste->array, liste->n * liste->size);
+  int size(){return liste->n/stride;}
+  void flush(Vec<T> &vec){
+    vec.stride=stride;
+    if(vec.data) Free(vec.data);
+    vec.alloc(liste->n/stride);
+    memcpy(vec.data, liste->array, liste->n * liste->size);
     List_Reset(liste);
   }
-  void flush(std::vector<T> *vec){
-    if(liste->n==0){ vec->clear(); return;}
-    vec->resize(liste->n);
-    for(int i=0; i<liste->n; i++){
-	 T *d= (T *) &liste->array[i*liste->size];
-	 (*vec)[i]=*d;
-    }
+  void append(Vec<T> &vec){
+    int i0=vec.n*vec.stride;
+    if(i0==0) {vec.stride=stride; vec.alloc(liste->n/stride);}
+    else      {vec.stride=stride; vec.resize(vec.n+liste->n/stride);}
+    memcpy(&vec.data[i0], liste->array, liste->n * liste->size);
     List_Reset(liste);
   }
 };
+
+
+
+void yyMsg(int type, const char *fmt, ...);
 
 
 //**
@@ -126,15 +130,15 @@ template<int len, int stride> class Buffer_I: public Buffer<int, len, stride>{
   Buffer_I<len, stride>(): Buffer<int, len, stride>() {is=0;}
   void input(int n){
     if(is++==stride){
-       if(n>0) yymsg(FATAL, "wrong number of indices in sublist\n");
+       if(n>0) yyMsg(FATAL, "wrong number of indices in sublist\n");
        else is=0;
     }
     else {
-       if(n<0) yymsg(FATAL, "wrong number of indices in sublist\n");
+       if(n<0) yyMsg(FATAL, "wrong number of indices in sublist\n");
        else Buffer<int, len, stride>::input(n);
     }
   }
-  void flush(Vec<int> *vec){is=0; Buffer<int, len, stride>::flush(vec);}
+  void flush(Vec<int> &vec){is=0; Buffer<int, len, stride>::flush(vec);}
 };
 
 

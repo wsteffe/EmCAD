@@ -83,11 +83,6 @@ if(WIN32)
 endif(WIN32)
 
 
-if(MSVC)
- SET_TARGET_PROPERTIES(emcad_imprint PROPERTIES LINK_FLAGS ${MINGW_LINK_FLAGS})
-endif()
-
-
 set ( EMCAD_SPLIT_SRCS
 	emcad_split.cpp
     )
@@ -119,10 +114,6 @@ else(MSVC)
     ${Boost_LIBRARIES}
    )
 endif(MSVC)
-
-if(MSVC)
- SET_TARGET_PROPERTIES(emcad_split PROPERTIES LINK_FLAGS ${MINGW_LINK_FLAGS})
-endif()
 
 #SET_TARGET_PROPERTIES(emcad_mesher PROPERTIES LINK_FLAGS "-static")
 

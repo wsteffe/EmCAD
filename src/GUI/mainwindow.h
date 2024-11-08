@@ -156,6 +156,21 @@ class Preprocessor : public QThread
     void setMaterialData();
     void updateMaterialData();
     void setSuperFaces(QString dir);
+    void setSuperCurves(QString dir);
+    void setSuperCurveFaceData(QString dir,
+           std::map<std::string, std::set<std::string> > &SCSFlinks,
+	   std::map<std::string, bool > &SFhasPMC,
+	   std::map<std::string, bool > &SChasPMC
+         );
+    void setSuperCurvesConstU(QString dir,
+          std::map<std::string, std::set<std::string> > &SCSFlinks,
+	  std::map<std::string, bool > &SFhasPMC,
+	  std::map<std::string, bool > &SChasPMC,
+	  std::map<std::string, bool>  &superCurveHasConstU
+         );
+    void writeSuperCurvesConstU(QString dir,
+	  std::map<std::string, bool>  &superCurveHasConstU
+         );
     void decompose();
     void meshModel(QString dir, QString assPath, int assType);
     void mesh(QString dir, QString assPath, int level, int l=0);
@@ -246,6 +261,68 @@ class FilterTunerDialog : public QDialog
 
 
 
+class SpiceParametrizer: public QThread
+{
+ Q_OBJECT
+
+ public:
+      SpiceParametrizer();
+      void run();
+      int check();
+      bool failure;
+      QObject *receiver;
+
+  signals:
+    void parametrizerEnd();
+
+  signals:
+    void sendLogMessageSignal(const QString &);
+    void sendStatusMessageSignal(const QString);
+  private:
+    void sendLogMessage ( const QString & text) {emit sendLogMessageSignal(text);}
+    void sendStatusMessage ( const QString & text) {emit sendStatusMessageSignal(text);}
+
+};
+
+class SpiceParametrizerDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     SpiceParametrizerDialog(SpiceParametrizer *t, QWidget * p=0, Qt::WindowFlags f=0 );
+     void init();
+
+ public slots:
+      void set();
+      void start();
+      void help();
+      void atMethodChanged(int);
+      void atFilterTuneEnd();
+      void varFileChooser();
+//      void updateParType(int i);
+
+ public:
+      SpiceParametrizer *parametrizer;
+      EMClogger  *logger;
+      QWidget * parent;
+      QPushButton *setButton;
+      QPushButton *startButton;
+      QPushButton *closeButton;
+      QLineEdit *varFileLineEdit;
+      QLineEdit *maxIterLineEdit;
+      QLineEdit *xTolLineEdit;
+      QLineEdit *trustRadiusLineEdit;
+      QVBoxLayout *mainLayout;
+      QCheckBox *resetCentralConfig;
+      QCheckBox *recomputeJaco;
+      void run();
+      int check();
+      bool failure;
+
+};
+
+
+
 struct RunningStatus
 {
   bool projectIsOpen;
@@ -264,6 +341,7 @@ class Documentation : public QObject
     void showDocumentation();
 };
 
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -281,11 +359,10 @@ class MainWindow : public QMainWindow
     void startTask(modelerTask task);
     void startOperation();
     void importEMC(QString partName, QString fileName);
+    void api_renew_if_expired(bool wait=true);
 
 public slots:
     void openComp();
-    void openCompAndPartition();
-    void openCompOrPartition();
     void viewConvergence();
     void viewSubCompConvergence();
     void workopen(QString wkprojpath, int subcomp=0);
@@ -312,12 +389,15 @@ private slots:
     void zeropolePlot();
     void ideal_zeropolePlot();
     void mapped_zeropolePlot();
+    void api_login();
+    void api_change_password();
+    void updateLoginStatus(int exitCode, QProcess::ExitStatus exitStatus);
     void accountStatus();
     void closeComp();
-    void closeCompAndPartition();
-    void closeCompOrPartition();
     void closeAll();
     void abort();
+    void importProxyPac();
+    void importApiPem();
     void importGeometry();
     void importMaterial();
     void importIdealFilterCircuit();
@@ -332,6 +412,7 @@ private slots:
     void exportMappedResponse();
     void exportMappedJC();
     void exportMappedSpice();
+    void exportMappedShifters();
     void exportIdealJC();
     void exportIdealSpice();
     void exportFilterTunePar();
@@ -341,6 +422,7 @@ private slots:
     void save();
     void newProject();
     void setGlobals();
+    void setSymmetriesDialog();
     void setConfig();
     void print();
     void about();
@@ -353,6 +435,7 @@ private slots:
     void zeropoleAna();
     void filterMap();
     void filterTune();
+    void parametrizeSpice();
     void filterDesign();
     void aboutQt();
     void xyzPosition (Standard_Real X, 
@@ -368,6 +451,7 @@ signals:
 public:
     void worksaveAllComponents();
     void recursiveAssignDefaultMaterial();
+    void setModelerStatus();
 
 private:
     void openAllDoc(QString dir);
@@ -389,10 +473,10 @@ private:
 
     Modeler modeler;
     FilterTuner tuner;
-    public:
+    SpiceParametrizer parametrizer;
 
-    QAction *openCompAndPartitionAction;
-    QAction *openCompOrPartitionAction;
+    public:
+    QAction *openComponentAction;
     QAction *viewConvergenceAction;
     
     private:
@@ -407,6 +491,7 @@ private:
     QMenu *editMenu;
     QMenu *analysesMenu;
     QMenu *designsMenu;
+    QMenu *adminMenu;
     QMenu *helpMenu;
 
     QMenu *viewGeomMenu;
@@ -422,8 +507,9 @@ private:
     QMenu *editLayersMenu;
 
     QAction *openAction;
-    QAction *closeCompAndPartitionAction;
-    QAction *closeCompOrPartitionAction;
+    QAction *importProxyPacAction;
+    QAction *importApiPemAction;
+    QAction *closeComponentAction;
     QAction *closeAction;
     QAction *importGeometryAction;
     QAction *importMaterialAction;
@@ -439,6 +525,7 @@ private:
     QAction *exportIdealResponseAction;
     QAction *exportFreqResponseAction;
     QAction *exportMappedResponseAction;
+    QAction *exportMappedShiftersAction;
     QAction *exportMappedJCAction;
     QAction *exportMappedSpiceAction;
     QAction *exportIdealJCAction;
@@ -463,6 +550,7 @@ private:
     QAction *setCompPropertiesAction;
     QAction *defineMaterialAction;
     QAction *assignMaterialAction;
+    QAction *symmetriesAction;
     QAction *decomposeAction;
     QAction *meshAction;
     QAction *reloadAction;
@@ -476,12 +564,15 @@ private:
     QAction *zeropolePlotAction;
     QAction *mapped_zeropolePlotAction;
     QAction *ideal_zeropolePlotAction;
+    QAction *loginAction;
+    QAction *changePasswordAction;
     QAction *accountStatusAction;
     QAction *portModesAction;
     QAction *freqAnaAction;
     QAction *zeropoleAnaAction;
     QAction *filterMapAction;
     QAction *filterTuneAction;
+    QAction *parametrizeSpiceAction;
     QAction *filterDesignAction;
     QAction *updateAction;
 
@@ -550,6 +641,8 @@ private:
    QString    savePath;
    QString    currentWorkPath;
    QLabel    *projectLabel;
+   QLabel    *loginStatusLabel;
+   QLabel    *modelerStatusLabel;
    FILE      *projectFile;
 
 //   Plotter *plot;
@@ -614,7 +707,7 @@ class SetGlobalsDialog : public QDialog
       RTextComboBox* fUnitChooser;
       QCheckBox  *localMeshing3dCB;
       QLineEdit *meshSizeLineEdit;
-      QLineEdit *sharedMeshRefineLineEdit;
+      QLineEdit *sharedMeshSizeLineEdit;
       QLineEdit *meshPerCircleLineEdit;
       QLineEdit *meshRefineMinNumLineEdit;
       QLineEdit *meshRefineMaxNumLineEdit;
@@ -655,6 +748,52 @@ class ConfigDialog : public QDialog
       QLineEdit *EmCAD_queue_LineEdit;
 };
 
+
+class ApiChangePasswdDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     ApiChangePasswdDialog(std::string username, MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+     QSize sizeHint() const;
+
+ public slots:
+      void set();
+      void help();
+      void updateSetButton(const QString &text);
+
+ public:
+      MainWindow * mainw;
+      QLineEdit *username_LineEdit;
+      QLineEdit *password_LineEdit;
+      QLineEdit *newPassword_LineEdit;
+      QLineEdit *checkPassword_LineEdit;
+      QTextEdit *msg;
+      QPushButton *setButton;
+};
+
+
+class ApiLoginDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     ApiLoginDialog(std::string username, MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+     QSize sizeHint() const;
+
+ public slots:
+      void login();
+      void help();
+
+ public:
+      MainWindow * mainw;
+      QLineEdit *username_LineEdit;
+      QLineEdit *password_LineEdit;
+      QTextEdit *msg;
+
+};
+
+
 class AccountStatusDialog : public QDialog
 {
  Q_OBJECT
@@ -663,7 +802,6 @@ class AccountStatusDialog : public QDialog
      AccountStatusDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
 
  public slots:
-      void updateCredit();
       void help();
 
  public:
@@ -727,8 +865,8 @@ class ZeroPoleDialog : public QDialog
  Q_OBJECT
 
  public:
-     ZeroPoleDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
-
+      ZeroPoleDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+      void setSijCurveNum(int n);
       void setInitialScale();
  public slots:
       void set();
@@ -736,7 +874,7 @@ class ZeroPoleDialog : public QDialog
       void start();
       void help();
       void atZeroPoleEnd();
-      void setSijCurveNum(int n);
+      void slotSetSijCurveNum(int n);
       void onCircuitChanged(int circi);
 
  public:
@@ -894,6 +1032,31 @@ class FilterMapDialog : public QDialog
       QVBoxLayout *mainLayout;
       QCheckBox *automatic;
 };
+
+
+class SymmetriesDialog : public QDialog
+{
+ Q_OBJECT
+
+ public:
+     SymmetriesDialog(MainWindow * parent = 0, Qt::WindowFlags f = 0 );
+
+ public slots:
+      void set();
+      void help();
+//      void updateParType(int i);
+
+ public:
+      MainWindow * mainw;
+      QComboBox  *XYplaneSymmetry;
+      QComboBox  *YZplaneSymmetry;
+      QComboBox  *ZXplaneSymmetry;
+      QPushButton *setButton;
+      QPushButton *startButton;
+      QPushButton *closeButton;
+      QVBoxLayout *mainLayout;
+};
+
 
 
 

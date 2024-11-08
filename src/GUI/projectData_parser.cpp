@@ -74,7 +74,7 @@
 #define yychar          projectDatachar
 
 /* First part of user prologue.  */
-#line 22 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 22 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
 
 //debug:
 #define YYDEBUG 1
@@ -121,7 +121,7 @@ namespace ProjData {
 }
 
 
-#line 125 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 125 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -192,91 +192,99 @@ enum yysymbol_kind_t
   YYSYMBOL_WINDOW = 40,                    /* WINDOW  */
   YYSYMBOL_CURVE = 41,                     /* CURVE  */
   YYSYMBOL_CIRCLE = 42,                    /* CIRCLE  */
-  YYSYMBOL_IDEAL = 43,                     /* IDEAL  */
-  YYSYMBOL_CANONICAL = 44,                 /* CANONICAL  */
-  YYSYMBOL_FILTER = 45,                    /* FILTER  */
-  YYSYMBOL_CUSTOM = 46,                    /* CUSTOM  */
-  YYSYMBOL_PASS = 47,                      /* PASS  */
-  YYSYMBOL_KRYLOV = 48,                    /* KRYLOV  */
-  YYSYMBOL_ORDER = 49,                     /* ORDER  */
-  YYSYMBOL_RETURNLOSS = 50,                /* RETURNLOSS  */
-  YYSYMBOL_OUTBAND = 51,                   /* OUTBAND  */
-  YYSYMBOL_MAPPING = 52,                   /* MAPPING  */
-  YYSYMBOL_TUNING = 53,                    /* TUNING  */
-  YYSYMBOL_METHOD = 54,                    /* METHOD  */
-  YYSYMBOL_SOURCE = 55,                    /* SOURCE  */
-  YYSYMBOL_ITERMAX = 56,                   /* ITERMAX  */
-  YYSYMBOL_AUTOMATIC = 57,                 /* AUTOMATIC  */
-  YYSYMBOL_DESIGN = 58,                    /* DESIGN  */
-  YYSYMBOL_WITH = 59,                      /* WITH  */
-  YYSYMBOL_MAPPED = 60,                    /* MAPPED  */
-  YYSYMBOL_TX = 61,                        /* TX  */
-  YYSYMBOL_ZEROS = 62,                     /* ZEROS  */
-  YYSYMBOL_ADD = 63,                       /* ADD  */
-  YYSYMBOL_CONJUGATE = 64,                 /* CONJUGATE  */
-  YYSYMBOL_PORT = 65,                      /* PORT  */
-  YYSYMBOL_IMPEDANCE = 66,                 /* IMPEDANCE  */
-  YYSYMBOL_TARGET = 67,                    /* TARGET  */
-  YYSYMBOL_QFACTOR = 68,                   /* QFACTOR  */
-  YYSYMBOL_UNIFORM = 69,                   /* UNIFORM  */
-  YYSYMBOL_INDUCTIVE = 70,                 /* INDUCTIVE  */
-  YYSYMBOL_SKIN = 71,                      /* SKIN  */
-  YYSYMBOL_LOSSY = 72,                     /* LOSSY  */
-  YYSYMBOL_PREDISTORTED = 73,              /* PREDISTORTED  */
-  YYSYMBOL_OPTIMIZE = 74,                  /* OPTIMIZE  */
-  YYSYMBOL_ILOSSPP = 75,                   /* ILOSSPP  */
-  YYSYMBOL_TRUSTR = 76,                    /* TRUSTR  */
-  YYSYMBOL_CUTOFF = 77,                    /* CUTOFF  */
-  YYSYMBOL_RATIO = 78,                     /* RATIO  */
-  YYSYMBOL_RECOMPUTE = 79,                 /* RECOMPUTE  */
-  YYSYMBOL_JACOBIAN = 80,                  /* JACOBIAN  */
-  YYSYMBOL_ERRORT = 81,                    /* ERRORT  */
-  YYSYMBOL_ONLY = 82,                      /* ONLY  */
-  YYSYMBOL_TRANSVERSEJ = 83,               /* TRANSVERSEJ  */
-  YYSYMBOL_XTOL = 84,                      /* XTOL  */
-  YYSYMBOL_GRADDX = 85,                    /* GRADDX  */
-  YYSYMBOL_REMESH = 86,                    /* REMESH  */
-  YYSYMBOL_FIRST = 87,                     /* FIRST  */
-  YYSYMBOL_DECOMPOSITION = 88,             /* DECOMPOSITION  */
-  YYSYMBOL_MATERIAL = 89,                  /* MATERIAL  */
-  YYSYMBOL_MODELIZATION = 90,              /* MODELIZATION  */
-  YYSYMBOL_COMPONENT = 91,                 /* COMPONENT  */
-  YYSYMBOL_SAVE = 92,                      /* SAVE  */
-  YYSYMBOL_REDUCTION = 93,                 /* REDUCTION  */
-  YYSYMBOL_RELOAD = 94,                    /* RELOAD  */
-  YYSYMBOL_NEEDED = 95,                    /* NEEDED  */
-  YYSYMBOL_DONE = 96,                      /* DONE  */
-  YYSYMBOL_CHANGED = 97,                   /* CHANGED  */
-  YYSYMBOL_tMIN = 98,                      /* tMIN  */
-  YYSYMBOL_tMAX = 99,                      /* tMAX  */
-  YYSYMBOL_PLUSI = 100,                    /* PLUSI  */
-  YYSYMBOL_MINUSI = 101,                   /* MINUSI  */
-  YYSYMBOL_102_ = 102,                     /* ','  */
-  YYSYMBOL_103_ = 103,                     /* '['  */
-  YYSYMBOL_104_ = 104,                     /* ']'  */
-  YYSYMBOL_105_ = 105,                     /* '{'  */
-  YYSYMBOL_106_ = 106,                     /* '}'  */
-  YYSYMBOL_YYACCEPT = 107,                 /* $accept  */
-  YYSYMBOL_All = 108,                      /* All  */
-  YYSYMBOL_PrjDataItems = 109,             /* PrjDataItems  */
-  YYSYMBOL_PrjDataItem = 110,              /* PrjDataItem  */
-  YYSYMBOL_SFFloat = 111,                  /* SFFloat  */
-  YYSYMBOL_SFComplex = 112,                /* SFComplex  */
-  YYSYMBOL_SFFloatList = 113,              /* SFFloatList  */
-  YYSYMBOL_MFFloat = 114,                  /* MFFloat  */
-  YYSYMBOL_SFComplexList = 115,            /* SFComplexList  */
-  YYSYMBOL_MFComplex = 116,                /* MFComplex  */
-  YYSYMBOL_MFFloatOrMFComplex = 117,       /* MFFloatOrMFComplex  */
-  YYSYMBOL_ImportData = 118,               /* ImportData  */
-  YYSYMBOL_CAD = 119,                      /* CAD  */
-  YYSYMBOL_Units = 120,                    /* Units  */
-  YYSYMBOL_Mesh = 121,                     /* Mesh  */
-  YYSYMBOL_Mwm = 122,                      /* Mwm  */
-  YYSYMBOL_Mor = 123,                      /* Mor  */
-  YYSYMBOL_FreqAna = 124,                  /* FreqAna  */
-  YYSYMBOL_FilterDesign = 125,             /* FilterDesign  */
-  YYSYMBOL_126_1 = 126,                    /* $@1  */
-  YYSYMBOL_WorkStatus = 127                /* WorkStatus  */
+  YYSYMBOL_XYPLANE = 43,                   /* XYPLANE  */
+  YYSYMBOL_YZPLANE = 44,                   /* YZPLANE  */
+  YYSYMBOL_ZXPLANE = 45,                   /* ZXPLANE  */
+  YYSYMBOL_SYMMETRY = 46,                  /* SYMMETRY  */
+  YYSYMBOL_IDEAL = 47,                     /* IDEAL  */
+  YYSYMBOL_CANONICAL = 48,                 /* CANONICAL  */
+  YYSYMBOL_FILTER = 49,                    /* FILTER  */
+  YYSYMBOL_CUSTOM = 50,                    /* CUSTOM  */
+  YYSYMBOL_PASS = 51,                      /* PASS  */
+  YYSYMBOL_KRYLOV = 52,                    /* KRYLOV  */
+  YYSYMBOL_ORDER = 53,                     /* ORDER  */
+  YYSYMBOL_RETURNLOSS = 54,                /* RETURNLOSS  */
+  YYSYMBOL_OUTBAND = 55,                   /* OUTBAND  */
+  YYSYMBOL_MAPPING = 56,                   /* MAPPING  */
+  YYSYMBOL_TUNING = 57,                    /* TUNING  */
+  YYSYMBOL_METHOD = 58,                    /* METHOD  */
+  YYSYMBOL_SOURCE = 59,                    /* SOURCE  */
+  YYSYMBOL_ITERMAX = 60,                   /* ITERMAX  */
+  YYSYMBOL_AUTOMATIC = 61,                 /* AUTOMATIC  */
+  YYSYMBOL_DESIGN = 62,                    /* DESIGN  */
+  YYSYMBOL_WITH = 63,                      /* WITH  */
+  YYSYMBOL_MAPPED = 64,                    /* MAPPED  */
+  YYSYMBOL_TX = 65,                        /* TX  */
+  YYSYMBOL_ZEROS = 66,                     /* ZEROS  */
+  YYSYMBOL_SPICE = 67,                     /* SPICE  */
+  YYSYMBOL_SET = 68,                       /* SET  */
+  YYSYMBOL_CENTRAL = 69,                   /* CENTRAL  */
+  YYSYMBOL_CONFIG = 70,                    /* CONFIG  */
+  YYSYMBOL_ADD = 71,                       /* ADD  */
+  YYSYMBOL_CONJUGATE = 72,                 /* CONJUGATE  */
+  YYSYMBOL_PORT = 73,                      /* PORT  */
+  YYSYMBOL_IMPEDANCE = 74,                 /* IMPEDANCE  */
+  YYSYMBOL_TARGET = 75,                    /* TARGET  */
+  YYSYMBOL_QFACTOR = 76,                   /* QFACTOR  */
+  YYSYMBOL_UNIFORM = 77,                   /* UNIFORM  */
+  YYSYMBOL_INDUCTIVE = 78,                 /* INDUCTIVE  */
+  YYSYMBOL_SKIN = 79,                      /* SKIN  */
+  YYSYMBOL_LOSSY = 80,                     /* LOSSY  */
+  YYSYMBOL_PREDISTORTED = 81,              /* PREDISTORTED  */
+  YYSYMBOL_OPTIMIZE = 82,                  /* OPTIMIZE  */
+  YYSYMBOL_ILOSSPP = 83,                   /* ILOSSPP  */
+  YYSYMBOL_TRUSTR = 84,                    /* TRUSTR  */
+  YYSYMBOL_CUTOFF = 85,                    /* CUTOFF  */
+  YYSYMBOL_RATIO = 86,                     /* RATIO  */
+  YYSYMBOL_RECOMPUTE = 87,                 /* RECOMPUTE  */
+  YYSYMBOL_JACOBIAN = 88,                  /* JACOBIAN  */
+  YYSYMBOL_ERRORT = 89,                    /* ERRORT  */
+  YYSYMBOL_ONLY = 90,                      /* ONLY  */
+  YYSYMBOL_TRANSVERSEJ = 91,               /* TRANSVERSEJ  */
+  YYSYMBOL_XTOL = 92,                      /* XTOL  */
+  YYSYMBOL_GRADDX = 93,                    /* GRADDX  */
+  YYSYMBOL_REMESH = 94,                    /* REMESH  */
+  YYSYMBOL_FIRST = 95,                     /* FIRST  */
+  YYSYMBOL_DECOMPOSITION = 96,             /* DECOMPOSITION  */
+  YYSYMBOL_MATERIAL = 97,                  /* MATERIAL  */
+  YYSYMBOL_MODELIZATION = 98,              /* MODELIZATION  */
+  YYSYMBOL_COMPONENT = 99,                 /* COMPONENT  */
+  YYSYMBOL_SAVE = 100,                     /* SAVE  */
+  YYSYMBOL_REDUCTION = 101,                /* REDUCTION  */
+  YYSYMBOL_RELOAD = 102,                   /* RELOAD  */
+  YYSYMBOL_NEEDED = 103,                   /* NEEDED  */
+  YYSYMBOL_DONE = 104,                     /* DONE  */
+  YYSYMBOL_CHANGED = 105,                  /* CHANGED  */
+  YYSYMBOL_tMIN = 106,                     /* tMIN  */
+  YYSYMBOL_tMAX = 107,                     /* tMAX  */
+  YYSYMBOL_PLUSI = 108,                    /* PLUSI  */
+  YYSYMBOL_MINUSI = 109,                   /* MINUSI  */
+  YYSYMBOL_110_ = 110,                     /* ','  */
+  YYSYMBOL_111_ = 111,                     /* '['  */
+  YYSYMBOL_112_ = 112,                     /* ']'  */
+  YYSYMBOL_113_ = 113,                     /* '{'  */
+  YYSYMBOL_114_ = 114,                     /* '}'  */
+  YYSYMBOL_YYACCEPT = 115,                 /* $accept  */
+  YYSYMBOL_All = 116,                      /* All  */
+  YYSYMBOL_PrjDataItems = 117,             /* PrjDataItems  */
+  YYSYMBOL_PrjDataItem = 118,              /* PrjDataItem  */
+  YYSYMBOL_SFFloat = 119,                  /* SFFloat  */
+  YYSYMBOL_SFComplex = 120,                /* SFComplex  */
+  YYSYMBOL_SFFloatList = 121,              /* SFFloatList  */
+  YYSYMBOL_MFFloat = 122,                  /* MFFloat  */
+  YYSYMBOL_SFComplexList = 123,            /* SFComplexList  */
+  YYSYMBOL_MFComplex = 124,                /* MFComplex  */
+  YYSYMBOL_MFFloatOrMFComplex = 125,       /* MFFloatOrMFComplex  */
+  YYSYMBOL_ImportData = 126,               /* ImportData  */
+  YYSYMBOL_CAD = 127,                      /* CAD  */
+  YYSYMBOL_Units = 128,                    /* Units  */
+  YYSYMBOL_Mesh = 129,                     /* Mesh  */
+  YYSYMBOL_Mwm = 130,                      /* Mwm  */
+  YYSYMBOL_Mor = 131,                      /* Mor  */
+  YYSYMBOL_FreqAna = 132,                  /* FreqAna  */
+  YYSYMBOL_FilterDesign = 133,             /* FilterDesign  */
+  YYSYMBOL_134_1 = 134,                    /* $@1  */
+  YYSYMBOL_WorkStatus = 135                /* WorkStatus  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -604,19 +612,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   351
+#define YYLAST   365
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  107
+#define YYNTOKENS  115
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  21
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  136
+#define YYNRULES  140
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  358
+#define YYNSTATES  372
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   356
+#define YYMAXUTOK   364
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -634,15 +642,15 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,   102,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,   110,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,   103,     2,   104,     2,     2,     2,     2,     2,     2,
+       2,   111,     2,   112,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,   105,     2,   106,     2,     2,     2,     2,
+       2,     2,     2,   113,     2,   114,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -665,27 +673,29 @@ static const yytype_int8 yytranslate[] =
       65,    66,    67,    68,    69,    70,    71,    72,    73,    74,
       75,    76,    77,    78,    79,    80,    81,    82,    83,    84,
       85,    86,    87,    88,    89,    90,    91,    92,    93,    94,
-      95,    96,    97,    98,    99,   100,   101
+      95,    96,    97,    98,    99,   100,   101,   102,   103,   104,
+     105,   106,   107,   108,   109
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    97,    97,   101,   102,   107,   108,   109,   110,   111,
-     112,   113,   114,   115,   116,   137,   142,   151,   155,   186,
-     187,   188,   189,   190,   194,   195,   200,   201,   202,   203,
-     204,   208,   209,   214,   215,   269,   273,   280,   284,   291,
-     295,   302,   306,   310,   314,   318,   322,   326,   330,   333,
-     336,   340,   344,   351,   358,   363,   367,   371,   378,   383,
-     388,   392,   397,   401,   406,   410,   414,   418,   422,   426,
-     430,   434,   438,   442,   446,   450,   453,   457,   461,   465,
-     468,   472,   476,   480,   484,   488,   492,   496,   500,   503,
-     507,   511,   517,   521,   527,   531,   538,   542,   546,   550,
-     554,   558,   562,   569,   574,   578,   582,   587,   591,   595,
-     599,   603,   607,   611,   611,   619,   623,   627,   631,   635,
-     639,   643,   647,   651,   654,   657,   660,   666,   670,   674,
-     678,   682,   686,   690,   695,   699,   703
+       0,    99,    99,   103,   104,   109,   110,   111,   112,   113,
+     114,   115,   116,   117,   118,   139,   144,   153,   157,   188,
+     189,   190,   191,   192,   196,   197,   202,   203,   204,   205,
+     206,   210,   211,   216,   217,   271,   275,   282,   286,   293,
+     297,   304,   308,   312,   316,   320,   324,   328,   332,   335,
+     338,   342,   346,   350,   354,   358,   365,   372,   377,   381,
+     385,   392,   397,   402,   406,   411,   415,   420,   424,   428,
+     432,   436,   440,   444,   448,   452,   456,   460,   464,   467,
+     471,   475,   479,   482,   486,   490,   494,   498,   502,   506,
+     510,   514,   517,   521,   525,   529,   535,   539,   545,   549,
+     556,   560,   564,   568,   572,   576,   580,   587,   592,   596,
+     600,   605,   609,   613,   617,   621,   625,   629,   629,   637,
+     641,   645,   649,   653,   657,   661,   665,   669,   672,   675,
+     678,   684,   688,   692,   696,   700,   704,   708,   713,   717,
+     721
 };
 #endif
 
@@ -707,20 +717,21 @@ static const char *const yytname[] =
   "REFINE", "RESONANCE", "ENERGY", "WAVELENGTH", "LOCAL", "MESHING3D",
   "ANA", "BAND", "NUM", "MOR", "RESPONSE", "SYMMETRIC", "PARAMETER",
   "TYPE", "TOPOLOGY", "PART", "XSCALE", "YSCALE", "AUTO", "ZERO", "POLE",
-  "WINDOW", "CURVE", "CIRCLE", "IDEAL", "CANONICAL", "FILTER", "CUSTOM",
-  "PASS", "KRYLOV", "ORDER", "RETURNLOSS", "OUTBAND", "MAPPING", "TUNING",
-  "METHOD", "SOURCE", "ITERMAX", "AUTOMATIC", "DESIGN", "WITH", "MAPPED",
-  "TX", "ZEROS", "ADD", "CONJUGATE", "PORT", "IMPEDANCE", "TARGET",
-  "QFACTOR", "UNIFORM", "INDUCTIVE", "SKIN", "LOSSY", "PREDISTORTED",
-  "OPTIMIZE", "ILOSSPP", "TRUSTR", "CUTOFF", "RATIO", "RECOMPUTE",
-  "JACOBIAN", "ERRORT", "ONLY", "TRANSVERSEJ", "XTOL", "GRADDX", "REMESH",
-  "FIRST", "DECOMPOSITION", "MATERIAL", "MODELIZATION", "COMPONENT",
-  "SAVE", "REDUCTION", "RELOAD", "NEEDED", "DONE", "CHANGED", "tMIN",
-  "tMAX", "PLUSI", "MINUSI", "','", "'['", "']'", "'{'", "'}'", "$accept",
-  "All", "PrjDataItems", "PrjDataItem", "SFFloat", "SFComplex",
-  "SFFloatList", "MFFloat", "SFComplexList", "MFComplex",
-  "MFFloatOrMFComplex", "ImportData", "CAD", "Units", "Mesh", "Mwm", "Mor",
-  "FreqAna", "FilterDesign", "$@1", "WorkStatus", YY_NULLPTR
+  "WINDOW", "CURVE", "CIRCLE", "XYPLANE", "YZPLANE", "ZXPLANE", "SYMMETRY",
+  "IDEAL", "CANONICAL", "FILTER", "CUSTOM", "PASS", "KRYLOV", "ORDER",
+  "RETURNLOSS", "OUTBAND", "MAPPING", "TUNING", "METHOD", "SOURCE",
+  "ITERMAX", "AUTOMATIC", "DESIGN", "WITH", "MAPPED", "TX", "ZEROS",
+  "SPICE", "SET", "CENTRAL", "CONFIG", "ADD", "CONJUGATE", "PORT",
+  "IMPEDANCE", "TARGET", "QFACTOR", "UNIFORM", "INDUCTIVE", "SKIN",
+  "LOSSY", "PREDISTORTED", "OPTIMIZE", "ILOSSPP", "TRUSTR", "CUTOFF",
+  "RATIO", "RECOMPUTE", "JACOBIAN", "ERRORT", "ONLY", "TRANSVERSEJ",
+  "XTOL", "GRADDX", "REMESH", "FIRST", "DECOMPOSITION", "MATERIAL",
+  "MODELIZATION", "COMPONENT", "SAVE", "REDUCTION", "RELOAD", "NEEDED",
+  "DONE", "CHANGED", "tMIN", "tMAX", "PLUSI", "MINUSI", "','", "'['",
+  "']'", "'{'", "'}'", "$accept", "All", "PrjDataItems", "PrjDataItem",
+  "SFFloat", "SFComplex", "SFFloatList", "MFFloat", "SFComplexList",
+  "MFComplex", "MFFloatOrMFComplex", "ImportData", "CAD", "Units", "Mesh",
+  "Mwm", "Mor", "FreqAna", "FilterDesign", "$@1", "WorkStatus", YY_NULLPTR
 };
 
 static const char *
@@ -730,7 +741,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-270)
+#define YYPACT_NINF (-261)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -744,42 +755,44 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-    -270,    11,   229,  -270,  -270,    18,    26,    39,     2,    40,
-      31,   -13,    55,    71,    45,    69,    49,    -5,    56,    70,
-      68,    82,   110,    92,   125,    -3,   100,   103,    63,    59,
-      85,    77,    61,    79,     4,    81,    86,  -270,  -270,  -270,
-    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
-    -270,    53,   157,    87,   174,   168,    84,    89,   -71,   107,
-     108,   166,    -4,   163,   -23,   177,   188,    65,   179,    96,
-     144,   165,    28,    19,   162,   143,   171,   195,   121,   149,
-     -18,    52,   138,   135,   134,   121,   132,   159,   181,   176,
-     169,   151,   160,   153,    34,    91,    76,   121,   206,   211,
-     212,   213,   214,    75,   205,   124,   126,   217,   219,   127,
-     215,   197,   224,  -270,   228,   230,   232,    22,   209,   223,
-     231,   241,   243,   154,   121,   173,   121,   121,   178,   236,
-    -270,   121,   261,   238,   121,   263,   265,   266,   244,    30,
-     193,   273,   274,   275,   220,   218,   276,   280,   121,  -270,
-    -270,  -270,  -270,   121,   281,   282,   284,   285,   121,   286,
-     287,   121,    88,   208,   121,   121,  -270,   121,   121,  -270,
-     289,   290,   121,   291,   292,   257,   294,   259,   270,   264,
-     297,   301,   121,   121,  -270,   121,   302,   304,   121,   121,
-    -270,  -270,  -270,  -270,  -270,  -270,   210,   295,   283,   308,
-     309,  -270,  -270,   235,   298,   311,  -270,  -270,  -270,  -270,
-     318,   121,   321,   323,   324,  -270,  -270,   121,  -270,   325,
-     121,   121,   121,   326,   121,  -270,   327,   121,  -270,  -270,
-    -270,   121,   328,   121,   121,   329,  -270,  -270,   271,   272,
-    -270,  -270,   121,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
-    -270,  -270,   332,   333,   334,  -270,  -270,   237,  -270,  -270,
-    -270,  -270,   121,  -270,  -270,   330,  -270,   335,   336,   338,
-    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,   267,
-     315,   341,  -270,  -270,   121,   343,  -270,  -270,   121,  -270,
-    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
-    -270,   121,  -270,   121,  -270,  -270,   344,   345,  -270,  -270,
-    -270,  -270,   121,  -270,  -270,  -270,  -270,   320,  -270,  -270,
-    -270,   121,   347,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
-    -270,    -2,    10,    13,    17,   348,  -270,  -270,   121,   121,
-     121,  -270,  -270,   121,  -270,    29,  -270,  -270,  -270,  -270,
-    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270
+    -261,     8,   233,  -261,  -261,    16,    33,    60,     3,    94,
+       0,    17,   104,   123,    28,   117,    64,    -4,   110,   126,
+      97,   120,   121,   119,   122,    77,   125,   157,     4,   105,
+     127,   128,    88,    75,    79,    76,    78,    81,     2,    82,
+      83,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,
+    -261,  -261,  -261,  -261,  -261,    72,   167,    84,   176,   173,
+     103,    85,   -74,    96,   108,   169,   107,   165,   -24,   180,
+     192,    19,   183,    49,   144,   170,    65,   195,   197,   198,
+      -8,   171,   145,   177,   202,    92,   152,    13,   -23,   141,
+     134,   133,    92,   131,   162,   187,   185,   178,   151,   163,
+     154,   -10,   153,    80,    -2,    92,   217,   218,   220,   221,
+     222,    86,   213,   124,   129,   225,   227,   130,   223,   208,
+     235,  -261,   236,   244,   245,     7,   228,   230,   232,   251,
+     261,   179,    92,   184,    92,    92,   186,   239,  -261,    92,
+     270,   247,    92,   272,   276,   281,   259,    23,   200,   284,
+    -261,  -261,  -261,   285,   287,   229,   219,   289,   292,    92,
+    -261,  -261,  -261,  -261,    92,   293,   294,   295,   296,    92,
+     298,   299,    92,    57,   212,    92,    92,  -261,    92,    92,
+    -261,   301,   302,    92,   303,   304,   269,   306,   271,   282,
+     273,   246,   312,   314,    92,    92,  -261,    92,   316,   317,
+      92,    92,  -261,  -261,  -261,  -261,  -261,  -261,   214,   309,
+     297,   320,   322,  -261,  -261,   240,   310,   330,  -261,  -261,
+    -261,  -261,   333,    92,   335,   336,   337,  -261,  -261,    92,
+    -261,   338,    92,    92,    92,   339,    92,  -261,   340,    92,
+    -261,  -261,  -261,    92,   341,    92,    92,   342,  -261,  -261,
+     280,   283,  -261,  -261,    92,  -261,  -261,  -261,  -261,  -261,
+    -261,  -261,  -261,  -261,   344,   345,   347,  -261,  -261,   241,
+    -261,  -261,  -261,  -261,    92,  -261,  -261,   343,  -261,   348,
+     350,   351,   352,  -261,  -261,  -261,  -261,  -261,  -261,  -261,
+    -261,  -261,   274,   331,   354,  -261,  -261,    92,   356,  -261,
+    -261,    92,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,
+    -261,  -261,  -261,  -261,    92,  -261,    92,  -261,  -261,   358,
+     359,  -261,  -261,  -261,  -261,    92,  -261,  -261,  -261,  -261,
+     334,  -261,  -261,  -261,  -261,    92,   361,  -261,  -261,  -261,
+    -261,  -261,  -261,  -261,  -261,     9,     1,    12,    15,   362,
+    -261,  -261,    92,    92,    92,  -261,  -261,    92,  -261,    48,
+    -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,
+    -261,  -261
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -790,55 +803,57 @@ static const yytype_uint8 yydefact[] =
        3,     0,     0,     1,    14,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     4,     8,     5,
-       6,     7,    11,    12,     9,    10,    13,    37,    35,    36,
-      38,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     4,     8,     5,     6,     7,    11,    12,     9,    10,
+      13,    37,    35,    36,    38,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,    39,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-      52,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,   104,
-      16,    15,   107,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,   113,     0,     0,   110,
+       0,    39,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,    52,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,   116,     0,     0,     0,     0,     0,
-      53,   130,   128,   127,   129,   131,     0,     0,     0,     0,
-       0,   133,   136,     0,     0,     0,   135,    40,    89,    90,
-       0,     0,     0,     0,     0,    41,    44,     0,    43,     0,
-       0,     0,     0,     0,     0,    62,     0,     0,    55,    57,
-     115,     0,     0,     0,     0,     0,    70,    73,     0,     0,
-      72,    85,     0,   108,    76,    75,    77,    79,    78,    81,
-      80,    87,     0,     0,     0,    86,    88,     0,   109,   111,
-     112,    74,     0,    96,    97,     0,   102,     0,     0,     0,
-     126,   123,   124,   125,   118,   121,   117,   119,   120,     0,
-       0,     0,   132,   134,     0,     0,    68,    92,     0,    47,
-      45,    46,    51,    42,    48,    49,    50,    56,    58,    63,
-      54,     0,    94,     0,    60,    95,     0,     0,   103,    82,
-      83,    84,    23,    33,    34,   114,    61,     0,    98,    99,
-     101,     0,     0,    66,    65,    69,    91,    59,    93,   106,
-     105,     0,     0,     0,     0,     0,    64,    67,     0,     0,
-       0,    24,    19,     0,    31,     0,    26,    22,    25,    21,
-      29,    32,    28,   100,    17,    18,    20,    27
+      53,    54,    55,     0,     0,     0,     0,     0,     0,     0,
+     108,    16,    15,   111,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,   117,     0,     0,
+     114,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,   120,     0,     0,     0,
+       0,     0,    56,   134,   132,   131,   133,   135,     0,     0,
+       0,     0,     0,   137,   140,     0,     0,     0,   139,    40,
+      93,    94,     0,     0,     0,     0,     0,    41,    44,     0,
+      43,     0,     0,     0,     0,     0,     0,    65,     0,     0,
+      58,    60,   119,     0,     0,     0,     0,     0,    73,    76,
+       0,     0,    75,    88,     0,   112,    79,    78,    80,    82,
+      81,    84,    83,    90,     0,     0,     0,    89,    91,     0,
+     113,   115,   116,    77,     0,   100,   101,     0,   106,     0,
+       0,     0,     0,   130,   127,   128,   129,   122,   125,   121,
+     123,   124,     0,     0,     0,   136,   138,     0,     0,    71,
+      96,     0,    47,    45,    46,    51,    42,    48,    49,    50,
+      59,    61,    66,    57,     0,    98,     0,    63,    99,     0,
+       0,   107,    85,    86,    87,    23,    33,    34,   118,    64,
+       0,   102,   103,   105,    92,     0,     0,    69,    68,    72,
+      95,    62,    97,   110,   109,     0,     0,     0,     0,     0,
+      67,    70,     0,     0,     0,    24,    19,     0,    31,     0,
+      26,    22,    25,    21,    29,    32,    28,   104,    17,    18,
+      20,    27
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
-    -270,  -270,  -270,  -270,   -78,  -269,  -270,  -270,  -270,  -270,
-    -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,  -270,
-    -270
+    -261,  -261,  -261,  -261,   -85,  -260,  -261,  -261,  -261,  -261,
+    -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,  -261,
+    -261
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int16 yydefgoto[] =
 {
-       0,     1,     2,    37,   345,   332,   333,   313,   334,   314,
-     315,    38,    39,    40,    41,    42,    43,    44,    45,   257,
-      46
+       0,     1,     2,    41,   359,   346,   347,   326,   348,   327,
+     328,    42,    43,    44,    45,    46,    47,    48,    49,   269,
+      50
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -846,143 +861,148 @@ static const yytype_int16 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
-     152,   150,   151,   127,    57,    50,    58,   169,    69,    59,
-      89,     3,   154,   150,   151,   124,   150,   151,   125,   190,
-     150,   151,    51,    47,   103,   150,   151,   119,   120,    60,
-      52,    48,   104,   150,   151,    90,   155,   156,   157,   211,
-      91,   138,    92,    70,    49,    55,   218,   178,   220,   221,
-     158,   142,   143,   224,    54,    93,   227,    94,    64,   210,
-      56,   233,    67,   346,   139,   352,   109,   232,   140,   141,
-     242,    62,   179,    65,   357,   243,   128,    68,   144,   184,
-     248,   110,   145,   251,    63,    61,   255,   256,   196,   258,
-     259,   131,   132,    66,   262,    53,   105,   106,   338,   339,
-     340,    71,   341,   197,   272,   273,   159,   274,   160,    72,
-     277,   278,   343,    73,   344,   347,   115,   348,   116,   350,
-     117,   351,   134,   135,   150,   151,   185,    74,   161,   338,
-     339,   162,   186,   288,   163,    87,   164,   165,    88,   292,
-      75,    97,   294,   295,   296,    95,   298,   180,    96,   300,
-     187,   188,   189,   301,    98,   303,   304,    76,   101,    77,
-      78,    79,    80,    81,   308,   181,   182,   183,   252,   253,
-     111,    82,   100,    99,   102,    83,   107,    84,    85,   113,
-      86,   108,   112,   114,   316,   121,   122,   123,   118,   126,
-     129,   130,   133,   136,   137,   146,   147,   148,   149,   153,
-     166,   167,   168,   170,   171,   173,   324,   172,   174,   191,
-     326,   175,   176,   177,   192,   193,   194,   195,   198,   199,
-     201,   200,   202,   327,   205,   328,   203,   206,   204,    -2,
-       4,   207,   217,   208,   331,   209,   212,     5,     6,     7,
-       8,     9,    10,   336,   215,    11,   216,    12,    13,    14,
-     213,   219,    15,   342,    16,   349,   222,    17,   214,    18,
-     354,   355,   356,   223,   225,   226,   228,    19,   229,   230,
-     231,   234,    20,    21,    22,    23,   235,   236,   237,   240,
-     238,    24,   239,   241,   244,   245,    25,   246,   247,   249,
-     250,   254,   260,   261,   263,   264,   265,   266,   267,   268,
-     270,    26,    27,   269,   271,   275,    28,   276,   280,   279,
-     281,   282,   283,   284,   286,    29,    30,    31,    32,    33,
-      34,   287,    35,    36,   289,   285,   290,   291,   293,   297,
-     299,   302,   305,   306,   307,   309,   310,   311,   318,   319,
-     312,   320,   322,   317,   323,   321,   325,   329,   330,   335,
-     337,   353
+     163,   196,   135,   189,   161,   162,    54,   180,     3,    73,
+     161,   162,   161,   162,    59,   161,   162,    96,   161,   162,
+     202,    51,   111,    55,   153,   154,   161,   162,   190,    60,
+     112,    56,   127,   128,    61,   170,    62,   171,    52,    63,
+     223,    68,    97,   165,   222,   139,   140,   230,    74,   232,
+     233,    98,   197,    99,   236,   155,    69,   239,   198,    64,
+     244,   172,   245,   156,   173,    53,   100,   174,   101,   175,
+     176,   166,   167,   168,   254,   142,   143,    71,   146,   255,
+     199,   200,   201,   136,   260,   117,   360,   263,   366,   169,
+     267,   268,    72,   270,   271,   161,   162,   371,   274,   208,
+     118,   147,   113,   114,    57,   148,   149,    82,    58,   285,
+     286,   357,   287,   358,   209,   290,   291,   352,   353,   354,
+      66,   355,   361,    65,   362,   364,   132,   365,    83,   133,
+      84,    85,    86,    87,    88,   123,    67,   124,   301,   125,
+     192,    70,    89,    77,   305,   264,   265,   307,   308,   309,
+      90,   311,    91,    92,   313,    93,   352,   353,   314,    75,
+     316,   317,   193,   194,   195,    76,    78,    79,    80,   321,
+      95,    81,    94,   102,   105,   107,   103,   104,   106,   108,
+     119,   121,   129,   109,   110,   115,   116,   120,   122,   329,
+     131,   134,   126,   137,   130,   138,   141,   144,   150,   145,
+     151,   152,   158,   159,   157,   160,   164,   177,   178,   179,
+     181,   182,   338,   183,   184,   186,   340,   185,   188,   187,
+     203,   204,   191,   205,   206,   207,   210,   211,   213,   341,
+     214,   342,   212,    -2,     4,   217,   216,   215,   218,   219,
+     345,     5,     6,     7,     8,     9,    10,   220,   221,    11,
+     350,    12,    13,    14,   227,   224,    15,   225,    16,   226,
+     356,    17,   363,    18,   228,   229,   235,   368,   369,   370,
+     231,    19,   234,   237,   238,   240,    20,    21,    22,   241,
+      23,    24,    25,    26,   242,   243,   246,   247,   248,    27,
+     249,   251,   252,   250,    28,   253,   256,   257,   258,   259,
+      29,   261,   262,   266,   272,   273,   275,   276,   277,   278,
+     279,   280,   281,    30,    31,   283,   282,   284,    32,   288,
+     289,   292,   293,   295,   294,   296,   297,    33,    34,    35,
+      36,    37,    38,   299,    39,    40,   300,   298,   302,   303,
+     304,   306,   310,   312,   315,   318,   319,   322,   323,   320,
+     324,   331,   325,   332,   333,   334,   330,   337,   336,   339,
+     335,   343,   344,   349,   351,   367
 };
 
 static const yytype_int16 yycheck[] =
 {
-      78,     3,     4,    26,    17,     3,    19,    85,    13,    22,
-      13,     0,    30,     3,     4,    19,     3,     4,    22,    97,
-       3,     4,    20,     5,    20,     3,     4,    98,    99,    42,
-      28,     5,    28,     3,     4,    38,    54,    55,    56,   117,
-      43,    13,    45,    48,     5,    14,   124,    13,   126,   127,
-      68,    32,    33,   131,    14,    58,   134,    60,    13,    37,
-      29,   139,    13,   332,    36,   334,    13,    37,    40,    41,
-     148,    16,    38,    28,   343,   153,    99,    28,    59,     3,
-     158,    28,    63,   161,    13,    98,   164,   165,    13,   167,
-     168,    26,    27,    24,   172,    93,    92,    93,   100,   101,
-     102,    45,   104,    28,   182,   183,    54,   185,    56,    39,
-     188,   189,   102,    45,   104,   102,    32,   104,    34,   102,
-      36,   104,    26,    27,     3,     4,    50,    45,    76,   100,
-     101,    79,    56,   211,    82,    43,    84,    85,    13,   217,
-      30,    78,   220,   221,   222,    45,   224,    56,    45,   227,
-      74,    75,    76,   231,    95,   233,   234,    47,    97,    49,
-      50,    51,    52,    53,   242,    74,    75,    76,    80,    81,
-      13,    61,    95,    88,    95,    65,    95,    67,    68,     5,
-      70,    95,    95,    15,   262,    78,    78,    21,    99,    26,
-      13,     3,    13,    49,    29,    33,    53,    26,     3,    50,
-      62,    66,    68,    71,    45,    29,   284,    26,    39,     3,
-     288,    60,    52,    60,     3,     3,     3,     3,    13,    95,
-       3,    95,     3,   301,    27,   303,    99,     3,    13,     0,
-       1,     3,    78,     3,   312,     3,    27,     8,     9,    10,
-      11,    12,    13,   321,     3,    16,     3,    18,    19,    20,
-      27,    78,    23,   331,    25,   333,    78,    28,    27,    30,
-     338,   339,   340,    27,     3,    27,     3,    38,     3,     3,
-      26,    78,    43,    44,    45,    46,     3,     3,     3,     3,
-      60,    52,    64,     3,     3,     3,    57,     3,     3,     3,
-       3,    83,     3,     3,     3,     3,    39,     3,    39,    29,
-       3,    72,    73,    39,     3,     3,    77,     3,    13,    99,
-      27,     3,     3,    78,     3,    86,    87,    88,    89,    90,
-      91,     3,    93,    94,     3,    27,     3,     3,     3,     3,
-       3,     3,     3,    62,    62,     3,     3,     3,     3,     3,
-     103,     3,    27,    13,     3,    78,     3,     3,     3,    29,
-       3,     3
+      85,     3,    26,    13,     3,     4,     3,    92,     0,    13,
+       3,     4,     3,     4,    14,     3,     4,    13,     3,     4,
+     105,     5,    20,    20,    32,    33,     3,     4,    38,    29,
+      28,    28,   106,   107,    17,    58,    19,    60,     5,    22,
+     125,    13,    38,    30,    37,    26,    27,   132,    52,   134,
+     135,    47,    54,    49,   139,    63,    28,   142,    60,    42,
+      37,    84,   147,    71,    87,     5,    62,    90,    64,    92,
+      93,    58,    59,    60,   159,    26,    27,    13,    13,   164,
+      82,    83,    84,   107,   169,    13,   346,   172,   348,    76,
+     175,   176,    28,   178,   179,     3,     4,   357,   183,    13,
+      28,    36,   100,   101,   101,    40,    41,    30,    14,   194,
+     195,   110,   197,   112,    28,   200,   201,   108,   109,   110,
+      16,   112,   110,   106,   112,   110,    19,   112,    51,    22,
+      53,    54,    55,    56,    57,    32,    13,    34,   223,    36,
+      60,    24,    65,    46,   229,    88,    89,   232,   233,   234,
+      73,   236,    75,    76,   239,    78,   108,   109,   243,    49,
+     245,   246,    82,    83,    84,    39,    46,    46,    49,   254,
+      13,    49,    47,    68,    86,    96,    49,    49,   103,   103,
+      13,     5,    86,   105,   103,   103,   103,   103,    15,   274,
+      21,    26,   107,    13,    86,     3,    13,    53,     3,    29,
+       3,     3,    57,    26,    33,     3,    54,    66,    74,    76,
+      79,    49,   297,    26,    29,    64,   301,    39,    64,    56,
+       3,     3,    69,     3,     3,     3,    13,   103,     3,   314,
+       3,   316,   103,     0,     1,    27,    13,   107,     3,     3,
+     325,     8,     9,    10,    11,    12,    13,     3,     3,    16,
+     335,    18,    19,    20,     3,    27,    23,    27,    25,    27,
+     345,    28,   347,    30,     3,    86,    27,   352,   353,   354,
+      86,    38,    86,     3,    27,     3,    43,    44,    45,     3,
+      47,    48,    49,    50,     3,    26,    86,     3,     3,    56,
+       3,    72,     3,    64,    61,     3,     3,     3,     3,     3,
+      67,     3,     3,    91,     3,     3,     3,     3,    39,     3,
+      39,    29,    39,    80,    81,     3,    70,     3,    85,     3,
+       3,   107,    13,     3,    27,     3,    86,    94,    95,    96,
+      97,    98,    99,     3,   101,   102,     3,    27,     3,     3,
+       3,     3,     3,     3,     3,     3,    66,     3,     3,    66,
+       3,     3,   111,     3,     3,     3,    13,     3,    27,     3,
+      86,     3,     3,    29,     3,     3
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
-static const yytype_int8 yystos[] =
+static const yytype_uint8 yystos[] =
 {
-       0,   108,   109,     0,     1,     8,     9,    10,    11,    12,
+       0,   116,   117,     0,     1,     8,     9,    10,    11,    12,
       13,    16,    18,    19,    20,    23,    25,    28,    30,    38,
-      43,    44,    45,    46,    52,    57,    72,    73,    77,    86,
-      87,    88,    89,    90,    91,    93,    94,   110,   118,   119,
-     120,   121,   122,   123,   124,   125,   127,     5,     5,     5,
-       3,    20,    28,    93,    14,    14,    29,    17,    19,    22,
-      42,    98,    16,    13,    13,    28,    24,    13,    28,    13,
-      48,    45,    39,    45,    45,    30,    47,    49,    50,    51,
-      52,    53,    61,    65,    67,    68,    70,    43,    13,    13,
-      38,    43,    45,    58,    60,    45,    45,    78,    95,    88,
-      95,    97,    95,    20,    28,    92,    93,    95,    95,    13,
-      28,    13,    95,     5,    15,    32,    34,    36,    99,    98,
-      99,    78,    78,    21,    19,    22,    26,    26,    99,    13,
-       3,    26,    27,    13,    26,    27,    49,    29,    13,    36,
-      40,    41,    32,    33,    59,    63,    33,    53,    26,     3,
-       3,     4,   111,    50,    30,    54,    55,    56,    68,    54,
-      56,    76,    79,    82,    84,    85,    62,    66,    68,   111,
-      71,    45,    26,    29,    39,    60,    52,    60,    13,    38,
-      56,    74,    75,    76,     3,    50,    56,    74,    75,    76,
-     111,     3,     3,     3,     3,     3,    13,    28,    13,    95,
-      95,     3,     3,    99,    13,    27,     3,     3,     3,     3,
-      37,   111,    27,    27,    27,     3,     3,    78,   111,    78,
-     111,   111,    78,    27,   111,     3,    27,   111,     3,     3,
-       3,    26,    37,   111,    78,     3,     3,     3,    60,    64,
-       3,     3,   111,   111,     3,     3,     3,     3,   111,     3,
-       3,   111,    80,    81,    83,   111,   111,   126,   111,   111,
-       3,     3,   111,     3,     3,    39,     3,    39,    29,    39,
-       3,     3,   111,   111,   111,     3,     3,   111,   111,    99,
-      13,    27,     3,     3,    78,    27,     3,     3,   111,     3,
-       3,     3,   111,     3,   111,   111,   111,     3,   111,     3,
-     111,   111,     3,   111,   111,     3,    62,    62,   111,     3,
-       3,     3,   103,   114,   116,   117,   111,    13,     3,     3,
-       3,    78,    27,     3,   111,     3,   111,   111,   111,     3,
-       3,   111,   112,   113,   115,    29,   111,     3,   100,   101,
-     102,   104,   111,   102,   104,   111,   112,   102,   104,   111,
-     102,   104,   112,     3,   111,   111,   111,   112
+      43,    44,    45,    47,    48,    49,    50,    56,    61,    67,
+      80,    81,    85,    94,    95,    96,    97,    98,    99,   101,
+     102,   118,   126,   127,   128,   129,   130,   131,   132,   133,
+     135,     5,     5,     5,     3,    20,    28,   101,    14,    14,
+      29,    17,    19,    22,    42,   106,    16,    13,    13,    28,
+      24,    13,    28,    13,    52,    49,    39,    46,    46,    46,
+      49,    49,    30,    51,    53,    54,    55,    56,    57,    65,
+      73,    75,    76,    78,    47,    13,    13,    38,    47,    49,
+      62,    64,    68,    49,    49,    86,   103,    96,   103,   105,
+     103,    20,    28,   100,   101,   103,   103,    13,    28,    13,
+     103,     5,    15,    32,    34,    36,   107,   106,   107,    86,
+      86,    21,    19,    22,    26,    26,   107,    13,     3,    26,
+      27,    13,    26,    27,    53,    29,    13,    36,    40,    41,
+       3,     3,     3,    32,    33,    63,    71,    33,    57,    26,
+       3,     3,     4,   119,    54,    30,    58,    59,    60,    76,
+      58,    60,    84,    87,    90,    92,    93,    66,    74,    76,
+     119,    79,    49,    26,    29,    39,    64,    56,    64,    13,
+      38,    69,    60,    82,    83,    84,     3,    54,    60,    82,
+      83,    84,   119,     3,     3,     3,     3,     3,    13,    28,
+      13,   103,   103,     3,     3,   107,    13,    27,     3,     3,
+       3,     3,    37,   119,    27,    27,    27,     3,     3,    86,
+     119,    86,   119,   119,    86,    27,   119,     3,    27,   119,
+       3,     3,     3,    26,    37,   119,    86,     3,     3,     3,
+      64,    72,     3,     3,   119,   119,     3,     3,     3,     3,
+     119,     3,     3,   119,    88,    89,    91,   119,   119,   134,
+     119,   119,     3,     3,   119,     3,     3,    39,     3,    39,
+      29,    39,    70,     3,     3,   119,   119,   119,     3,     3,
+     119,   119,   107,    13,    27,     3,     3,    86,    27,     3,
+       3,   119,     3,     3,     3,   119,     3,   119,   119,   119,
+       3,   119,     3,   119,   119,     3,   119,   119,     3,    66,
+      66,   119,     3,     3,     3,   111,   122,   124,   125,   119,
+      13,     3,     3,     3,     3,    86,    27,     3,   119,     3,
+     119,   119,   119,     3,     3,   119,   120,   121,   123,    29,
+     119,     3,   108,   109,   110,   112,   119,   110,   112,   119,
+     120,   110,   112,   119,   110,   112,   120,     3,   119,   119,
+     119,   120
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
-static const yytype_int8 yyr1[] =
+static const yytype_uint8 yyr1[] =
 {
-       0,   107,   108,   109,   109,   110,   110,   110,   110,   110,
-     110,   110,   110,   110,   110,   111,   111,   112,   112,   113,
-     113,   113,   113,   113,   114,   114,   115,   115,   115,   115,
-     115,   116,   116,   117,   117,   118,   118,   119,   119,   120,
-     120,   121,   121,   121,   121,   121,   121,   121,   121,   121,
-     121,   121,   121,   122,   123,   123,   123,   123,   124,   124,
-     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
-     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
-     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
-     124,   124,   124,   124,   124,   124,   124,   124,   124,   124,
-     124,   124,   124,   125,   125,   125,   125,   125,   125,   125,
-     125,   125,   125,   126,   125,   125,   125,   125,   125,   125,
-     125,   125,   125,   125,   125,   125,   125,   127,   127,   127,
-     127,   127,   127,   127,   127,   127,   127
+       0,   115,   116,   117,   117,   118,   118,   118,   118,   118,
+     118,   118,   118,   118,   118,   119,   119,   120,   120,   121,
+     121,   121,   121,   121,   122,   122,   123,   123,   123,   123,
+     123,   124,   124,   125,   125,   126,   126,   127,   127,   128,
+     128,   129,   129,   129,   129,   129,   129,   129,   129,   129,
+     129,   129,   129,   129,   129,   129,   130,   131,   131,   131,
+     131,   132,   132,   132,   132,   132,   132,   132,   132,   132,
+     132,   132,   132,   132,   132,   132,   132,   132,   132,   132,
+     132,   132,   132,   132,   132,   132,   132,   132,   132,   132,
+     132,   132,   132,   132,   132,   132,   132,   132,   132,   132,
+     132,   132,   132,   132,   132,   132,   132,   133,   133,   133,
+     133,   133,   133,   133,   133,   133,   133,   134,   133,   133,
+     133,   133,   133,   133,   133,   133,   133,   133,   133,   133,
+     133,   135,   135,   135,   135,   135,   135,   135,   135,   135,
+     135
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -993,15 +1013,16 @@ static const yytype_int8 yyr2[] =
        3,     2,     2,     0,     3,     3,     2,     3,     2,     2,
        0,     3,     3,     1,     1,     2,     2,     2,     2,     3,
        4,     4,     5,     4,     4,     5,     5,     5,     5,     5,
-       5,     5,     3,     3,     5,     4,     5,     4,     5,     6,
-       5,     5,     4,     5,     6,     6,     5,     6,     5,     6,
-       4,     4,     4,     4,     4,     4,     4,     4,     4,     4,
-       4,     4,     5,     5,     5,     4,     4,     4,     4,     4,
-       4,     6,     5,     6,     5,     5,     4,     4,     5,     5,
-       7,     5,     4,     5,     3,     6,     6,     3,     4,     4,
-       3,     4,     4,     0,     5,     4,     3,     4,     4,     4,
-       4,     4,     3,     4,     4,     4,     4,     3,     3,     3,
-       3,     3,     4,     3,     4,     4,     3
+       5,     5,     3,     3,     3,     3,     3,     5,     4,     5,
+       4,     5,     6,     5,     5,     4,     5,     6,     6,     5,
+       6,     5,     6,     4,     4,     4,     4,     4,     4,     4,
+       4,     4,     4,     4,     4,     5,     5,     5,     4,     4,
+       4,     4,     5,     4,     4,     6,     5,     6,     5,     5,
+       4,     4,     5,     5,     7,     5,     4,     5,     3,     6,
+       6,     3,     4,     4,     3,     4,     4,     0,     5,     4,
+       3,     4,     4,     4,     4,     4,     3,     4,     4,     4,
+       4,     3,     3,     3,     3,     3,     4,     3,     4,     4,
+       3
 };
 
 
@@ -1465,907 +1486,939 @@ yyreduce:
   switch (yyn)
     {
   case 14: /* PrjDataItem: error  */
-#line 116 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 118 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                         {YYABORT;}
-#line 1471 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1492 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 15: /* SFFloat: FLOATING  */
-#line 138 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 140 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                 {
 		      (yyval.fval) = (yyvsp[0].fval);
 		      if(ProjData::Fbuff) ProjData::Fbuff->push_back((yyvsp[0].fval));
 		}
-#line 1480 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1501 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 16: /* SFFloat: INTEGER  */
-#line 143 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 145 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                 {
 		       (yyval.fval) = (double)(yyvsp[0].ival);
 		       if(ProjData::Fbuff) ProjData::Fbuff->push_back((double)(yyvsp[0].ival));
 		}
-#line 1489 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1510 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 17: /* SFComplex: SFFloat PLUSI SFFloat  */
-#line 152 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 154 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                 {
 		       if(ProjData::Cbuff) ProjData::Cbuff->push_back(std::complex<double>((yyvsp[-2].fval),(yyvsp[0].fval)));
 		}
-#line 1497 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1518 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 18: /* SFComplex: SFFloat MINUSI SFFloat  */
-#line 156 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 158 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                 {
 		       if(ProjData::Cbuff) ProjData::Cbuff->push_back(std::complex<double>((yyvsp[-2].fval),-(yyvsp[0].fval)));
 		}
-#line 1505 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1526 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 24: /* MFFloat: '[' SFFloat ']'  */
-#line 194 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 196 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                           {}
-#line 1511 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1532 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 25: /* MFFloat: '[' SFFloatList ']'  */
-#line 195 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 197 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                               {}
-#line 1517 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1538 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 31: /* MFComplex: '[' SFComplex ']'  */
-#line 208 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 210 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                             {}
-#line 1523 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1544 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 32: /* MFComplex: '[' SFComplexList ']'  */
-#line 209 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 211 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                                 {}
-#line 1529 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1550 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 33: /* MFFloatOrMFComplex: MFFloat  */
-#line 214 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 216 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                   {}
-#line 1535 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1556 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 34: /* MFFloatOrMFComplex: MFComplex  */
-#line 215 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 217 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                     {}
-#line 1541 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1562 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 35: /* ImportData: VARFILEPATH STRING  */
-#line 270 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 272 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.varFilePath=(yyvsp[0].sval);
             }
-#line 1549 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1570 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 36: /* ImportData: S2PFILEPATH STRING  */
-#line 274 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 276 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.s2pFilePath=(yyvsp[0].sval);
             }
-#line 1557 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1578 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 37: /* CAD: MAINASSNAME STRING  */
-#line 281 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 283 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.mainAssName=(yyvsp[0].sval);
             }
-#line 1565 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1586 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 38: /* CAD: NETWORK INTEGER  */
-#line 285 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 287 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.network=(yyvsp[0].ival);
             }
-#line 1573 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1594 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 39: /* Units: LENGTH UNIT STRING  */
-#line 292 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 294 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               strcpy(prjData.lengthUnitName,(yyvsp[0].sval));
             }
-#line 1581 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1602 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 40: /* Units: FREQ UNIT EXP INTEGER  */
-#line 296 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 298 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqUnitE =(yyvsp[0].ival);
             }
-#line 1589 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1610 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 41: /* Mesh: MESH WAVELENGTH RATIO INTEGER  */
-#line 303 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 305 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshPerWavelen=(yyvsp[0].ival);
             }
-#line 1597 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1618 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 42: /* Mesh: SHARED MESH WAVELENGTH RATIO INTEGER  */
-#line 307 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 309 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.sharedMeshPerWavelen=(yyvsp[0].ival);
             }
-#line 1605 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1626 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 43: /* Mesh: SHARED MESH REFINE SFFloat  */
-#line 311 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 313 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.sharedMeshRefine=(yyvsp[0].fval);
             }
-#line 1613 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1634 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 44: /* Mesh: MESH CIRCLE RATIO INTEGER  */
-#line 315 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 317 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshPerCircle=(yyvsp[0].ival);
             }
-#line 1621 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1642 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 45: /* Mesh: MESH REFINE tMIN NUM INTEGER  */
-#line 319 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 321 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshRefineMinNum=(yyvsp[0].ival);
             }
-#line 1629 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1650 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 46: /* Mesh: MESH REFINE tMAX NUM INTEGER  */
-#line 323 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 325 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshRefineMaxNum=(yyvsp[0].ival);
             }
-#line 1637 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1658 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 47: /* Mesh: MESH TET tMAX NUM INTEGER  */
-#line 327 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 329 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshTetMaxNum=(yyvsp[0].ival);
             }
-#line 1645 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1666 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 48: /* Mesh: REFINE FREQ BAND SFFloat SFFloat  */
-#line 331 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 333 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 1652 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1673 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 49: /* Mesh: RESONANCE FREQ BAND SFFloat SFFloat  */
-#line 334 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 336 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 1659 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1680 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 50: /* Mesh: RESONANCE FREQ tMAX RATIO SFFloat  */
-#line 337 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 339 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.resonFreqMaxRatio=(yyvsp[0].fval);
             }
-#line 1667 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1688 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 51: /* Mesh: MESH tMIN ENERGY RATIO SFFloat  */
-#line 341 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 343 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.meshMinEnergyRatio=(yyvsp[0].fval);
             }
-#line 1675 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1696 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
   case 52: /* Mesh: LOCAL MESHING3D INTEGER  */
-#line 345 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 347 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.localMeshing3d=(yyvsp[0].ival);
             }
-#line 1683 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1704 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 53: /* Mwm: CUTOFF RATIO SFFloat  */
-#line 352 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 53: /* Mesh: XYPLANE SYMMETRY INTEGER  */
+#line 351 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
+            {
+              prjData.XYplaneSymmetry=(yyvsp[0].ival);
+            }
+#line 1712 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 54: /* Mesh: YZPLANE SYMMETRY INTEGER  */
+#line 355 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
+            {
+              prjData.YZplaneSymmetry=(yyvsp[0].ival);
+            }
+#line 1720 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 55: /* Mesh: ZXPLANE SYMMETRY INTEGER  */
+#line 359 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
+            {
+              prjData.ZXplaneSymmetry=(yyvsp[0].ival);
+            }
+#line 1728 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 56: /* Mwm: CUTOFF RATIO SFFloat  */
+#line 366 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
            {
               prjData.cutoffRatio=(yyvsp[0].fval);
            }
-#line 1691 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1736 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 54: /* Mor: MOR FREQ BAND SFFloat SFFloat  */
-#line 359 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 57: /* Mor: MOR FREQ BAND SFFloat SFFloat  */
+#line 373 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqBand[0]=(yyvsp[-1].fval);
               prjData.freqBand[1]=(yyvsp[0].fval);
             }
-#line 1700 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1745 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 55: /* Mor: MOR FREQ NUM INTEGER  */
-#line 364 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 58: /* Mor: MOR FREQ NUM INTEGER  */
+#line 378 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.MORFreqNum=(yyvsp[0].ival);
             }
-#line 1708 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1753 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 56: /* Mor: RESONANCE MOR FREQ NUM INTEGER  */
-#line 368 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 59: /* Mor: RESONANCE MOR FREQ NUM INTEGER  */
+#line 382 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.MORFreqNum1=(yyvsp[0].ival);
             }
-#line 1716 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1761 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 57: /* Mor: MOR KRYLOV ORDER INTEGER  */
-#line 372 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 60: /* Mor: MOR KRYLOV ORDER INTEGER  */
+#line 386 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.KrylovOrder=(yyvsp[0].ival);
             }
-#line 1724 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1769 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 58: /* FreqAna: ANA FREQ BAND SFFloat SFFloat  */
-#line 379 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 61: /* FreqAna: ANA FREQ BAND SFFloat SFFloat  */
+#line 393 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.anaFreqBand[0]=(yyvsp[-1].fval);
               prjData.anaFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1733 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1778 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 59: /* FreqAna: ZERO POLE FREQ BAND SFFloat SFFloat  */
-#line 384 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 62: /* FreqAna: ZERO POLE FREQ BAND SFFloat SFFloat  */
+#line 398 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.zpFreqBand[0]=(yyvsp[-1].fval);
               prjData.zpFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1742 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1787 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 60: /* FreqAna: ZERO POLE WINDOW RATIO SFFloat  */
-#line 389 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 63: /* FreqAna: ZERO POLE WINDOW RATIO SFFloat  */
+#line 403 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.zpWinRatio=(yyvsp[0].fval);
             }
-#line 1750 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1795 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 61: /* FreqAna: MAPPING FREQ BAND SFFloat SFFloat  */
-#line 393 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 64: /* FreqAna: MAPPING FREQ BAND SFFloat SFFloat  */
+#line 407 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.mapFreqBand[0]=(yyvsp[-1].fval);
               prjData.mapFreqBand[1]=(yyvsp[0].fval);
             }
-#line 1759 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1804 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 62: /* FreqAna: ANA FREQ NUM INTEGER  */
-#line 398 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 65: /* FreqAna: ANA FREQ NUM INTEGER  */
+#line 412 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.anaFreqNum=(yyvsp[0].ival);
             }
-#line 1767 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1812 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 63: /* FreqAna: ANA MOR FREQ NUM INTEGER  */
-#line 402 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 66: /* FreqAna: ANA MOR FREQ NUM INTEGER  */
+#line 416 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               if(prjData.network) prjData.netMORFreqNum=(yyvsp[0].ival);
               else                prjData.cmpMORFreqNum=(yyvsp[0].ival);
             }
-#line 1776 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1821 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 64: /* FreqAna: COMPONENT RESONANCE FREQ tMAX RATIO SFFloat  */
-#line 407 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 67: /* FreqAna: COMPONENT RESONANCE FREQ tMAX RATIO SFFloat  */
+#line 421 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.cmpResonFreqMaxRatio=(yyvsp[0].fval);
             }
-#line 1784 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1829 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 65: /* FreqAna: NETWORK RESONANCE FREQ tMAX RATIO SFFloat  */
-#line 411 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 68: /* FreqAna: NETWORK RESONANCE FREQ tMAX RATIO SFFloat  */
+#line 425 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.netResonFreqMaxRatio=(yyvsp[0].fval);
             }
-#line 1792 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1837 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 66: /* FreqAna: COMPONENT MOR FREQ NUM INTEGER  */
-#line 415 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 69: /* FreqAna: COMPONENT MOR FREQ NUM INTEGER  */
+#line 429 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.cmpMORFreqNum=(yyvsp[0].ival);
             }
-#line 1800 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1845 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 67: /* FreqAna: COMPONENT RESONANCE MOR FREQ NUM INTEGER  */
-#line 419 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 70: /* FreqAna: COMPONENT RESONANCE MOR FREQ NUM INTEGER  */
+#line 433 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.cmpMORFreqNum1=(yyvsp[0].ival);
             }
-#line 1808 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1853 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 68: /* FreqAna: NETWORK MOR FREQ NUM INTEGER  */
-#line 423 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 71: /* FreqAna: NETWORK MOR FREQ NUM INTEGER  */
+#line 437 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.netMORFreqNum=(yyvsp[0].ival);
             }
-#line 1816 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1861 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 69: /* FreqAna: NETWORK RESONANCE MOR FREQ NUM INTEGER  */
-#line 427 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 72: /* FreqAna: NETWORK RESONANCE MOR FREQ NUM INTEGER  */
+#line 441 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.netMORFreqNum1=(yyvsp[0].ival);
             }
-#line 1824 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1869 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 70: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
-#line 431 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 73: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
+#line 445 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.idealFilterType=(yyvsp[0].ival);
             }
-#line 1832 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1877 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 71: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
-#line 435 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 74: /* FreqAna: IDEAL FILTER TYPE INTEGER  */
+#line 449 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.idealFilterType=(yyvsp[0].ival);
             }
-#line 1840 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1885 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 72: /* FreqAna: CANONICAL FILTER TOPOLOGY INTEGER  */
-#line 439 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 75: /* FreqAna: CANONICAL FILTER TOPOLOGY INTEGER  */
+#line 453 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.canonicalFilterTopology=(yyvsp[0].ival);
             }
-#line 1848 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1893 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 73: /* FreqAna: IDEAL FILTER TOPOLOGY INTEGER  */
-#line 443 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 76: /* FreqAna: IDEAL FILTER TOPOLOGY INTEGER  */
+#line 457 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.canonicalFilterTopology=(yyvsp[0].ival);
             }
-#line 1856 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1901 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 74: /* FreqAna: CUSTOM IDEAL FILTER INTEGER  */
-#line 447 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 77: /* FreqAna: CUSTOM IDEAL FILTER INTEGER  */
+#line 461 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.customIdealFilter=(yyvsp[0].ival);
             }
-#line 1864 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1909 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 75: /* FreqAna: FILTER MAPPING METHOD INTEGER  */
-#line 451 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 78: /* FreqAna: FILTER MAPPING METHOD INTEGER  */
+#line 465 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 1871 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1916 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 76: /* FreqAna: FILTER MAPPING SYMMETRIC INTEGER  */
-#line 454 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 79: /* FreqAna: FILTER MAPPING SYMMETRIC INTEGER  */
+#line 468 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filtermapSymmetric=(yyvsp[0].ival);
             }
-#line 1879 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1924 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 77: /* FreqAna: FILTER MAPPING SOURCE INTEGER  */
-#line 458 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 80: /* FreqAna: FILTER MAPPING SOURCE INTEGER  */
+#line 472 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filtermapSource=(yyvsp[0].ival);
             }
-#line 1887 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1932 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 78: /* FreqAna: FILTER MAPPING QFACTOR SFFloat  */
-#line 462 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 81: /* FreqAna: FILTER MAPPING QFACTOR SFFloat  */
+#line 476 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filtermapQfactor = (yyvsp[0].fval);
             }
-#line 1895 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1940 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 79: /* FreqAna: FILTER MAPPING ITERMAX INTEGER  */
-#line 466 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 82: /* FreqAna: FILTER MAPPING ITERMAX INTEGER  */
+#line 480 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 1902 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1947 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 80: /* FreqAna: FILTER TUNING ITERMAX INTEGER  */
-#line 469 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 83: /* FreqAna: FILTER TUNING ITERMAX INTEGER  */
+#line 483 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneItermax=(yyvsp[0].ival);
             }
-#line 1910 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1955 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 81: /* FreqAna: FILTER TUNING METHOD INTEGER  */
-#line 473 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 84: /* FreqAna: FILTER TUNING METHOD INTEGER  */
+#line 487 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneMethod=(yyvsp[0].ival);
             }
-#line 1918 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1963 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 82: /* FreqAna: FILTER TUNING RECOMPUTE JACOBIAN INTEGER  */
-#line 477 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 85: /* FreqAna: FILTER TUNING RECOMPUTE JACOBIAN INTEGER  */
+#line 491 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneRecomputeJaco=(yyvsp[0].ival);
             }
-#line 1926 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1971 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 83: /* FreqAna: FILTER TUNING RECOMPUTE ERRORT INTEGER  */
-#line 481 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 86: /* FreqAna: FILTER TUNING RECOMPUTE ERRORT INTEGER  */
+#line 495 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneRecomputeError=(yyvsp[0].ival);
             }
-#line 1934 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1979 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 84: /* FreqAna: FILTER TUNING ONLY TRANSVERSEJ INTEGER  */
-#line 485 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 87: /* FreqAna: FILTER TUNING ONLY TRANSVERSEJ INTEGER  */
+#line 499 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneOnlyJt=(yyvsp[0].ival);
             }
-#line 1942 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1987 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 85: /* FreqAna: FILTER SYMMETRIC TUNING INTEGER  */
-#line 489 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 88: /* FreqAna: FILTER SYMMETRIC TUNING INTEGER  */
+#line 503 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterSymmetricTuning=(yyvsp[0].ival);
             }
-#line 1950 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 1995 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 86: /* FreqAna: FILTER TUNING XTOL SFFloat  */
-#line 493 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 89: /* FreqAna: FILTER TUNING XTOL SFFloat  */
+#line 507 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneXtol=(yyvsp[0].fval);
             }
-#line 1958 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2003 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 87: /* FreqAna: FILTER TUNING TRUSTR SFFloat  */
-#line 497 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 90: /* FreqAna: FILTER TUNING TRUSTR SFFloat  */
+#line 511 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTuneTrustR=(yyvsp[0].fval);
             }
-#line 1966 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2011 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 88: /* FreqAna: FILTER TUNING GRADDX SFFloat  */
-#line 501 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 91: /* FreqAna: FILTER TUNING GRADDX SFFloat  */
+#line 515 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 1973 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2018 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 89: /* FreqAna: FREQ RESPONSE TYPE INTEGER  */
-#line 504 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 92: /* FreqAna: SPICE SET CENTRAL CONFIG INTEGER  */
+#line 518 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
+            {
+              prjData.spiceSetCentralConfig=(yyvsp[0].ival);
+            }
+#line 2026 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
+    break;
+
+  case 93: /* FreqAna: FREQ RESPONSE TYPE INTEGER  */
+#line 522 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqRespParType = (FreqRespParType) (yyvsp[0].ival);
             }
-#line 1981 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2034 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 90: /* FreqAna: FREQ RESPONSE PART INTEGER  */
-#line 508 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 94: /* FreqAna: FREQ RESPONSE PART INTEGER  */
+#line 526 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqRespParPart = (yyvsp[0].ival);
             }
-#line 1989 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2042 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 91: /* FreqAna: FREQ RESPONSE YSCALE SFFloat SFFloat SFFloat  */
-#line 512 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 95: /* FreqAna: FREQ RESPONSE YSCALE SFFloat SFFloat SFFloat  */
+#line 530 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqRespYscale[0]=(yyvsp[-2].fval);
               prjData.freqRespYscale[1]=(yyvsp[-1].fval);
               prjData.freqRespYscale[2]=(yyvsp[0].fval);
             }
-#line 1999 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2052 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 92: /* FreqAna: FREQ RESPONSE YSCALE AUTO INTEGER  */
-#line 518 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 96: /* FreqAna: FREQ RESPONSE YSCALE AUTO INTEGER  */
+#line 536 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.freqRespYscaleAuto=(yyvsp[0].ival);
             }
-#line 2007 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2060 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 93: /* FreqAna: ZERO POLE YSCALE SFFloat SFFloat SFFloat  */
-#line 522 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 97: /* FreqAna: ZERO POLE YSCALE SFFloat SFFloat SFFloat  */
+#line 540 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.zeropoleYscale[0]=(yyvsp[-2].fval);
               prjData.zeropoleYscale[1]=(yyvsp[-1].fval);
               prjData.zeropoleYscale[2]=(yyvsp[0].fval);
             }
-#line 2017 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2070 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 94: /* FreqAna: ZERO POLE YSCALE AUTO INTEGER  */
-#line 528 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 98: /* FreqAna: ZERO POLE YSCALE AUTO INTEGER  */
+#line 546 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.zeropoleYscaleAuto=(yyvsp[0].ival);
             }
-#line 2025 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2078 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 95: /* FreqAna: ZERO POLE CURVE INTEGER INTEGER  */
-#line 532 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 99: /* FreqAna: ZERO POLE CURVE INTEGER INTEGER  */
+#line 550 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               std::pair<int, int> Sij_ports;
               Sij_ports.first=(yyvsp[-1].ival);
               Sij_ports.second=(yyvsp[0].ival);
               prjData.zeropoleCurves.insert(Sij_ports);
             }
-#line 2036 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2089 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 96: /* FreqAna: AUTOMATIC FREQ RESPONSE INTEGER  */
-#line 539 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 100: /* FreqAna: AUTOMATIC FREQ RESPONSE INTEGER  */
+#line 557 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoFreqResponse=(yyvsp[0].ival);
             }
-#line 2044 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2097 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 97: /* FreqAna: AUTOMATIC ZERO POLE INTEGER  */
-#line 543 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 101: /* FreqAna: AUTOMATIC ZERO POLE INTEGER  */
+#line 561 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoZeropole=(yyvsp[0].ival);
             }
-#line 2052 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2105 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 98: /* FreqAna: AUTOMATIC DESIGN MAPPED POLE INTEGER  */
-#line 547 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 102: /* FreqAna: AUTOMATIC DESIGN MAPPED POLE INTEGER  */
+#line 565 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoDesignWithMappedTz=(yyvsp[0].ival);
             }
-#line 2060 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2113 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 99: /* FreqAna: AUTOMATIC MAPPED FREQ RESPONSE INTEGER  */
-#line 551 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 103: /* FreqAna: AUTOMATIC MAPPED FREQ RESPONSE INTEGER  */
+#line 569 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoMappedFreqResponse=(yyvsp[0].ival);
             }
-#line 2068 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2121 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 100: /* FreqAna: AUTOMATIC IDEAL MAPPED POLE FREQ RESPONSE INTEGER  */
-#line 555 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 104: /* FreqAna: AUTOMATIC IDEAL MAPPED POLE FREQ RESPONSE INTEGER  */
+#line 573 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoIdealMappedTzFreqResponse=(yyvsp[0].ival);
             }
-#line 2076 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2129 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 101: /* FreqAna: AUTOMATIC MAPPED ZERO POLE INTEGER  */
-#line 559 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 105: /* FreqAna: AUTOMATIC MAPPED ZERO POLE INTEGER  */
+#line 577 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoMappedZeropole=(yyvsp[0].ival);
             }
-#line 2084 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2137 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 102: /* FreqAna: AUTOMATIC FILTER MAPPING INTEGER  */
-#line 563 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 106: /* FreqAna: AUTOMATIC FILTER MAPPING INTEGER  */
+#line 581 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.autoFilterMapping=(yyvsp[0].ival);
             }
-#line 2092 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2145 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 103: /* FilterDesign: FILTER PASS BAND SFFloat SFFloat  */
-#line 570 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 107: /* FilterDesign: FILTER PASS BAND SFFloat SFFloat  */
+#line 588 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterPassBand[0]=(yyvsp[-1].fval);
               prjData.filterPassBand[1]=(yyvsp[0].fval);
             }
-#line 2101 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2154 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 104: /* FilterDesign: FILTER ORDER INTEGER  */
-#line 575 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 108: /* FilterDesign: FILTER ORDER INTEGER  */
+#line 593 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterOrder = (yyvsp[0].ival);
             }
-#line 2109 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2162 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 105: /* FilterDesign: IDEAL FILTER ADD CONJUGATE ZEROS INTEGER  */
-#line 579 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 109: /* FilterDesign: IDEAL FILTER ADD CONJUGATE ZEROS INTEGER  */
+#line 597 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.idealFilterAddConjugateTZ = (yyvsp[0].ival);
             }
-#line 2117 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2170 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 106: /* FilterDesign: IDEAL FILTER WITH MAPPED ZEROS INTEGER  */
-#line 583 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 110: /* FilterDesign: IDEAL FILTER WITH MAPPED ZEROS INTEGER  */
+#line 601 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.idealFilterWithMappedTZ = (yyvsp[0].ival);
               if(prjData.idealFilterWithMappedTZ) prjData.idealFilterAddConjugateTZ=0;
             }
-#line 2126 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2179 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 107: /* FilterDesign: FILTER RETURNLOSS SFFloat  */
-#line 588 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 111: /* FilterDesign: FILTER RETURNLOSS SFFloat  */
+#line 606 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterRetLoss = (yyvsp[0].fval);
             }
-#line 2134 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2187 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 108: /* FilterDesign: FILTER OUTBAND RETURNLOSS SFFloat  */
-#line 592 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 112: /* FilterDesign: FILTER OUTBAND RETURNLOSS SFFloat  */
+#line 610 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterOutbandRetLoss = (yyvsp[0].fval);
             }
-#line 2142 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2195 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 109: /* FilterDesign: FILTER PORT IMPEDANCE SFFloat  */
-#line 596 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 113: /* FilterDesign: FILTER PORT IMPEDANCE SFFloat  */
+#line 614 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterPortImpedance = (yyvsp[0].fval);
             }
-#line 2150 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2203 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 110: /* FilterDesign: FILTER QFACTOR SFFloat  */
-#line 600 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 114: /* FilterDesign: FILTER QFACTOR SFFloat  */
+#line 618 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterQfactor = (yyvsp[0].fval);
             }
-#line 2158 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2211 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 111: /* FilterDesign: FILTER TARGET QFACTOR SFFloat  */
-#line 604 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 115: /* FilterDesign: FILTER TARGET QFACTOR SFFloat  */
+#line 622 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterTargetQfactor = (yyvsp[0].fval);
             }
-#line 2166 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2219 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 112: /* FilterDesign: FILTER INDUCTIVE SKIN INTEGER  */
-#line 608 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 116: /* FilterDesign: FILTER INDUCTIVE SKIN INTEGER  */
+#line 626 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.filterInductiveSkin = (yyvsp[0].ival);
             }
-#line 2174 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2227 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 113: /* $@1: %empty  */
-#line 611 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 117: /* $@1: %empty  */
+#line 629 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
                            {ProjData::Cbuff =&prjData.filterZeros; ProjData::Cbuff->clear();
                             ProjData::Fbuff =&ProjData::Fvec; ProjData::Fvec.clear();}
-#line 2181 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2234 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 114: /* FilterDesign: FILTER TX ZEROS $@1 MFFloatOrMFComplex  */
-#line 613 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 118: /* FilterDesign: FILTER TX ZEROS $@1 MFFloatOrMFComplex  */
+#line 631 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               if(prjData.filterZeros.size()==0){
                for (int i=0; i<ProjData::Fvec.size() ; i++) prjData.filterZeros.push_back(std::complex<double>(ProjData::Fvec[i],0.0));
                ProjData::Fbuff=NULL;
               } else ProjData::Cbuff=NULL;
             }
-#line 2192 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2245 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 115: /* FilterDesign: SYMMETRIC FILTER RESPONSE INTEGER  */
-#line 620 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 119: /* FilterDesign: SYMMETRIC FILTER RESPONSE INTEGER  */
+#line 638 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.symmFilterResponse = (yyvsp[0].ival);
             }
-#line 2200 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2253 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 116: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
-#line 624 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 120: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
+#line 642 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistortedFilter = (yyvsp[0].ival);
             }
-#line 2208 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2261 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 117: /* FilterDesign: PREDISTORTED FILTER OPTIMIZE INTEGER  */
-#line 628 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 121: /* FilterDesign: PREDISTORTED FILTER OPTIMIZE INTEGER  */
+#line 646 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistFilterOptim = (yyvsp[0].ival);
             }
-#line 2216 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2269 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 118: /* FilterDesign: PREDISTORTED FILTER RETURNLOSS SFFloat  */
-#line 632 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 122: /* FilterDesign: PREDISTORTED FILTER RETURNLOSS SFFloat  */
+#line 650 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimRL = (yyvsp[0].fval);
             }
-#line 2224 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2277 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 119: /* FilterDesign: PREDISTORTED FILTER ILOSSPP SFFloat  */
-#line 636 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 123: /* FilterDesign: PREDISTORTED FILTER ILOSSPP SFFloat  */
+#line 654 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimILpp = (yyvsp[0].fval);
             }
-#line 2232 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2285 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 120: /* FilterDesign: PREDISTORTED FILTER TRUSTR SFFloat  */
-#line 640 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 124: /* FilterDesign: PREDISTORTED FILTER TRUSTR SFFloat  */
+#line 658 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimTrustR = (yyvsp[0].fval);
             }
-#line 2240 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2293 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 121: /* FilterDesign: PREDISTORTED FILTER ITERMAX INTEGER  */
-#line 644 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 125: /* FilterDesign: PREDISTORTED FILTER ITERMAX INTEGER  */
+#line 662 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistFilterOptimIterMax = (yyvsp[0].ival);
             }
-#line 2248 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2301 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 122: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
-#line 648 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 126: /* FilterDesign: PREDISTORTED FILTER INTEGER  */
+#line 666 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.predistortedFilter = (yyvsp[0].ival);
             }
-#line 2256 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2309 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 123: /* FilterDesign: LOSSY FILTER OPTIMIZE INTEGER  */
-#line 652 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 127: /* FilterDesign: LOSSY FILTER OPTIMIZE INTEGER  */
+#line 670 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 2263 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2316 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 124: /* FilterDesign: LOSSY FILTER ILOSSPP SFFloat  */
-#line 655 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 128: /* FilterDesign: LOSSY FILTER ILOSSPP SFFloat  */
+#line 673 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 2270 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2323 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 125: /* FilterDesign: LOSSY FILTER TRUSTR SFFloat  */
-#line 658 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 129: /* FilterDesign: LOSSY FILTER TRUSTR SFFloat  */
+#line 676 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 2277 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2330 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 126: /* FilterDesign: LOSSY FILTER ITERMAX INTEGER  */
-#line 661 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 130: /* FilterDesign: LOSSY FILTER ITERMAX INTEGER  */
+#line 679 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
             }
-#line 2284 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2337 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 127: /* WorkStatus: DECOMPOSITION NEEDED INTEGER  */
-#line 667 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 131: /* WorkStatus: DECOMPOSITION NEEDED INTEGER  */
+#line 685 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.decompositionNeeded=(yyvsp[0].ival);
             }
-#line 2292 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2345 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 128: /* WorkStatus: FIRST DECOMPOSITION INTEGER  */
-#line 671 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 132: /* WorkStatus: FIRST DECOMPOSITION INTEGER  */
+#line 689 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.firstDecomposition=(yyvsp[0].ival);
             }
-#line 2300 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2353 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 129: /* WorkStatus: MATERIAL CHANGED INTEGER  */
-#line 675 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 133: /* WorkStatus: MATERIAL CHANGED INTEGER  */
+#line 693 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.materialChanged=(yyvsp[0].ival);
             }
-#line 2308 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2361 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 130: /* WorkStatus: REMESH NEEDED INTEGER  */
-#line 679 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 134: /* WorkStatus: REMESH NEEDED INTEGER  */
+#line 697 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.remeshNeeded=(yyvsp[0].ival);
             }
-#line 2316 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2369 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 131: /* WorkStatus: MODELIZATION NEEDED INTEGER  */
-#line 683 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 135: /* WorkStatus: MODELIZATION NEEDED INTEGER  */
+#line 701 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.modelizationNeeded=(yyvsp[0].ival);
             }
-#line 2324 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2377 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 132: /* WorkStatus: COMPONENT SAVE NEEDED INTEGER  */
-#line 687 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 136: /* WorkStatus: COMPONENT SAVE NEEDED INTEGER  */
+#line 705 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.componentsaveNeeded=(yyvsp[0].ival);
             }
-#line 2332 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2385 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 133: /* WorkStatus: REDUCTION NEEDED INTEGER  */
-#line 691 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 137: /* WorkStatus: REDUCTION NEEDED INTEGER  */
+#line 709 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.cmpReductionNeeded=(yyvsp[0].ival);
               prjData.workStatus.netReductionNeeded=(yyvsp[0].ival);
             }
-#line 2341 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2394 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 134: /* WorkStatus: COMPONENT REDUCTION NEEDED INTEGER  */
-#line 696 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 138: /* WorkStatus: COMPONENT REDUCTION NEEDED INTEGER  */
+#line 714 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.cmpReductionNeeded=(yyvsp[0].ival);
             }
-#line 2349 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2402 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 135: /* WorkStatus: NETWORK REDUCTION NEEDED INTEGER  */
-#line 700 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 139: /* WorkStatus: NETWORK REDUCTION NEEDED INTEGER  */
+#line 718 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.netReductionNeeded=(yyvsp[0].ival);
             }
-#line 2357 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2410 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
-  case 136: /* WorkStatus: RELOAD NEEDED INTEGER  */
-#line 704 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+  case 140: /* WorkStatus: RELOAD NEEDED INTEGER  */
+#line 722 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
             {
               prjData.workStatus.reloadNeeded=(yyvsp[0].ival);
             }
-#line 2365 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2418 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
     break;
 
 
-#line 2369 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData_parser.cpp"
+#line 2422 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData_parser.cpp"
 
       default: break;
     }
@@ -2558,7 +2611,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 708 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/GUI/projectData.y"
+#line 726 "/home/walter/MwCAD/EmCAD/conformalMesh/src/GUI/projectData.y"
 
 
 

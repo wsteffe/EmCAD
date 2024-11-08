@@ -74,7 +74,7 @@
 #define yychar          touchstonechar
 
 /* First part of user prologue.  */
-#line 22 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 22 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
 
 //debug:
 #define YYDEBUG 1
@@ -125,7 +125,7 @@ extern PlotData plotData;
 
 
 
-#line 129 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 129 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -1191,140 +1191,140 @@ yyreduce:
   switch (yyn)
     {
   case 13: /* TouchItem: error  */
-#line 114 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 114 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                         {YYABORT;}
-#line 1197 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1197 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 15: /* Number: INTEGER  */
-#line 122 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 122 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                   {(yyval.fval) = (double)(yyvsp[0].ival);}
-#line 1203 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1203 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 16: /* FreqUnit: HZ  */
-#line 128 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 128 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.frequnit,"Hz");}
-#line 1209 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1209 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 17: /* FreqUnit: KHZ  */
-#line 129 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 129 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.frequnit,"KHz");}
-#line 1215 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1215 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 18: /* FreqUnit: MHZ  */
-#line 130 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 130 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.frequnit,"MHz");}
-#line 1221 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1221 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 19: /* FreqUnit: GHZ  */
-#line 131 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 131 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.frequnit,"GHz");}
-#line 1227 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1227 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 20: /* Format: tDB  */
-#line 135 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 135 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.format,"DB");}
-#line 1233 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1233 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 21: /* Format: tMA  */
-#line 136 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 136 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.format,"MA");}
-#line 1239 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1239 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 22: /* Format: tRI  */
-#line 137 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 137 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
               {strcpy(plotData.format,"RI");}
-#line 1245 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1245 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 23: /* Param: tS  */
-#line 141 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 141 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
              {plotData.param='S';}
-#line 1251 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1251 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 24: /* Param: tY  */
-#line 142 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 142 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
              {plotData.param='Y';}
-#line 1257 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1257 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 25: /* Param: tZ  */
-#line 143 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 143 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
              {plotData.param='Z';}
-#line 1263 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1263 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 26: /* Param: tH  */
-#line 144 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 144 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
              {plotData.param='H';}
-#line 1269 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1269 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 27: /* Param: tG  */
-#line 145 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 145 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
              {plotData.param='G';}
-#line 1275 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1275 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 28: /* SetOptions: OPTIONS FreqUnit Param Format tR Number  */
-#line 152 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 152 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                 {
                   plotData.R=(yyvsp[0].fval);
 		}
-#line 1283 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1283 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 29: /* SetNumberOfPorts: NUMBEROFPORTS Number  */
-#line 159 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 159 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                 {
 			plotData.numberOfPorts=(yyvsp[0].fval);
 		}
-#line 1291 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1291 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 30: /* SetNumberOfFreq: NUMBEROFFREQ Number  */
-#line 166 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 166 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                 {
 			fNum=plotData.numberOfFreq=(yyvsp[0].fval);
 		}
-#line 1299 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1299 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 31: /* SetTwoPortOrder: TWOPORTDATAORDER ORDER_21_12  */
-#line 173 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 173 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                 {
 		}
-#line 1306 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1306 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 32: /* SetTwoPortOrder: TWOPORTDATAORDER ORDER_12_21  */
-#line 176 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 176 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                 {
 		}
-#line 1313 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1313 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 34: /* StartNetworkData: NETWORKDATA  */
-#line 186 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 186 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
           {
                  curvei=-1; freqi=0; compi=0;
                  cNum=plotData.numberOfCurves=plotData.numberOfPorts*plotData.numberOfPorts;
                  plotData.frequencies.resize(plotData.numberOfFreq);
                  plotData.curveArray.resize(fNum*2*cNum);
           }
-#line 1324 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1324 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 35: /* NetParVal: FLOATING  */
-#line 196 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 196 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
            {
                    if(curvei==-1){
                        plotData.frequencies[freqi]=(yyvsp[0].fval);
@@ -1338,11 +1338,11 @@ yyreduce:
                        } else compi=1;
                    }
            }
-#line 1342 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1342 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 39: /* s2pParVal: Number  */
-#line 223 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 223 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
            {      
                      if(compi==-1){ 
                         plotData.frequencies.push_back((yyvsp[0].fval)); 
@@ -1353,11 +1353,11 @@ yyreduce:
                        if(compi==8) compi=-1;
                      }
            }
-#line 1357 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1357 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 41: /* s2pParValues: s2pParValues s2pParVal  */
-#line 238 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 238 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
          {
            plotData.numberOfPorts=2;
            plotData.numberOfCurves=4;
@@ -1365,17 +1365,17 @@ yyreduce:
            plotData.portnames << "1";
            plotData.portnames << "2";
          }
-#line 1369 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1369 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
   case 42: /* SetPortName: PORTNAME  */
-#line 248 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 248 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
                   {plotData.portnames<<(yyvsp[0].sval);}
-#line 1375 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1375 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
     break;
 
 
-#line 1379 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone_parser.cpp"
+#line 1379 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone_parser.cpp"
 
       default: break;
     }
@@ -1568,7 +1568,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 251 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/PostProc/touchstone.y"
+#line 251 "/home/walter/MwCAD/EmCAD/conformalMesh/src/PostProc/touchstone.y"
 
 
 

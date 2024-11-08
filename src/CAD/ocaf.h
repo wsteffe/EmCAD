@@ -129,7 +129,6 @@ struct FaceData
   double mur;
   double meshref;
   double cutoffref;
-  int shared;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
   FaceData(){
@@ -142,7 +141,6 @@ struct FaceData
    mur=1;
    meshref=1;
    cutoffref=1;
-   shared=0;
    BrCond.clear();
   }
   int Shared(){return cmp1!=std::string("-") && cmp2!=std::string("-");}
@@ -163,7 +161,6 @@ struct FaceData
 	fscanf(fin,"%lf ",&mur);
 	fscanf(fin,"%lf ",&meshref);
 	fscanf(fin,"%lf ",&cutoffref);
-        fscanf(fin,"%d ",&shared);
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
   }
@@ -183,7 +180,6 @@ struct FaceData
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
 	fprintf(fout,"%f\n",cutoffref);
-	fprintf(fout,"%d\n",shared);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
   }
@@ -193,21 +189,26 @@ struct EdgeData
 {
   int level;
   std::string name;
+  std::string scname;
   std::string LPname;
   double P1[3];
   double epsr;
   double mur;
   double meshref;
+  double cutoffref;
+  int hasConstU;
   int singular;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
   EdgeData(){
    level=0;
    name="-";
+   scname="-";
    LPname="-";
    epsr=1;
    mur=1;
    meshref=1;
+   hasConstU=0;
    singular=0;
    BrCond.clear();
   }
@@ -216,11 +217,14 @@ struct EdgeData
 	std::string str;
 	fscanf(fin,"%d ",&level); 
 	getFileLine(fin, name);
+	getFileLine(fin, scname);
 	getFileLine(fin, LPname);
 	fscanf(fin,"%lf %lf %lf ",&P1[0],&P1[1],&P1[2]); 
 	fscanf(fin,"%lf ",&epsr); 
 	fscanf(fin,"%lf ",&mur);  
 	fscanf(fin,"%lf ",&meshref); 
+	fscanf(fin,"%lf ",&cutoffref);
+        fscanf(fin,"%d ",&hasConstU); 
         fscanf(fin,"%d ",&singular); 
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
@@ -229,11 +233,14 @@ struct EdgeData
   {
 	fprintf(fout,"%d\n",level);
 	fprintf(fout,"%s\n",name.c_str());
+	fprintf(fout,"%s\n",scname.c_str());
 	fprintf(fout,"%s\n",LPname.c_str());
 	fprintf(fout,"%f %f %f\n",P1[0],P1[1],P1[2]);
 	fprintf(fout,"%f\n",epsr);
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
+	fprintf(fout,"%f\n",cutoffref);
+	fprintf(fout,"%d\n",hasConstU);
 	fprintf(fout,"%d\n",singular);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
@@ -247,6 +254,7 @@ struct VertexData
   double epsr;
   double mur;
   double meshref;
+  int shared;
   int singular;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
@@ -257,6 +265,7 @@ struct VertexData
    mur=1;
    meshref=1;
    singular=0;
+   shared=0;
    BrCond.clear();
   }
   void read(FILE *fin)
@@ -267,6 +276,7 @@ struct VertexData
 	fscanf(fin,"%lf ",&epsr); 
 	fscanf(fin,"%lf ",&mur);  
 	fscanf(fin,"%lf ",&meshref); 
+        fscanf(fin,"%d ",&shared); 
         fscanf(fin,"%d ",&singular); 
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
@@ -278,6 +288,7 @@ struct VertexData
 	fprintf(fout,"%f\n",epsr);
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
+	fprintf(fout,"%d\n",shared);
 	fprintf(fout,"%d\n",singular);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
@@ -305,7 +316,7 @@ class MwOCAF
   int isParts(TDF_Label label);
 
   bool hasSplitter();
-  bool isPartition();
+  bool hasSolidBC();
   bool hasPML();
 
 //Names:
@@ -389,6 +400,8 @@ class MwOCAF
   void imprint(int downImprint);
   void evalBBox();
   void evalSize(double size[3]);
+  void makeSymmPlane(int id, int itype);
+  TopoDS_Shape makeSymmBox(int XYplaneSymmetry, int YZplaneSymmetry, int ZXplaneSymmetry);
   void makeSplitFaces();
 //  bool updateSplitPlanes();
   void makeSplitFaces(TDF_Label label);
@@ -441,15 +454,29 @@ class MwOCAF
   void getAssName(std::string &assName);
   void setAssName(TCollection_AsciiString assName);
   void setFaceComp();
+  void setFaceSubdom();
   void setSuperFaces();
+  void setSuperCurves();
+  void setSuperCurveFaceData(
+          std::map<std::string, std::set<std::string> > &SCSFlinks,
+	  std::map<std::string, bool > &SFhasPMC,
+  	  std::map<std::string, bool > &SChasPMC
+       );
+  static void setSuperCurvesConstU(const char* projectDir,
+	  std::map<std::string, std::set<std::string> > &SCSFlinks,
+	  std::map<std::string, bool > &SFhasPMC,
+  	  std::map<std::string, bool > &SChasPMC,
+          std::map<std::string, bool>  &superCurveHasConstU
+       );
+  void writeSuperCurvesConstU(std::map<std::string, bool>  &superCurveHasConstU);
   void checkSuperFacesTEMnum();
   int evalTEMnum(TopoDS_Shape S, bool intPort=true);
   void setTEMnum();
   void setConductorMap();
   void savePartitionMap();
   void readPartitionMap();
-  void saveSubPartitionMap();
-  void readSubPartitionMap();
+  void saveSubdomainMap();
+  void readSubdomainMap();
   void putVolumesInDB();
   void checkPartNF(Handle(TDocStd_Document) doc);
   void save();
@@ -487,11 +514,9 @@ class MwOCAF
   int subCompNum;
   int subComp;
 
-  std::vector<int>  splitFacesMap;
-  std::vector<int>  splitEdgesMap;
-  std::vector<int>  splitVerticesMap;
-  std::vector<int>  solidCompMap;
-  std::vector<int>  splitFaceCompMap;
+  std::vector<int>  solidSubdomMap;
+  std::vector<int>  faceSubdomMap;
+  std::vector<int>  splitFaceSubdomMap;
   std::vector<int>  subSplitFacesMap;
   std::vector<int>  subSplitEdgesMap;
   std::vector<int>  subSplitVerticesMap;
@@ -516,10 +541,26 @@ class MwOCAF
       typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
       for (std::set<std::string, std::less<std::string> > ::iterator bit=edgeData[EI-1].BrCond.begin(); bit!= edgeData[EI-1].BrCond.end(); bit++){
 	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
-	 if(mat) if(mat->Sresistance>0 || mat->Sinductance>0) return 1;
+	 if(mat) if((mat->Sresistance>0 && mat->Sresistance<1) || mat->Sinductance>0) return 1;
       }
       return 0;
   }
+  
+  int  PMCvertex(int PI) {return vertexData[PI-1].BrCond.find(std::string("PMC"))==vertexData[PI-1].BrCond.end() ? 0:1;}
+  int  PECvertex(int PI) {
+      if (vertexData[PI-1].BrCond.find(std::string("PEC"))!=vertexData[PI-1].BrCond.end()) return 1;
+      return 0;
+  }
+  int  ECvertex(int PI) {
+      if (vertexData[PI-1].BrCond.find(std::string("PEC"))!=vertexData[PI-1].BrCond.end()) return 1;
+      typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
+      for (std::set<std::string, std::less<std::string> > ::iterator bit=vertexData[PI-1].BrCond.begin(); bit!= vertexData[PI-1].BrCond.end(); bit++){
+	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
+	 if(mat) if((mat->Sresistance>0 && mat->Sresistance<1) || mat->Sinductance>0) return 1;
+      }
+      return 0;
+  }
+
   int  PECface(int FI) {
       if (faceData[FI-1].BrCond.find(std::string("PEC"))!=faceData[FI-1].BrCond.end()) return 1;
       return 0;
@@ -529,7 +570,7 @@ class MwOCAF
       typedef std::set<std::string, std::less<std::string> > ::iterator BdrIt;
       for (std::set<std::string, std::less<std::string> > ::iterator bit=faceData[FI-1].BrCond.begin(); bit!= faceData[FI-1].BrCond.end(); bit++){
 	 DB::Material* mat= EmP->FindMaterial(bit->c_str());
-	 if(mat) if(mat->Sresistance>0 || mat->Sinductance>0) return 1;
+	 if(mat) if((mat->Sresistance>0 && mat->Sresistance<1) || mat->Sinductance>0) return 1;
       }
       return 0;
   }
@@ -554,7 +595,8 @@ class MwOCAF
   
  private:
   void makeSolid(const TopoDS_CompSolid& S, TopoDS_Solid &Solid);
-  void makeIF(TopoDS_Shell &IF);
+  void makeUPIF(TopoDS_Shape &IF);
+  void makeIF(TopoDS_Shape &IF);
   void newIndexedSubShapes();
   void makeIF_IndexedSubShapes();
   void makePartsIndexedSubShapes();
@@ -569,9 +611,10 @@ class MwOCAF
   bool hasMultibodyPart(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);
   bool hasSubAssembly(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);
   bool hasEmSubComponent(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);
+  TDF_Label getRefLabel(const TDF_Label &label);
   TDF_Label replaceLabelShape(TDF_Label label, TopoDS_Shape newS);
   TopoDS_Solid   theMergedSolid;
-  TopoDS_Shell   theIF;
+  TopoDS_Shape   theIF;
   
   TopTools_IndexedMapOfShape UPIFsubshapes;
 

@@ -22,7 +22,7 @@ project(EmCAD )
 
 set(EmCAD_VERSION_MAJOR 0)
 set(EmCAD_VERSION_MINOR 7)
-set(EmCAD_VERSION_PATCH 0)
+set(EmCAD_VERSION_PATCH 6)
 
 set(EmCAD_SHORT_LICENSE "GNU General Public License")
 
@@ -34,19 +34,18 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 
 
-
 add_definitions ( -Wall )
 
 set(internalPython 0)
 set(useSymbolicLinks 0)
 set(useGmshTetrahedra 1)
 
-
-set(CASROOT $ENV{CASROOT} CACHE STRING FILEPATH)
-if(NOT ${CASROOT} STREQUAL "")
+if (NOT MINGW)
+ set(CASROOT $ENV{CASROOT} CACHE STRING FILEPATH)
+ if(NOT ${CASROOT} STREQUAL "")
  string(REGEX REPLACE "\\\\" "\\\\\\\\" CASROOT  ${CASROOT})
-endif(NOT ${CASROOT} STREQUAL "")
-
+ endif(NOT ${CASROOT} STREQUAL "")
+endif (NOT MINGW)
 
 set(GMSHLIB $ENV{GMSHLIB} CACHE STRING FILEPATH)
 if(NOT ${GMSHLIB} STREQUAL "")
@@ -63,7 +62,7 @@ if(MSVC)
 else(MSVC)
  SET(CMAKE_CXX_FLAGS           "-fpermissive  -fopenmp")
  SET(CMAKE_CXX_FLAGS_RELEASE   "-O2")
- SET(CMAKE_CXX_FLAGS_DEBUG     "-O0  -g")
+ SET(CMAKE_CXX_FLAGS_DEBUG     "-O0  -g -fno-stack-protector")
  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 endif(MSVC)
 
@@ -104,9 +103,10 @@ if(SIZEOF_VOID_P EQUAL 8)
 endif(SIZEOF_VOID_P EQUAL 8)
 
 
-find_package(PythonLibs 3 REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+set(PythonVersion ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR})
 if(WIN32)
-find_file(PYTHON_DLL NAMES libpython3.10.dll)
+find_file(PYTHON_DLL NAMES libpython${PythonVersion}.dll)
 endif(WIN32)
 message(STATUS "PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
 message(STATUS "PYTHON_DLL = ${PYTHON_DLL}")
@@ -219,6 +219,7 @@ if(WIN32 OR MINGW)
 	   TKOffset
 	   TKOpenGl
 	   TKPrim
+	   TKRWMesh
 	   TKService
   	   TKShHealing
   	   TKStd
@@ -232,6 +233,7 @@ if(WIN32 OR MINGW)
 	   TKV3d
 	   TKVRML
 	   TKXCAF
+	   TKXDE
 	   TKVCAF
 	   TKXDEIGES
 	   TKXDESTEP
@@ -250,10 +252,10 @@ if(WIN32 OR MINGW)
     if(MSVC)
       find_library(OCC_LIB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/vc12/lib  ${CASROOT}/${OCC_SYS_NAME}/vc10/lib NO_DEFAULT_PATH)
       find_library(OCC_LIB_DEB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/vc12/libd  ${CASROOT}/${OCC_SYS_NAME}/vc10/libd NO_DEFAULT_PATH)
-    elseif(MINGW)
-      find_library(OCC_LIB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/gcc PATH_SUFFIXES lib bin)
+#      elseif(MINGW)
+#      find_library(OCC_LIB ${OCC} PATHS ${CASROOT}/${OCC_SYS_NAME}/gcc PATH_SUFFIXES lib bin)
     else(MSVC)
-      find_library(OCC_LIB ${OCC} PATH_SUFFIXES oce/lib)
+      find_library(OCC_LIB ${OCC})
       if(${OCC_LIB} STREQUAL "OCC_LIB-NOTFOUND")
        find_library(OCC_LIB ${OCC} PATH_SUFFIXES lib) 
       endif()
@@ -336,6 +338,8 @@ if(WIN32 OR MINGW)
 #Find gmsh
   set(GMSH_INCLUDES)
   set(GMSH_LIBRARY "GMSH_LIBRARY-NOTFOUND")
+  set(GMSH_CONFIG "GMSH_CONFIG-NOTFOUND")
+  set(GMSH_SOURCES "GMSH_SOURCES-NOTFOUND")
   set(GMSH_LIBRARY_DEB "GMSH_LIBRARY_DEB-NOTFOUND")
   if(MSVC)
     find_library(GMSH_LIBRARY_DEB gmshd PATHS ${GMSHLIB} PATH_SUFFIXES Debug)
@@ -349,14 +353,13 @@ if(WIN32 OR MINGW)
     message( SEND_ERROR "GMSH_LIBRARY NOTFOUND" )
   else(${GMSH_LIBRARY} STREQUAL "GMSH_LIBRARY-NOTFOUND")
     message(STATUS "Found " ${GMSH_LIBRARY})
-    find_path(GMSH_INCLUDE  NAMES "gmsh.h" PATHS ${GMSHLIB}/include)
-    if(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
-      message( SEND_ERROR " gmsh.h NOTFOUND")
-    else(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
-      message(STATUS " Found gmsh.h")
-      list(APPEND GMSH_INCLUDES ${GMSH_INCLUDE})
-    endif(${GMSH_INCLUDE} STREQUAL "GMSH_INCLUDE-NOTFOUND")
-    find_path(GMSH_SOURCES "Geo/GModel.h" PATHS $ENV{GMSHSOURCES})
+    find_path(GMSH_CONFIG "GmshConfig.h")
+    if(${GMSH_CONFIG} STREQUAL "GMSH_CONFIG-NOTFOUND")
+	message( SEND_ERROR " GmshConfig.h NOTFOUND")
+    else()
+      list(APPEND GMSH_INCLUDES ${GMSH_CONFIG})
+    endif()
+    find_path(GMSH_SOURCES "src/geo/GModel.h" PATHS $ENV{GMSHSOURCES})
     if(${GMSH_SOURCES} STREQUAL "GMSH_SOURCES-NOTFOUND")
       message( SEND_ERROR " GModel.h NOTFOUND")
     else(${GMSH_SOURCES} STREQUAL "GMSH_SOURCES-NOTFOUND")
@@ -374,8 +377,6 @@ if(WIN32 OR MINGW)
   endif(WIN32)
   if(CYGWIN OR MINGW)
     list(APPEND MINGW_LIBRARIES psapi)
-    #    set(GMSH_LINK_FLAGS "-Wl,--stack,16777216 -mwindows -Wl,--enable-auto-import -Wl,--export-all-symbols,--output-def")
-    set(MINGW_LINK_FLAGS "-static-libgcc -static-libstdc++")
   endif(CYGWIN OR MINGW)
 
 
@@ -384,32 +385,6 @@ if(WIN32 OR MINGW)
     set(GMSH_LIBRARY_DEB ${GMSH_LIBRARY})
   endif()
 
-
-  if(MINGW)
-  set(MINGW_DLLS_REQUIRED
-    libgfortran-5.dll
-    libgomp-1.dll
-    libgcc_s_seh-1.dll
-    libstdc++-6.dll
-    libwinpthread-1.dll
-    libquadmath-0.dll
-  )
-#    libobjc-4.dll
-#    libssp-0.dll
-
-  set(MINGW_DLLS)
-  foreach(DLL_REQ ${MINGW_DLLS_REQUIRED})
-    set(DLL "DLL-NOTFOUND")
-    find_file(DLL ${DLL_REQ})
-    if(${DLL} STREQUAL "DLL-NOTFOUND")
-      message(SEND_ERROR ${DLL_REQ} " not Found")
-    else(NOT ${DLL} STREQUAL "DLL-NOTFOUND")
-      list(APPEND MINGW_DLLS ${DLL})
-      message(STATUS "${DLL_REQ} = ${DLL}")
-    endif(${DLL} STREQUAL "DLL-NOTFOUND")
-    unset(DLL CACHE)
-  endforeach(DLL_REQ ${MINGW_DLLS_REQUIRED})
-  endif(MINGW)
 
 
 #Find BLAS LAPACK (needed by gmsh)
@@ -474,7 +449,7 @@ if(WIN32 OR MINGW)
 set (GMSH_DEPS_LIBRARIES)
 if(WIN32)
 #  set (GMSH_DEPS_LIBRARIES_REQUIRED fltk fltk_gl fltk_images fltk_jpeg fltk_png fltk_z hdf5)
-  set(GMSH_DEPS_LIBRARIES_REQUIRED "hdf5")
+  set(GMSH_DEPS_LIBRARIES_REQUIRED  gmp med medC)
   set(GMSH_DEPS_LIBRARIES)
   if(MSVC)
    set(GMSH_DEPS_LIBRARIES_DEB)
@@ -617,7 +592,6 @@ message (STATUS "Qt5Widgets_VERSION = ${Qt5Widgets_VERSION_STRING}" )
 
 
 
-
 #Find Qwt
 if(WIN32)
   find_library (QWT_LIBRARY qwt-qt5)
@@ -628,22 +602,41 @@ else(WIN32)
   find_path (QWT_INCLUDE_DIR qwt_plot.h PATHS /usr/include PATH_SUFFIXES qwt)
 endif(WIN32)
 
-if(MINGW)
- set (BUNDLEDLLS)
- if (EXISTS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt")
-  FILE(STRINGS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt" BUNDLEDLLS)
-  foreach(DLL ${BUNDLEDLLS})
-    message(STATUS ${DLL} "found by mingw-bundledlls")
-  endforeach(DLL ${BUNDLEDLLS})
- endif (EXISTS "${PROJECT_SOURCE_DIR}/mingw-bundledlls.txt")
-endif(MINGW)
-
 
 if(${internalPython} EQUAL 1)
  add_definitions(-DINTERNAL_PYTHON)
 endif(${internalPython} EQUAL 1)
 
 
+if(WIN32) 
+ #***  Removing Administrator level from NSIS.template.in:
+ set(CMAKE_NSIS_TEMPLATE "C:/msys64/ucrt64/share/cmake/Modules/Internal/CPack/NSIS.template.in")
+ set(PROJECT_NSIS_TEMPLATE "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}/NSIS.template.in")
+ file(READ ${CMAKE_NSIS_TEMPLATE} FILE_CONTENT)
+ set (SEARCH_REGEX "Require administrator access")
+ set (REPLACEMENT_TEXT "")
+ string(REGEX REPLACE "${SEARCH_REGEX}" "${REPLACEMENT_TEXT}" MODIFIED_FILE_CONTENT "${FILE_CONTENT}")
+ set (SEARCH_REGEX "RequestExecutionLevel admin")
+ set (REPLACEMENT_TEXT "RequestExecutionLevel user")
+ string(REGEX REPLACE "${SEARCH_REGEX}" "${REPLACEMENT_TEXT}" FILE_CONTENT "${MODIFIED_FILE_CONTENT}")
+ file(WRITE ${PROJECT_NSIS_TEMPLATE} "${FILE_CONTENT}")
+ set(CPACK_MODULE_PATH "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}")
+ 
+ #INSTALL(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/redistributable/vcredist_x64.exe DESTINATION tmp)
+endif(WIN32)
+
+
+add_subdirectory( doc/manual )
+add_subdirectory( src )
+
+
+#if(MINGW)
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#endif()
+
+# ************* INSTALL *************
 if(WIN32) 
   if(MSVC)
     if(${QT_VERSION} EQUAL 5) 
@@ -694,6 +687,13 @@ if(WIN32)
        INSTALL(FILES ${DLL} CONFIGURATIONS Debug DESTINATION bin/platforms)
     endforeach(DLL)
   elseif(MINGW)
+     foreach(DLL ${OCC_DLLS})
+	INSTALL(FILES ${DLL} DESTINATION bin)
+     endforeach()
+     INSTALL(FILES ${QWT_DLL} DESTINATION bin)
+ #    foreach(DLL ${OCC_3PARTIES_DLLS})
+ #       INSTALL(FILES ${DLL} DESTINATION bin)
+ #    endforeach()
  #    if(${QT_VERSION} EQUAL 5) 
  #     INSTALL(FILES 
  #		 ${QtCore_location_Release} 
@@ -704,56 +704,22 @@ if(WIN32)
  #		 ${QWT_DLL} 
  #	         DESTINATION bin)
  #    endif(${QT_VERSION} EQUAL 5)
- #    foreach(DLL ${OCC_DLLS})
- #      INSTALL(FILES ${DLL} DESTINATION bin)
- #    endforeach()
- #    foreach(DLL ${OCC_3PARTIES_DLLS})
- #       INSTALL(FILES ${DLL} DESTINATION bin)
- #    endforeach()
  #    foreach(DLL ${QT_DLLS_REL})
  #       INSTALL(FILES ${DLL} DESTINATION bin)
  #    endforeach(DLL)
- #    foreach(DLL ${MINGW_DLLS})
- #       INSTALL(FILES ${DLL} DESTINATION bin)
- #    endforeach()
     foreach(DLL ${QT_PLATFORMS_PLUGINS_REL})
         INSTALL(FILES ${DLL} DESTINATION bin/platforms)
-    endforeach()
-    foreach(DLL ${BUNDLEDLLS})
-       FILE(TO_CMAKE_PATH "${DLL}" DLLCM)
-       INSTALL(FILES ${DLLCM} DESTINATION bin)
     endforeach()
   endif(MSVC)
 #  foreach(DIR ${OCC_Resources})
 #    INSTALL(DIRECTORY ${DIR} DESTINATION Resource)
 #  endforeach(DIR)
-
-#    foreach(DLL ${GMSH_DEPS_LIBRARIES})
+#   foreach(DLL ${GMSH_DEPS_LIBRARIES})
 #        INSTALL(FILES ${DLL} CONFIGURATIONS Release DESTINATION bin)
-#    endforeach(DLL)
-#    foreach(DLL ${GMSH_DEPS_LIBRARIES_DEB})
-#	    INSTALL(FILES ${DLL} CONFIGURATIONS Debug DESTINATION bin)
-#    endforeach(DLL)
- 
- #***  Removing Administrator level from NSIS.template.in:
- set(CMAKE_NSIS_TEMPLATE "C:/msys64/mingw64/share/cmake/Modules/Internal/CPack/NSIS.template.in")
- set(PROJECT_NSIS_TEMPLATE "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}/NSIS.template.in")
- file(READ ${CMAKE_NSIS_TEMPLATE} FILE_CONTENT)
- set (SEARCH_REGEX "Require administrator access")
- set (REPLACEMENT_TEXT "")
- string(REGEX REPLACE "${SEARCH_REGEX}" "${REPLACEMENT_TEXT}" MODIFIED_FILE_CONTENT "${FILE_CONTENT}")
- set (SEARCH_REGEX "RequestExecutionLevel admin")
- set (REPLACEMENT_TEXT "RequestExecutionLevel user")
- string(REGEX REPLACE "${SEARCH_REGEX}" "${REPLACEMENT_TEXT}" FILE_CONTENT "${MODIFIED_FILE_CONTENT}")
- file(WRITE ${PROJECT_NSIS_TEMPLATE} "${FILE_CONTENT}")
- set(CPACK_MODULE_PATH "${CMAKE_BINARY_DIR}/_CPack_Packages/${CPACK_TOPLEVEL_TAG}/${CPACK_GENERATOR}")
- 
- #INSTALL(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/redistributable/vcredist_x64.exe DESTINATION tmp)
+#   endforeach(DLL)
 endif(WIN32)
 
 
-add_subdirectory( doc/manual )
-add_subdirectory( src )
 
 set(WELCOME_FILE ${CMAKE_CURRENT_SOURCE_DIR}/WELCOME.txt)
 set(LICENSE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
@@ -772,6 +738,7 @@ set(CPACK_RESOURCE_FILE_LICENSE ${LICENSE_FILE})
 set(CPACK_RESOURCE_FILE_README ${WELCOME_FILE})
 set(CPACK_RESOURCE_FILE_WELCOME ${WELCOME_FILE})
 set(CPACK_PACKAGE_EXECUTABLES emcad "EmCAD")
+set(CPACK_COMPONENTS_INSTALL ON)
 set(CPACK_STRIP_FILES TRUE)
 set(CPACK_SOURCE_PACKAGE_FILE_NAME emcad-${GMSH_VERSION}-source)
 set(CPACK_SOURCE_GENERATOR TGZ)
@@ -787,6 +754,9 @@ if(UNIX)
 endif(UNIX)
 
 if(WIN32)
+ configure_file(my_install_script.cmake.in my_install_script.cmake @ONLY)
+ set(CPACK_INSTALL_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/my_install_script.cmake")
+ 
  set(CPACK_GENERATOR NSIS)
  set(CPACK_NSIS_INSTALL_ROOT "C:")
  set(CPACK_NSIS_MODIFY_PATH ON)
@@ -827,6 +797,7 @@ if(WIN32)
 
 include(CPack)
 
-
 endif(WIN32)
+
+
 

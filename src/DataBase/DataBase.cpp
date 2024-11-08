@@ -102,9 +102,9 @@ Material::Material(){
   roughSurfFitPolesNum=1;
 }
 void Material::flush(){
-  buff.epsLorentz.flush(&epsLorentz);
-  buff.muLorentz.flush(&muLorentz);
-  buff.surfPolesRes.flush(&surfPolesRes);
+  buff.epsLorentz.flush(epsLorentz);
+  buff.muLorentz.flush(muLorentz);
+  buff.surfPolesRes.flush(surfPolesRes);
 }
 
 Material & Material::operator =(const Material &rhs)
@@ -160,6 +160,7 @@ Volume::Volume(){
   TEMportsNum=0;
   TEportsNum=0;
   TMportsNum=0;
+  TEM_TabularOrder=0;
   gridNum=0;
   PML=0;
   invariant=1;
@@ -502,6 +503,8 @@ void _mwm_print_volume(void *a, void *b)
       fprintf(EMMFILE, "  TEportsNum    %d\n",  vol->TEportsNum);
   if(vol->TMportsNum>0)
       fprintf(EMMFILE, "  TMportsNum    %d\n",  vol->TMportsNum);
+  if(vol->TEM_TabularOrder>0)
+      fprintf(EMMFILE, "  TEMTabularOrder  %d\n",  vol->TEM_TabularOrder);
   if(vol->disabled)
       fprintf(EMMFILE, "  disabled\n");
   fprintf(EMMFILE, "}\n\n");

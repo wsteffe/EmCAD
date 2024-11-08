@@ -125,23 +125,31 @@
 #define INVERTEDTEMPORTS 1
 #define INVERTEDTMPORTS 1
 
-#define NPARJOBSONSERVER 6
+#define NPARJOBSONSERVER 4
 
 DB::Material theDefaultMaterial;
 
-extern std::string account_filename;
-extern std::string config_filename;
-extern std::string botoConfig_filename;
+extern std::string configdir;
+
+extern std::string proxy_filepath;
+extern std::string api_pem_filepath;
+extern std::string account_filepath;
+extern std::string config_filepath;
+extern std::string EmCADuser_filepath;
 
 extern char emcadPath[256];
 extern std::map<std::string, std::string> emcadConfig;
 extern std::map<std::string, std::string> emcadAccount;
-extern std::map<std::string, std::string> botoConfig;
+extern std::map<std::string, std::string> EmCADuser;
 
-int useAWS=0;
-int useServer=0;
-int useDOCKER=0;
-int useAPI=0;
+extern int useAWS;
+extern int useServer;
+extern int useDOCKER;
+extern int useAPI;
+extern bool userHasCredit;
+bool internetConnection=false;
+bool API_loggedIn=false;
+bool modelerIsAvailable=false;
 
 int MESH3D_ON_SERVER=1;
 
@@ -294,6 +302,7 @@ int WriteFile(std::string fname, std::map<std::string, std::string> *m){
     return count;
 }
 
+
 void printMapEntry(char *name, FILE *fp, std::map<std::string, std::string> &m)
 {
     std::string key=name;
@@ -301,21 +310,6 @@ void printMapEntry(char *name, FILE *fp, std::map<std::string, std::string> &m)
     if(it!=m.end())  fprintf(fp, "%s=%s\n", it->first.c_str(), it->second.c_str());
 }
 
-
-void WriteBoto(){
-if (botoConfig_filename.empty()) return;
-    FILE *fp = fopen(nativePath(botoConfig_filename).c_str(), "w");
-    fprintf(fp,"[Credentials]\n");
-    printMapEntry("aws_access_key_id", fp, botoConfig);
-    printMapEntry("aws_secret_access_key", fp, botoConfig);
-    fprintf(fp,"[Boto]\n");
-    printMapEntry("ec2_region_name", fp, botoConfig);
-    printMapEntry("ec2_region_endpoint", fp, botoConfig);
-#ifdef WNT
-    printMapEntry("ca_certificates_file", fp, botoConfig);
-#endif
-    fclose(fp);
-}
 
 void StringList::read(const char*filename)
 {
@@ -427,7 +421,7 @@ void create_touchstone1(QString filepath)
     QStringList args;
     args << filepath;
     QString Cmd=app+QString("  ")+args.join(QString(" "));
-    char cmd[512]; strcpy(cmd,Cmd.toLatin1().data());
+    std::string cmd(Cmd.toLatin1().data());
     proc->start(app, args);
     proc->waitForStarted();
     proc->waitForFinished(-1);
@@ -457,7 +451,7 @@ void tar_extract(QString tarFile, QString dir)
     args << tarFile;
     args << dir;
     QString Cmd=app+QString("  ")+args.join(QString(" "));
-    char * cmd=Cmd.toLatin1().data();
+    std::string cmd=Cmd.toLatin1().data();
     proc->start(app, args);
     proc->waitForStarted();
     proc->waitForFinished(-1);
@@ -631,14 +625,18 @@ ProjectData::ProjectData(){
        network=0;
        strcpy(lengthUnitName,"MM");
        freqUnitE=9;
-       meshPerWavelen=10;
+       meshPerWavelen=6;
+       sharedMeshPerWavelen=5;
        sharedMeshRefine=2;
-       meshPerCircle=8;
+       meshPerCircle=12;
        meshRefineMinNum=1;
        meshRefineMaxNum=3;
-       meshTetMaxNum=30000;
-       meshMinEnergyRatio=25.0;
+       meshTetMaxNum=10000;
+       meshMinEnergyRatio=20.0;
        localMeshing3d=1;
+       XYplaneSymmetry=0;
+       YZplaneSymmetry=0;
+       ZXplaneSymmetry=0;
        freqBand[0]=freqBand[1]=0.0;
        resonFreqMaxRatio=1.2;
        cmpResonFreqMaxRatio=1.2;
@@ -665,12 +663,12 @@ ProjectData::ProjectData(){
        idealFilterImpedance.clear();
        freqRespParType=SPAR;
        freqRespParPart=0;
-       KrylovOrder=1;
+       KrylovOrder=2;
        MORFreqNum=1;
        MORFreqNum1=5;
-       cmpMORFreqNum=6;
-       cmpMORFreqNum1=20;
-       netMORFreqNum=12;
+       cmpMORFreqNum=2;
+       cmpMORFreqNum1=10;
+       netMORFreqNum=10;
        netMORFreqNum1=40;
        anaFreqNum=1000;
        filterTuneItermax=1000;
@@ -686,6 +684,7 @@ ProjectData::ProjectData(){
        filterTuneOnlyJt=0;
        filterTuneXtol=1.e-4;
        filterTuneTrustR=2.e-1;
+       spiceSetCentralConfig=1;
        unit.xm=lengthUnit();
        unit.xHz=freqUnit();
        freqRespYscaleAuto=1;
@@ -824,6 +823,13 @@ MainWindow::MainWindow()
 //        QString title= "<font color='red'> ? ";
         QString title;
         projectLabel->setText(title);
+	QWidget* spacer = new QWidget();
+        spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	projectBar->addWidget(spacer);
+        loginStatusLabel=new QLabel;	
+        modelerStatusLabel=new QLabel;	
+        projectBar->addWidget(loginStatusLabel);
+        projectBar->addWidget(modelerStatusLabel);
 
 // Geometry
 	geometry = new QDockWidget("Structure", this);
@@ -902,10 +908,8 @@ void MainWindow::setProjectTitle()
       QString level; level.setNum(mainOCAF->EmP->level);
       QDir maindir(mainWorkPath);
       QString projectPath=maindir.relativeFilePath(currentWorkPath);
-      QString partition="Partition";
-//      if(projectPath.endsWith(partition)) projectPath.chop(partition.length()+1);
       if(mainOCAF->EmP->level) title +="/"+projectPath;
-      if(mainOCAF->isPartition())     if(mainOCAF->subComp) {title += "/Subcomp "; char tag[10]; sprintf(tag,"_%d",mainOCAF->subComp); title +=tag;}
+      if(mainOCAF->subComp) {title += "/Subcomp "; char tag[10]; sprintf(tag,"_%d",mainOCAF->subComp); title +=tag;}
 //      title+=";    Status:  ";
       if(!mainOCAF->EmP->hasGeo)                 title += "    Undefined  ";
       if(!mainOCAF->prjStatus.linePorts)        temporaryMessage("missing Line Port at some interface");
@@ -1270,7 +1274,6 @@ void MainWindow::reload()
 
 void MainWindow::viewConvergence()
 {
-  if(mainOCAF->subCompNum>0 && !mainOCAF->isPartition()) return;
   if(mainOCAF->subCompNum>0 && mainOCAF->subComp==0) return;
 
   TCollection_AsciiString compName;
@@ -1289,7 +1292,6 @@ void MainWindow::viewConvergence()
 
 void MainWindow::viewSubCompConvergence()
 {
-  if(!mainOCAF->isPartition()) return;
   if(mainOCAF->subCompNum==0 || !treeWidget->currentSubComp) return;
 
   QString subCompI; subCompI.setNum(treeWidget->currentSubComp);
@@ -1336,17 +1338,35 @@ void ConvergenceDialog::setModel(QString convFilePath)
      std::map<std::string, std::vector<std::string> > table_rows;
      std::vector<std::string> lineHeader;
 
+     int icol=0;
      for (QString line = stream.readLine(); !line.isNull(); line = stream.readLine()) {
       QStringList list = line.split(QLatin1Char('='));
       QString header=list.at(0).trimmed();
       QString value =list.at(1).trimmed();
-      if(!header.startsWith("iter")){
+      if(header.startsWith("iter")) icol++;
+      else{
          std::string str=std::string(header.toLatin1().data());
 	 if(table_rows.find(str)==table_rows.end()) lineHeader.push_back(str);
+	 for (int j=table_rows[str].size(); j<icol-1; j++) table_rows[str].push_back(std::string(""));
          table_rows[str].push_back(std::string(value.toLatin1().data()));
       }
      };
      inputFile.close();
+
+     int nr=lineHeader.size();
+     std::vector<int> ipermu(nr,-1);
+     int ii=0;
+     for (int ir=0; ir < nr; ++ir){
+	 if(lineHeader[ir].substr(0,10)==std::string("Tet Number")) ipermu[ir]=ii++;
+	 if(lineHeader[ir].substr(0,12)==std::string("Energy Ratio")) ipermu[ir]=ii++;
+     }
+     for (int ir=0; ir < nr; ++ir)
+	 if(lineHeader[ir].substr(0,10)==std::string("Reson Freq")) ipermu[ir]=ii++;
+     for (int ir=0; ir < nr; ++ir)
+         if(ipermu[ir]<0) ipermu[ir]=ii++;
+
+     std::vector<int> invpermu(nr);
+     for (int ir=0; ir < nr; ++ir) invpermu[ipermu[ir]]=ir;
     
      int nrow=table_rows.size();
      int ncol=0;
@@ -1360,8 +1380,8 @@ void ConvergenceDialog::setModel(QString convFilePath)
        model->setHorizontalHeaderItem(icol, hitem);
      }
      int irow=0;
-     for(int i=0; i<lineHeader.size(); i++){
-      RowIt it=table_rows.find(lineHeader[i]);
+     for(int i=0; i<nr; i++){
+      RowIt it=table_rows.find(lineHeader[invpermu[i]]);
       for (int icol = 0; icol < model->columnCount(); ++icol) {
 	QString qtext= icol < (*it).second.size() ? (*it).second[icol].c_str() : "";
         QStandardItem *item =  new QStandardItem(qtext);
@@ -1376,27 +1396,20 @@ void ConvergenceDialog::setModel(QString convFilePath)
 }
 
 
-int jumpDirectlyToPartition=1;
-int closeComponentWithPartition=1;
 
 void MainWindow::openComp()
 {
      QString path=currentWorkPath;
-     if(!mainOCAF->isPartition()){
-       if(mainOCAF->EmP->assemblyType==NET){
-	  path+="/";
-	  path+=treeWidget->currentPartName;
-          QDir directory(path);
-	  if(jumpDirectlyToPartition)
-            if(directory.exists(QString("Partition"))) path+=QString("/Partition");
-       }
-       if(mainOCAF->EmP->assemblyType==COMPONENT){
-           QDir directory(currentWorkPath);
-	   if(!directory.exists(QString("Partition"))) return;
-           path=path+QString("/Partition");
-       }
-       if(prjData.workStatus.componentsaveNeeded) worksaveAllComponents();
-     } else if(!treeWidget->currentSubComp) return;
+     if(mainOCAF->EmP->assemblyType==NET){
+	 path+="/";
+	 path+=treeWidget->currentPartName;
+         QDir directory(path);
+         if(prjData.workStatus.componentsaveNeeded) worksaveAllComponents();
+     }
+     else if(mainOCAF->EmP->assemblyType==COMPONENT){
+	 if(!treeWidget->currentSubComp) return;
+         QDir directory(currentWorkPath);
+     }
      if(mainOCAF->worksaveNeeded) worksave();
      closeDoc();
      workopen(path, treeWidget->currentSubComp);
@@ -1407,32 +1420,12 @@ void MainWindow::openComp()
     }
 }
 
-void MainWindow::openCompAndPartition()
-{
- jumpDirectlyToPartition=1;
- openComp();
-}
-void MainWindow::openCompOrPartition()
-{
- jumpDirectlyToPartition=0;
- openComp();
-}
-
 
 void MainWindow::closeComp()
 {
      QDir dir(currentWorkPath);  QString currentFolder=dir.dirName();
      QString upProjectPath =currentWorkPath;
-     if(!mainOCAF->subComp){
-	 upProjectPath.chop(currentFolder.size()+1);
-	 if(closeComponentWithPartition && !upProjectPath.endsWith(QString("Work"))) {
-	   QDir updir(upProjectPath); QString upProjectDir=updir.dirName();
-           upProjectPath.chop(upProjectDir.size()+1);
-         }
-     }
-     QString partition="Partition";
-     if(closeComponentWithPartition && mainOCAF->subComp  && upProjectPath.endsWith(partition)) upProjectPath.chop(partition.length()+1);
-//     if(mainOCAF->isPartition()) if(mainOCAF->worksaveNeeded) worksave();
+     if(!mainOCAF->subComp) upProjectPath.chop(currentFolder.size()+1);
      if(mainOCAF->EmP->assemblyType==COMPONENT) if(mainOCAF->worksaveNeeded) worksave();
      saveStatus();
      closeDoc();
@@ -1444,17 +1437,6 @@ void MainWindow::closeComp()
      }
 }
 
-
-void MainWindow::closeCompAndPartition()
-{
- closeComponentWithPartition=1;
- closeComp();
-}
-void MainWindow::closeCompOrPartition()
-{
- closeComponentWithPartition=0;
- closeComp();
-}
 
 
 
@@ -1660,6 +1642,12 @@ void MainWindow::importGeometry()
               mainOCAF->saveImportedStruct(mainWorkPath.toLatin1().data());
               closeDoc();
               workopen(mainWorkPath.toLatin1().data());
+ 	      if(mainOCAF->theShapes.IsNull()){
+                 QString msg=QString("The imported step file hasn't any EM geometry"); 
+                 statusMessage(msg);
+	         QApplication::restoreOverrideCursor();
+	         return;
+	      }
               if(mainOCAF->EmP->assemblyType==NET) prjData.network=1;
 //	      mainOCAF->setMissingNames();
 	   }
@@ -1687,6 +1675,64 @@ void MainWindow::importGeometry()
 	}
         checkActions();
 }
+
+
+void MainWindow::importProxyPac()
+{
+        QStringList filters;
+	QFileDialog dialog(this,tr("Import Proxy Pac file"));
+	dialog.setDirectory(QDir::currentPath());
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setNameFilter(tr("PAC (*.pac)"));
+	dialog.setViewMode(QFileDialog::List);
+	QString	fileName;
+	if(dialog.exec()){
+	   QStringList fileNames = dialog.selectedFiles();
+	   fileName= fileNames.at(0);
+	   QFileInfo fileinfo(fileName);
+           QDir::setCurrent(fileinfo.dir().absolutePath());
+	}
+	if (!fileName.isEmpty()){
+	   QFileInfo fileInfo;
+	   fileInfo.setFile(fileName);
+	   QString fileType = fileInfo.suffix();
+	   bool isPAC  =fileType.toLower() == tr("pac");
+	   if(!isPAC) return;
+	   QString savePath=proxy_filepath.c_str();
+	   if(QFile::exists(savePath)) QFile::remove (savePath);
+	   QFile::copy(fileName, savePath);
+	   QApplication::restoreOverrideCursor();
+	}
+}
+
+void MainWindow::importApiPem()
+{
+        QStringList filters;
+	QFileDialog dialog(this,tr("Import certificate bundle for api-hierarchical-electromagnetics-com"));
+	dialog.setDirectory(QDir::currentPath());
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setNameFilter(tr("Certificate Bundle (*.pem)"));
+	dialog.setViewMode(QFileDialog::List);
+	QString	fileName;
+	if(dialog.exec()){
+	   QStringList fileNames = dialog.selectedFiles();
+	   fileName= fileNames.at(0);
+	   QFileInfo fileinfo(fileName);
+           QDir::setCurrent(fileinfo.dir().absolutePath());
+	}
+	if (!fileName.isEmpty()){
+	   QFileInfo fileInfo;
+	   fileInfo.setFile(fileName);
+	   QString fileType = fileInfo.suffix();
+	   bool isPEM  =fileType.toLower() == tr("pem");
+	   if(!isPEM) return;
+	   QString savePath=api_pem_filepath.c_str();
+	   if(QFile::exists(savePath)) QFile::remove (savePath);
+	   QFile::copy(fileName, savePath);
+	   QApplication::restoreOverrideCursor();
+	}
+}
+
 
 
 void MainWindow::importMaterial()
@@ -1944,8 +1990,30 @@ void MainWindow::propagateStatus(QString dir)
   }
 }
 
-int loadModel(MwOCAF* ocaf, const char *fName, bool update=false);
 
+void MainWindow::setModelerStatus(){
+      if(!internetConnection){
+        loginStatusLabel->setText(QString("No Intermet Connection  "));
+        loginStatusLabel->setStyleSheet("QLabel { background-color : red; color : white; }");
+      }else if (API_loggedIn && userHasCredit){
+        loginStatusLabel->setText(QString("Logged In  "));
+        loginStatusLabel->setStyleSheet("QLabel { background-color : green; color : white; }");
+      } else {
+        loginStatusLabel->setText(QString("Logged Out  "));
+        loginStatusLabel->setStyleSheet("QLabel { background-color : red; color : white; }");
+      }
+      modelerIsAvailable=internetConnection && API_loggedIn && userHasCredit;
+      if (modelerIsAvailable){
+        modelerStatusLabel->setText(QString("Modeler Available"));
+        modelerStatusLabel->setStyleSheet("QLabel { background-color : green; color : white; }");
+      } else if(internetConnection && API_loggedIn){
+        modelerStatusLabel->setText(QString("Modeler Not Available"));
+        modelerStatusLabel->setStyleSheet("QLabel { background-color : red; color : white; }");
+      } else {
+        modelerStatusLabel->setText(QString(""));
+        modelerStatusLabel->setStyleSheet("QLabel { background-color : red; color : white; }");
+      }
+}
 
 void MainWindow::recursiveAssignDefaultMaterial(QString dir, bool toplevel)
 {
@@ -2065,13 +2133,17 @@ void ProjectData::saveSettings(){
    fprintf(fid, "length unit \"%s\"\n", lengthUnitName);
    fprintf(fid, "freq unit exp %d\n", freqUnitE);
    fprintf(fid, "mesh wavelength ratio %d\n", meshPerWavelen);
-   fprintf(fid, "shared mesh refine %8.2f\n", sharedMeshRefine);
+   fprintf(fid, "shared mesh wavelength ratio %d\n", sharedMeshPerWavelen);
+//   fprintf(fid, "shared mesh refine %8.2f\n", sharedMeshRefine);
    fprintf(fid, "mesh circle ratio %d\n", meshPerCircle);
    fprintf(fid, "mesh refine min num %d\n", meshRefineMinNum);
    fprintf(fid, "mesh refine max num %d\n", meshRefineMaxNum);
    fprintf(fid, "mesh tet max num %d\n", meshTetMaxNum);
    fprintf(fid, "mesh min energy ratio %10.3f\n", meshMinEnergyRatio);
    fprintf(fid, "local meshing3d %d\n", localMeshing3d);
+   fprintf(fid, "xyplane symmetry %d\n", XYplaneSymmetry);
+   fprintf(fid, "yzplane symmetry %d\n", YZplaneSymmetry);
+   fprintf(fid, "zxplane symmetry %d\n", ZXplaneSymmetry);
    fprintf(fid, "mor freq band %10.5f %10.5f\n", freqBand[0], freqBand[1]);
    fprintf(fid, "resonance freq max ratio %10.5f\n", resonFreqMaxRatio);
    fprintf(fid, "component resonance freq max ratio %10.5f\n", cmpResonFreqMaxRatio);
@@ -2115,6 +2187,7 @@ void ProjectData::saveSettings(){
    fprintf(fid, "filter tuning method %d\n", filterTuneMethod);
    fprintf(fid, "filter tuning recompute jacobian %d\n", filterTuneRecomputeJaco);
    fprintf(fid, "filter tuning recompute error %d\n", filterTuneRecomputeError);
+   fprintf(fid, "spice reset central config %d\n", spiceSetCentralConfig);
    fprintf(fid, "filter symmetric tuning %d\n", filterSymmetricTuning);
    fprintf(fid, "filter tuning only transversej %d\n", filterTuneOnlyJt);
    fprintf(fid, "filter tuning itermax %d\n", filterTuneItermax);
@@ -2407,7 +2480,7 @@ void MainWindow::exportMappedSpice()
 {
         QFileDialog dialog(this,tr("Export Mapped Spice Circuit"));
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
-	dialog.setNameFilter(tr("*.JC"));
+	dialog.setNameFilter(tr("*.sp"));
         QString circuitName;
 	if(prjData.filtermapSource==ZEROPOLES) circuitName=prjData.mainAssName+"_RM_mapped";
         if(prjData.filtermapSource==IMPORTED_RESPONSE) circuitName="imported_response_mapped";
@@ -2429,6 +2502,119 @@ void MainWindow::exportMappedSpice()
 	     QFile::copy(mappedSPpath, path);
 	}
 }
+
+
+void MainWindow::exportMappedShifters()
+{
+	QString cktName=prjData.mainAssName+"_RM";
+	QString freqRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+".ts");
+	QString t1extPath=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+".ext");
+	if(!QFile::exists(t1extPath)) 
+	      create_touchstone1(freqRespPath);
+        if(file1NewerThanFile2(freqRespPath.toLatin1().data(), t1extPath.toLatin1().data()))
+	      create_touchstone1(freqRespPath);
+        freqRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+cktName+".s2p");
+
+	QString mappedCktName;
+	if(prjData.filtermapSource==ZEROPOLES)         mappedCktName=prjData.mainAssName+"_RM_mapped";
+        if(prjData.filtermapSource==IMPORTED_RESPONSE) mappedCktName="imported_response_mapped";
+	QString mappedRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCktName+".ts");
+	QString mt1extPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCktName+".ext");
+	if(!QFile::exists(mt1extPath))
+	     create_touchstone1(mappedRespPath);
+	if(file1NewerThanFile2(mappedRespPath.toLatin1().data(), mt1extPath.toLatin1().data()))
+	     create_touchstone1(mappedRespPath);
+        mappedRespPath=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCktName+".s2p");
+
+        QString shifter1Path=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCktName+"_shifter1.s2p");
+        QString shifter2Path=nativePath(mainWorkPath+"/Data/Circuits/"+mappedCktName+"_shifter2.s2p");
+        bool shiftersNeedUpdate=!QFile::exists(shifter1Path);
+	if(!shiftersNeedUpdate)
+            shiftersNeedUpdate=file1NewerThanFile2(mappedRespPath.toLatin1().data(), shifter1Path.toLatin1().data())
+                             ||file1NewerThanFile2(freqRespPath.toLatin1().data(), shifter1Path.toLatin1().data());
+
+	
+	if(shiftersNeedUpdate) {
+          QString script=QString(emcadPath);
+          #ifdef WNT
+            script.chop(13);
+            QString ext=".exe";
+          #else
+            script.chop(9);
+            QString ext=".py";
+          #endif
+          script+="bin/mappedPhaseShifters";
+          script=nativePath(script+ext);
+
+          QProcess *proc=new QProcess;
+//          QString logFilePath=nativePath(workDir+QString("/")+QString("mappedPhaseShifters.log"));
+//          proc->setStandardErrorFile(logFilePath);
+          QString app=script;
+          QStringList args;
+          args << QString("-freqResponsePath");
+          args << freqRespPath;
+          args << QString("-mappedResponsePath");
+          args << mappedRespPath;
+          QString Cmd=app+QString("  ")+args.join(QString(" "));
+          std::string cmd(Cmd.toLatin1().data());
+          proc->start(app, args);
+          proc->waitForStarted();
+          QByteArray outdata;
+          while(proc->waitForReadyRead()) outdata.append(proc->readAllStandardOutput());
+          proc->waitForFinished(-1);
+          msleep(100);
+          if(proc->exitStatus()==QProcess::NormalExit && proc->exitCode()==0){
+	    QString mssg="Completed evaluation of \"" ; mssg+=mappedCktName; mssg+=" shifters\"";
+            statusMessage(mssg);
+          }else{
+            QString mssg=QString(outdata);
+            statusMessage(mssg);
+	    return;
+          }
+        }
+
+	{
+           QFileDialog dialog(this,tr("Export Mapped Spice Shifter 1"));
+	   dialog.setAcceptMode(QFileDialog::AcceptSave);
+	   dialog.setNameFilter(tr("*.s2p"));
+	   QString fname=mappedCktName+"_shifter1.s2p";
+	   dialog.selectFile(fname);
+	   dialog.setLabelText(QFileDialog::Accept,tr("Save"));
+	   QString path;
+	   if(dialog.exec()){
+            QStringList pathList= dialog.selectedFiles();
+	    path= pathList.at(0);
+	   }
+	   if( !path.isEmpty() )
+	   {
+	     if(!path.endsWith(".s2p")) path+=".s2p";
+             if(!FileExists(shifter1Path.toLatin1().data())) return;
+	     if(QFile::exists(path)) QFile::remove(path);
+	     QFile::copy(shifter1Path, path);
+	   }
+	}
+	{
+           QFileDialog dialog(this,tr("Export Mapped Spice Shifter 2"));
+	   dialog.setAcceptMode(QFileDialog::AcceptSave);
+	   dialog.setNameFilter(tr("*.s2p"));
+	   QString  fname=mappedCktName+"_shifter2.s2p";
+	   dialog.selectFile(fname);
+	   dialog.setLabelText(QFileDialog::Accept,tr("Save"));
+	   QString path;
+	   if(dialog.exec()){
+            QStringList pathList= dialog.selectedFiles();
+	    path= pathList.at(0);
+	   }
+	   if( !path.isEmpty() )
+	   {
+	     if(!path.endsWith(".s2p")) path+=".s2p";
+             if(!FileExists(shifter2Path.toLatin1().data())) return;
+	     if(QFile::exists(path)) QFile::remove(path);
+	     QFile::copy(shifter2Path, path);
+	   }
+	}
+}
+
 
 
 void MainWindow::exportIdealJC()
@@ -2761,12 +2947,30 @@ void Preprocessor::upImprintSubass(QString dir, QString assName, int l)
   if(modified || isDownModified(dir, subdirs) ) {
    if(extproc){
       QStringList args;
+      if(prjData.XYplaneSymmetry){
+        args << QString("-XYplaneSymmetry");
+        QString str_XYplaneSymmetry; 
+        str_XYplaneSymmetry.setNum(prjData.XYplaneSymmetry);
+        args << str_XYplaneSymmetry;
+      }
+      if(prjData.YZplaneSymmetry){
+        args << QString("-YZplaneSymmetry");
+        QString str_YZplaneSymmetry; 
+        str_YZplaneSymmetry.setNum(prjData.YZplaneSymmetry);
+        args << str_YZplaneSymmetry;
+      }
+      if(prjData.ZXplaneSymmetry){
+        args << QString("-ZXplaneSymmetry");
+        QString str_ZXplaneSymmetry; 
+        str_ZXplaneSymmetry.setNum(prjData.ZXplaneSymmetry);
+        args << str_ZXplaneSymmetry;
+      }
       QString str_downImprint; 
       str_downImprint.setNum(0);
       args << str_downImprint;
       args << dir;
-      QString command=app+"  "+str_downImprint+"  "+dir;
-      char cmd[512]; strcpy(cmd,command.toLatin1().data());
+      QString qcmd=app+QString("  ")+args.join(QString(" "));
+      std::string cmd(qcmd.toLatin1().data());
       QProcess *proc=new QProcess;
       proc->setWorkingDirectory(nativePath(dataDir));
       proc->start(app, args);
@@ -2833,7 +3037,7 @@ void Preprocessor::downImprintSubass(QString dir, QString assName, int l)
       args << str_downImprint;
       args << dir;
       QString command=app+"  "+str_downImprint+"  "+dir;
-      char cmd[512]; strcpy(cmd,command.toLatin1().data());
+      std::string cmd(command.toLatin1().data());
       QProcess *proc=new QProcess;
       proc->setWorkingDirectory(nativePath(dataDir));
       proc->start(app, args);
@@ -2908,7 +3112,7 @@ void Preprocessor::splitComponents(QString dir, QString assName )
       QStringList args;
       args << dir;
       QString command=app+"  "+dir;
-      char cmd[512]; strcpy(cmd,command.toLatin1().data());
+      std::string cmd(command.toLatin1().data());
       QProcess *proc=new QProcess;
       proc->setWorkingDirectory(nativePath(dataDir));
       proc->start(app, args);
@@ -2981,18 +3185,6 @@ void Preprocessor::setMaterialData(QString dir)
       if(ocaf->worksaveNeeded) ocaf->worksave();
       prjData.savePorts();
       ocaf->setPartsStatus();
-      QDir directory(dir);
-      if(directory.exists(QString("Partition"))){
-        QString partitionDir=dir+"/Partition";
-        MwOCAF* subocaf=new MwOCAF();
-        subocaf->workopen(partitionDir.toLatin1().data());
-        subocaf->regenerateIndexedSubShapes();
-        subocaf->setFEproperties();
-        subocaf->setTEMnum();
-        if(subocaf->worksaveNeeded) subocaf->worksave();
-        subocaf->closeDoc();
-        delete subocaf;
-      }
   }
   ocaf->closeDoc();
   delete ocaf;
@@ -3023,28 +3215,21 @@ void Preprocessor::setSuperFaces(QString dir)
      ocaf->readFEproperties();
      ocaf->setSuperFaces();
 //     ocaf->checkSuperFacesTEMnum();
+     if(ocaf->subCompNum==0) ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
+     int subCompNum=ocaf->subCompNum;
+     TCollection_AsciiString assName; ocaf->getAssName(assName);
+     std::string cmp=assName.ToCString();
+     prjData.componentSubNum[cmp]=subCompNum;
      ocaf->closeDoc();
      delete ocaf;
      QDir directory(dir);
-     if(directory.exists(QString("Partition"))){
-       QString partitionDir=dir+"/Partition";
-       ocaf=new MwOCAF();
-       ocaf->workopen(partitionDir.toLatin1().data());
-       if(ocaf->subCompNum==0) ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
-       int subCompNum=ocaf->subCompNum;
-       TCollection_AsciiString assName; ocaf->getAssName(assName);
-       std::string cmp=assName.ToCString();
-       prjData.componentSubNum[cmp]=subCompNum;
-       ocaf->closeDoc();
-       delete ocaf;
-       for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {
-         ocaf=new MwOCAF();
-         ocaf->workopen(partitionDir.toLatin1().data(),subcmpI);
-	 ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
-         ocaf->closeDoc();
-         delete ocaf;
-      }
-    }
+     for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {
+        ocaf=new MwOCAF();
+        ocaf->workopen(dir.toLatin1().data(),subcmpI);
+        ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
+        ocaf->closeDoc();
+        delete ocaf;
+     }
   }
   QStringList subdirs;
   if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
@@ -3052,6 +3237,70 @@ void Preprocessor::setSuperFaces(QString dir)
       setSuperFaces(subDir);
   }
 }
+
+
+void Preprocessor::setSuperCurves(QString dir){
+     MwOCAF* ocaf=new MwOCAF();
+     ocaf->workopen(dir.toLatin1().data());
+     ocaf->regenerateIndexedSubShapes();
+     ocaf->readFEproperties();
+     ocaf->setSuperCurves();
+     ocaf->closeDoc();
+     delete ocaf;
+     QStringList subdirs;
+     if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
+       QString subDir=dir+"/"+subdirs.at(i);
+       setSuperCurves(subDir);
+     }
+}
+
+
+void Preprocessor::setSuperCurveFaceData(QString dir,
+          std::map<std::string, std::set<std::string> > &SCSFlinks,
+	  std::map<std::string, bool > &SFhasPMC,
+	  std::map<std::string, bool > &SChasPMC
+){
+     MwOCAF* ocaf=new MwOCAF();
+     ocaf->workopen(dir.toLatin1().data());
+     ocaf->regenerateIndexedSubShapes();
+     ocaf->readFEproperties();
+     ocaf->setSuperCurveFaceData(SCSFlinks,SFhasPMC,SChasPMC);
+     ocaf->closeDoc();
+     delete ocaf;
+     QStringList subdirs;
+     if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
+       QString subDir=dir+"/"+subdirs.at(i);
+       setSuperCurveFaceData(subDir,SCSFlinks,SFhasPMC,SChasPMC);
+     }
+}
+
+void Preprocessor::setSuperCurvesConstU(QString dir,
+          std::map<std::string, std::set<std::string> > &SCSFlinks,
+	  std::map<std::string, bool > &SFhasPMC,
+	  std::map<std::string, bool > &SChasPMC,
+	  std::map<std::string, bool>  &superCurveHasConstU
+){
+     MwOCAF::setSuperCurvesConstU(dir.toLatin1().data(),SCSFlinks,SFhasPMC,SChasPMC,superCurveHasConstU);
+}
+
+
+void Preprocessor::writeSuperCurvesConstU(QString dir,
+	  std::map<std::string, bool>  &superCurveHasConstU
+){
+     MwOCAF* ocaf=new MwOCAF();
+     ocaf->workopen(dir.toLatin1().data());
+     ocaf->regenerateIndexedSubShapes();
+     ocaf->readFEproperties();
+     ocaf->writeSuperCurvesConstU(superCurveHasConstU);
+     ocaf->closeDoc();
+     delete ocaf;
+     QStringList subdirs;
+     if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
+       QString subDir=dir+"/"+subdirs.at(i);
+       writeSuperCurvesConstU(subDir,superCurveHasConstU);
+     }
+}
+
 
 
 void Preprocessor::meshModel(QString dir, QString assPath, int assType)
@@ -3070,10 +3319,10 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     double c0_mks =299792458;
     double waveLen=c0_mks/(prjData.freqBand[1]*prjData.freqUnit());
     double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
+    double sharedMeshsize=waveLen/prjData.lengthUnit()/(prjData.cutoffRatio*prjData.sharedMeshPerWavelen);
     QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
     QString str_meshpercircle; str_meshpercircle.setNum(prjData.meshPerCircle);
-    double sharedRef=prjData.sharedMeshRefine;
-    QString str_sharedMeshRef; str_sharedMeshRef.setNum(sharedRef,'f',2);
+    QString str_sharedMeshsize; str_sharedMeshsize.setNum(sharedMeshsize,'f',2);
     QString str_onServer; str_onServer.setNum(0);
     QString str_subcompI; str_subcompI.setNum(0);
     QString str_mesh3DonClient; str_mesh3DonClient.setNum(prjData.localMeshing3d);
@@ -3088,8 +3337,8 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     args << str_assType;
     args << QString("-meshsize");
     args << str_meshsize;
-    args << QString("-sharedmeshref");
-    args << str_sharedMeshRef;
+    args << QString("-sharedmeshsize");
+    args << str_sharedMeshsize;
     args << QString("-meshpercircle");
     args << str_meshpercircle;
     args << QString("-subcomp");
@@ -3106,7 +3355,7 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     proc->setWorkingDirectory(nativePath(dataDir));
     
     QString qcmd=app+QString("  ")+args.join(QString(" "));
-    char cmd[512]; strcpy(cmd,qcmd.toLatin1().data());
+    std::string cmd(qcmd.toLatin1().data());
     proc->start(app, args);
     proc->waitForFinished(-1); 
     msleep(300);
@@ -3192,7 +3441,13 @@ void Preprocessor::decompose(){
    prjData.subcomponents.clear();
    prjData.wgcomponents.clear();
    setSuperFaces(currentWorkPath);
+   setSuperCurves(currentWorkPath);
    setMaterialData();
+   std::map<std::string, std::set<std::string> > SCSFlinks;
+   std::map<std::string, bool > SFhasPMC,SChasPMC,superCurveHasConstU;
+   setSuperCurveFaceData(currentWorkPath,SCSFlinks,SFhasPMC,SChasPMC);
+   setSuperCurvesConstU(currentWorkPath,SCSFlinks,SFhasPMC,SChasPMC,superCurveHasConstU);
+   writeSuperCurvesConstU(currentWorkPath,superCurveHasConstU);
    QString compFileName=mainWorkPath+"/components";
    prjData.subcomponents.save(compFileName.toLatin1().data());
    QString wgcompFileName=mainWorkPath+"/wgcomponents";
@@ -3309,39 +3564,107 @@ void MainWindow::mesh(){
 
 }
 
+void MainWindow::updateLoginStatus(int exitCode, QProcess::ExitStatus exitStatus){
+    if(exitCode==0 && exitStatus==QProcess::NormalExit){
+         if(FileExists(EmCADuser_filepath.c_str())){
+	    ReadFile(EmCADuser_filepath, &EmCADuser);
+	    internetConnection=true;
+            API_loggedIn=!(EmCADuser[std::string("id_token")]).empty();
+         }
+         setModelerStatus();
+    } else if(exitCode==10){
+       internetConnection=false;
+       setModelerStatus();
+    }
+};
+
+void MainWindow::api_renew_if_expired(bool wait=true)
+{
+     if(!useAPI) return;
+     QString script=QString(emcadPath);
+     #ifdef WNT
+         script.chop(13);
+         QString ext=".exe";
+     #else
+         script.chop(9);
+         QString ext=".py";
+     #endif
+     script+="bin/api_renew_if_expired";
+     script=nativePath(script+ext);
+     QString workDir=configdir.c_str();
+
+     QProcess *proc=new QProcess;
+     QString logFilePath=nativePath(workDir+QString("/")+QString("api_renew.log"));
+     proc->setStandardErrorFile(logFilePath);
+     QStringList args;
+     if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+     } 
+     if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+     } 
+     args << QLatin1String("-userfile");
+     args << QLatin1String(EmCADuser_filepath.c_str());
+
+     QString Cmd=script+QString("  ")+args.join(QString(" "));
+     char *cmd=Cmd.toLatin1().data();
+     qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus"); 
+     connect(proc, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(updateLoginStatus(int, QProcess::ExitStatus)));
+     proc->start(script, args);
+     proc->waitForStarted();
+     if(wait){proc->waitForFinished(-1); msleep(100);}
+};
+
 
 void MainWindow::updateAccountCredit()
 {
+    if(!useAPI || !API_loggedIn) return;
     QString script;
-    if(useAWS){
-       script=QString(emcadPath);
-       #ifdef WNT
-         script.chop(13);
-	 QString ext=".exe";
-       #else
-         script.chop(9);
-	 QString ext=".py";
-       #endif
-       script+="bin/aws_getcredit";
-       script=nativePath(script+ext);
-    }else{
-       return;
-    }
-
+    script=QString(emcadPath);
+    #ifdef WNT
+      script.chop(13);
+      QString ext=".exe";
+    #else
+      script.chop(9);
+      QString ext=".py";
+    #endif
+    script+="bin/api_getcredit";
+    script=nativePath(script+ext);
     QProcess *proc=new QProcess;
-    QString app=script;
+    QString workDir=configdir.c_str();
+    QString logFilePath=nativePath(workDir+QString("/")+QString("update_credit.log"));
+    proc->setStandardErrorFile(logFilePath);
+    char * cmd0=script.toLatin1().data();
     QStringList args;
-    args << QString("-bucket");
-    args << QString(emcadConfig[std::string("AWS_bucket")].c_str());
-    args << QString("-account_filename");
-    args << QString(account_filename.c_str());
-    QString Cmd=app+QString("  ")+args.join(QString(" "));
+    args << QString("-token");
+    args << QString(EmCADuser[std::string("id_token")].c_str());
+    if(FileExists(proxy_filepath.c_str())){
+        args << QString("-proxyPacFile");
+        args << QString(proxy_filepath.c_str());
+    } 
+    if(FileExists(api_pem_filepath.c_str())){
+        args << QString("-apiPemFile");
+        args << QString(api_pem_filepath.c_str());
+    } 
+    args << QString("-account_filepath");
+    args << QString(account_filepath.c_str());
+    QString Cmd=script+QString("  ")+args.join(QString(" "));
     char * cmd=Cmd.toLatin1().data();
-    proc->start(app, args);
+    proc->start(script, args);
     proc->waitForStarted();
     proc->waitForFinished(-1);
     msleep(100);
     QString mssg;
+    if(proc->exitCode()==0){
+       if(FileExists(account_filepath.c_str())){
+	  ReadFile(account_filepath, &emcadAccount);
+          float credit=std::stof(emcadAccount[std::string("credit")]);
+          userHasCredit=credit>1.0;
+          setModelerStatus();
+       }
+    }
     if(proc->exitCode()==1){
        mssg="Could not update credit" ;
        temporaryMessage(mssg);
@@ -3517,6 +3840,7 @@ void IterPolling::run()
   }
 }
 
+
 void Modeler::api_sendAbort()
 {
      if(!useAPI) return;
@@ -3534,10 +3858,18 @@ void Modeler::api_sendAbort()
      QStringList args;
      app= script;
 
-     args << QString("-user");
-     args << QString(emcadConfig[std::string("user")].c_str());
-     args << QString("-password");
-     args << QString(emcadConfig[std::string("password")].c_str());
+     mainWindow->api_renew_if_expired();
+     if(!API_loggedIn) return;
+     args << QString("-token");
+     args << QString(EmCADuser[std::string("id_token")].c_str());
+     if(FileExists(proxy_filepath.c_str())){
+        args << QString("-proxyPacFile");
+        args << QString(proxy_filepath.c_str());
+     } 
+     if(FileExists(api_pem_filepath.c_str())){
+        args << QString("-apiPemFile");
+        args << QString(api_pem_filepath.c_str());
+     } 
      args << QString("-folder");
      args << prjData.projectName;
      args << QString("ABORT");
@@ -3598,15 +3930,26 @@ void Modeler::modelize(std::string compNameStr)
 //     QString rfreq2=freq2;
      QString cutoff; cutoff.setNum(prjData.cutoffRatio,'f',5);
      QString KrylovOrder; KrylovOrder.setNum(prjData.KrylovOrder);
-     QString fnum;  fnum.setNum(prjData.MORFreqNum);
+     QString fnum;  
+     if(subCompI>0) fnum.setNum(prjData.MORFreqNum);
+     else           fnum.setNum(prjData.cmpMORFreqNum);
      QString fnum1; 
      if(subCompI>0) fnum1.setNum(prjData.MORFreqNum1);
      else           fnum1.setNum(prjData.cmpMORFreqNum1);
      if(useAPI){ 
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       mainWindow->updateAccountCredit();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -3644,14 +3987,14 @@ void Modeler::modelize(std::string compNameStr)
       double c0_mks =299792458;
       double waveLen=c0_mks/(prjData.freqBand[1]*prjData.freqUnit());
       double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
+      double sharedMeshsize=waveLen/prjData.lengthUnit()/(prjData.cutoffRatio*prjData.sharedMeshPerWavelen);
       QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
       QString str_meshRefineMinNum; str_meshRefineMinNum.setNum(prjData.meshRefineMinNum);
       QString str_meshRefineMaxNum; str_meshRefineMaxNum.setNum(prjData.meshRefineMaxNum);
       QString str_meshTetMaxNum; str_meshTetMaxNum.setNum(prjData.meshTetMaxNum);
       QString str_meshMinEnergyRatio; str_meshMinEnergyRatio.setNum(prjData.meshMinEnergyRatio,'f',5);
       QString str_meshpercircle; str_meshpercircle.setNum(prjData.meshPerCircle);
-      double sharedRef=prjData.sharedMeshRefine;
-      QString str_sharedMeshRef; str_sharedMeshRef.setNum(sharedRef,'f',2);
+      QString str_sharedMeshsize; str_sharedMeshsize.setNum(sharedMeshsize,'f',2);
       QString str_subcompI; str_subcompI.setNum(subCompI);
       args << QString("-meshsize");
       args << str_meshsize;
@@ -3659,8 +4002,8 @@ void Modeler::modelize(std::string compNameStr)
       args << str_meshRefineMinNum;
       args << str_meshRefineMaxNum;
       args << str_meshMinEnergyRatio;
-      args << QString("-sharedmeshref");
-      args << str_sharedMeshRef;
+      args << QString("-sharedmeshsize");
+      args << str_sharedMeshsize;
       args << QString("-meshpercircle");
       args << str_meshpercircle;
       args << QString("-tetNmax");
@@ -3687,7 +4030,7 @@ void Modeler::modelize(std::string compNameStr)
      args << cutoff;
      args << compName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
-     char * cmd=Cmd.toLatin1().data();
+     std::string cmd(Cmd.toLatin1().data());
      QString mssg;
      QProcess *proc=new QProcess;
      QString workDir=mainWorkPath+"/Data/Circuits";
@@ -3770,14 +4113,22 @@ void Modeler::api_get_component_iterdata(int &iter, std::string compNameStr)
      #endif
      app+="bin/api_download";
      app=nativePath(app+ext);
+     mainWindow->api_renew_if_expired();
+     if(!API_loggedIn) return;
      QString workDir=mainWorkPath+"/Data/Circuits";
      {
 	 QString iterFile=compName+QString(".iter");
          QStringList args;
-         args << QString("-user");
-         args << QString(emcadConfig[std::string("user")].c_str());
-         args << QString("-password");
-         args << QString(emcadConfig[std::string("password")].c_str());
+         args << QString("-token");
+         args << QString(EmCADuser[std::string("id_token")].c_str());
+         if(FileExists(proxy_filepath.c_str())){
+            args << QString("-proxyPacFile");
+            args << QString(proxy_filepath.c_str());
+         } 
+         if(FileExists(api_pem_filepath.c_str())){
+            args << QString("-apiPemFile");
+            args << QString(api_pem_filepath.c_str());
+         } 
          args << QString("-folder");
          args << prjData.projectName;
 	 args << QString("-saveUrl");
@@ -3797,10 +4148,16 @@ void Modeler::api_get_component_iterdata(int &iter, std::string compNameStr)
      if(iter>iter0){
 	 QString convFile=compName+QString(".conv");
          QStringList args;
-         args << QString("-user");
-         args << QString(emcadConfig[std::string("user")].c_str());
-         args << QString("-password");
-         args << QString(emcadConfig[std::string("password")].c_str());
+         args << QString("-token");
+         args << QString(EmCADuser[std::string("id_token")].c_str());
+         if(FileExists(proxy_filepath.c_str())){
+            args << QString("-proxyPacFile");
+            args << QString(proxy_filepath.c_str());
+         } 
+         if(FileExists(api_pem_filepath.c_str())){
+            args << QString("-apiPemFile");
+            args << QString(api_pem_filepath.c_str());
+         } 
          args << QString("-folder");
          args << prjData.projectName;
 	 args << QString("-saveUrl");
@@ -3839,6 +4196,7 @@ int Modeler::api_get_component_results(modelerTask operation, std::string compNa
        resultFiles << compName+QString(".res");
        resultFiles << compName+QString(".log");
        resultFiles << compName+QString(".conv");
+       resultFiles << compName+QString(".msh");
        resultFiles << compName+QString("_IF.JC");
        resultFiles << compName+QString("_RM.JC");
        resultFiles << compName+QString("_RM.sp");
@@ -3879,13 +4237,21 @@ int Modeler::api_get_component_results(modelerTask operation, std::string compNa
 #endif
      int exitCode=-1;
      QString mssg;
+     mainWindow->api_renew_if_expired();
      for (QStringList::iterator it=resultFiles.begin(); it != resultFiles.end(); ++it) {
          QString resultFile = *it;
          QStringList args;
-         args << QString("-user");
-         args << QString(emcadConfig[std::string("user")].c_str());
-         args << QString("-password");
-         args << QString(emcadConfig[std::string("password")].c_str());
+         if(!API_loggedIn) return;
+         args << QString("-token");
+         args << QString(EmCADuser[std::string("id_token")].c_str());
+         if(FileExists(proxy_filepath.c_str())){
+            args << QString("-proxyPacFile");
+            args << QString(proxy_filepath.c_str());
+         } 
+         if(FileExists(api_pem_filepath.c_str())){
+            args << QString("-apiPemFile");
+            args << QString(api_pem_filepath.c_str());
+         } 
          args << QString("-folder");
          args << prjData.projectName;
 	 if(it==resultFiles.begin()) args << QString("-saveUrl");
@@ -3898,7 +4264,7 @@ int Modeler::api_get_component_results(modelerTask operation, std::string compNa
 	 proc->setStandardErrorFile(workDir+QString("/get_component_results_error.log"));
          proc->start(app, args);
          proc->waitForFinished(-1);
-         msleep(100);
+         msleep(1000);
          if(proc->exitCode()>0){
            if(operation==CIRCUITS) exitCode=1;
            if(operation==PORTS)    exitCode=2;
@@ -3953,10 +4319,19 @@ void Modeler::compIF(std::string compNameStr, int subCompNum)
      QStringList args;
      QString subNum;  subNum.setNum(subCompNum);
      if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       mainWindow->updateAccountCredit();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-job");
        args << QString("compIF");
        args << QString("-project");
@@ -3979,8 +4354,7 @@ void Modeler::compIF(std::string compNameStr, int subCompNum)
      args << compName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
      if(useServer) server_secrets(1);
-     char cmd[512];
-     strcpy(cmd,Cmd.toLatin1().data());
+     std::string cmd(Cmd.toLatin1().data());
      QProcess *proc=new QProcess;
      QString workDir=mainWorkPath+"/Data/Circuits";
      proc->setWorkingDirectory(nativePath(workDir));
@@ -4041,10 +4415,19 @@ void Modeler::compReduce(std::string compNameStr)
      QString fnum;  fnum.setNum(prjData.cmpMORFreqNum);
      QString fnum1; fnum1.setNum(prjData.cmpMORFreqNum1);
      if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       mainWindow->updateAccountCredit();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-job");
        args << QString("reduce");
        args << QString("-project");
@@ -4069,7 +4452,7 @@ void Modeler::compReduce(std::string compNameStr)
         args << QString("port_impedance_circuits.JC");
      }
      args << QString("-k");
-     args << QString("1");
+     args << QString("2");
      args << QString("-freq");
      args << QString(freq1);
      args << QString(freq2);
@@ -4082,8 +4465,7 @@ void Modeler::compReduce(std::string compNameStr)
      args << fnum1;
      args << compName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
-     char cmd[512];
-     strcpy(cmd,Cmd.toLatin1().data());
+     std::string cmd(Cmd.toLatin1().data());
      QProcess *proc=new QProcess;
      QString workDir=mainWorkPath+"/Data/Circuits";
      proc->setWorkingDirectory(nativePath(workDir));
@@ -4143,10 +4525,19 @@ void Modeler::mainReduce(){
      QString fnum;  fnum.setNum(prjData.netMORFreqNum);
      QString fnum1; fnum1.setNum(prjData.netMORFreqNum1);
      if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       mainWindow->updateAccountCredit();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-job");
        args << QString("reduce");
        args << QString("-project");
@@ -4183,8 +4574,7 @@ void Modeler::mainReduce(){
      args << prjData.mainAssName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
      if(useServer) server_secrets(1);
-     char cmd[512];
-     strcpy(cmd,Cmd.toLatin1().data());
+     std::string cmd(Cmd.toLatin1().data());
      QProcess *proc=new QProcess;
      QString workDir=mainWorkPath+"/Data/Circuits";
      proc->setWorkingDirectory(nativePath(workDir));
@@ -4266,10 +4656,19 @@ void Modeler::freqAna()
     QString app=script;
     QStringList args;
     if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       mainWindow->updateAccountCredit();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -4365,10 +4764,18 @@ void Modeler::zeropoleAna()
     proc->setWorkingDirectory(nativePath(workDir));
 
     if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -4426,6 +4833,8 @@ void Modeler::zeropoleAna()
     emit(zeropoleEnd());
     exit();
 }
+
+
 
 void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
 {
@@ -4525,10 +4934,18 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
 
     
     if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -4652,8 +5069,7 @@ void Modeler::filterDesign()
       }
       fprintf(mufid , " ]:\n");
       fprintf(mufid,  "Q:= %f:\n",prjData.filterQfactor);
-      if(prjData.filterTargetQfactor>0) fprintf(mufid,  "targetQinv:= %f:\n",1/prjData.filterTargetQfactor);
-      else                              fprintf(mufid,  "targetQinv:= %f:\n",0);
+      fprintf(mufid,  "targetQ:= %f:\n",prjData.filterTargetQfactor);
       if(prjData.filterInductiveSkin){
 	fprintf(mufid,  "inductiveSkin:= TRUE:\n");
       } else {
@@ -4722,10 +5138,18 @@ void Modeler::filterDesign()
     }
 
     if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -4857,10 +5281,18 @@ void Modeler::filterMap()
     }
     if(prjData.idealFilterWithMappedTZ)  args << QString("-idealWithMappedTZ");
     if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       if(!API_loggedIn) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args << QString("-job");
@@ -4905,6 +5337,8 @@ void Modeler::filterMap()
        if(!prjData.customIdealFilter){
 	  if(QFile().exists(workDir+"/"+mapped_cktName2+".JC"))  QFile().remove(workDir+"/"+mapped_cktName2+".JC");
 	  QFile().rename(workDir+"/"+mapped_cktName+".JC",workDir+"/"+mapped_cktName2+".JC");
+	  if(QFile().exists(workDir+"/"+mapped_cktName2+".sp"))  QFile().remove(workDir+"/"+mapped_cktName2+".sp");
+	  QFile().rename(workDir+"/"+mapped_cktName+".sp",workDir+"/"+mapped_cktName2+".sp");
 	  if(QFile().exists(workDir+"/"+mapped_cktName2+"_xpar.txt"))  QFile().remove(workDir+"/"+mapped_cktName2+"_xpar.txt");
 	  QFile().rename(workDir+"/"+mapped_cktName+"_xpar.txt",workDir+"/"+mapped_cktName2+"_xpar.txt");
           QString donePath=workDir+"/"+mapped_cktName2+".done";
@@ -4945,10 +5379,18 @@ void Modeler::analize_ports(std::string compNameStr)
      QString app=script;
      QStringList args;
      if(useAPI){
-       args << QString("-user");
-       args << QString(emcadConfig[std::string("user")].c_str());
-       args << QString("-password");
-       args << QString(emcadConfig[std::string("password")].c_str());
+       mainWindow->api_renew_if_expired();
+       if(!modelerIsAvailable) return;
+       args << QString("-token");
+       args << QString(EmCADuser[std::string("id_token")].c_str());
+       if(FileExists(proxy_filepath.c_str())){
+          args << QString("-proxyPacFile");
+          args << QString(proxy_filepath.c_str());
+       } 
+       if(FileExists(api_pem_filepath.c_str())){
+          args << QString("-apiPemFile");
+          args << QString(api_pem_filepath.c_str());
+       } 
        args << QString("-project");
        args << prjData.projectName;
        args <<  QString("-job");
@@ -5019,29 +5461,37 @@ void Modeler::run()
    if(useAPI){
       if(task==CIRCUITS || task==UPDATE){
          api_sendAbort();
-         for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!abort) modelize((*it).first);
+         std::vector<std::string> modeledSubComponentVec;
+         for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) modeledSubComponentVec.push_back((*it).first); 
+         for (int i=0; i < modeledSubComponentVec.size(); ++i) if(!abort) modelize(modeledSubComponentVec[i]);
          do { 
            msleep(1000);
            if(abort) api_sendAbort();
-           for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!(*it).second) {
+           #pragma omp parallel for schedule(dynamic) shared(abort,modeledSubComponent,modeledSubComponentVec) 
+           for (int i=0; i < modeledSubComponentVec.size(); ++i)  if(!modeledSubComponent[modeledSubComponentVec[i]]) {
 		if(abort) {
-                   QString mssg="Aborted Modelization of \""; mssg+=(*it).first.c_str(); mssg+="\"";
+                   QString mssg="Aborted Modelization of \""; mssg+=modeledSubComponentVec[i].c_str(); mssg+="\"";
                    sendLogMessage(mssg);
-		   (*it).second=1;
+		   modeledSubComponent[modeledSubComponentVec[i]]=1;
 		} else {
-		  int iter=iterOfSubComponent[(*it).first]; int iter0=iter;
-		  api_get_component_iterdata(iter, (*it).first); 
-		  if(iter>iter0) iterOfSubComponent[(*it).first]=iter;
-		  if(api_get_component_results(CIRCUITS, (*it).first) >= 0) (*it).second=1;
+		  int iter=iterOfSubComponent[modeledSubComponentVec[i]]; int iter0=iter;
+		  api_get_component_iterdata(iter, modeledSubComponentVec[i]); 
+		  if(iter>iter0) iterOfSubComponent[modeledSubComponentVec[i]]=iter;
+		  if(api_get_component_results(CIRCUITS, modeledSubComponentVec[i]) >= 0) modeledSubComponent[modeledSubComponentVec[i]]=1;
 		}
 	   }
          } while(!allTrue(modeledSubComponent));
-         if(!abort && !failure) for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) compIF(it->first, prjData.componentSubNum[it->first]);
+         if(!abort && !failure) for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) compIF((*it).first, prjData.componentSubNum[(*it).first]);
       }else if(task==PORTS){
-         for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++) analize_ports((*it).first);
+         std::vector<std::string> modeledWgComponentVec;
+         for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++){ modeledWgComponentVec.push_back((*it).first); }
+	 for (int i = 0; i < modeledWgComponentVec.size(); ++i) analize_ports(modeledWgComponentVec[i]);
          do { 
            msleep(1000); 
-           for ( StrMapIt it=modeledWgComponent.begin(); it!= modeledWgComponent.end(); it++) if(!(*it).second) if(api_get_component_results(PORTS, (*it).first) >= 0) (*it).second=1;
+           #pragma omp parallel for schedule(dynamic) shared(modeledWgComponentVec)
+	   for (int i = 0; i < modeledWgComponentVec.size(); ++i) 
+		if(! modeledWgComponent[modeledWgComponentVec[i]]) 
+		   if(api_get_component_results(PORTS, modeledWgComponentVec[i]) >= 0) modeledWgComponent[modeledWgComponentVec[i]]=1;
          } while(!allTrue(modeledWgComponent));
       }  
    } else if(useServer) {
@@ -5055,8 +5505,8 @@ void Modeler::run()
           std::vector<std::string> componentVec;
           std::vector<int>         componentNsubVec;
 	  if(!abort) for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++) {
-	      componentVec.push_back(it->first); 
-	      componentNsubVec.push_back(prjData.componentSubNum[it->first]);
+	      componentVec.push_back((*it).first); 
+	      componentNsubVec.push_back(prjData.componentSubNum[(*it).first]);
 	  }
           #pragma omp parallel for schedule(dynamic) num_threads(nparjobs) shared(componentVec,componentNsubVec,abort) 
           for (int i=0; i < componentVec.size(); ++i) if(!abort) compIF(componentVec[i], componentNsubVec[i]);
@@ -5071,7 +5521,7 @@ void Modeler::run()
    } else if(!abort) {
       if(task==CIRCUITS || task==UPDATE){
 	      for ( StrMapIt it=modeledSubComponent.begin(); it!= modeledSubComponent.end(); it++) if(!abort) {modelize((*it).first); if(failure) break; }
-              for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++)   if(!abort) compIF(it->first, prjData.componentSubNum[it->first]);
+              for ( StrMapIt it=processedComponent.begin(); it!= processedComponent.end(); it++)   if(!abort) compIF((*it).first, prjData.componentSubNum[(*it).first]);
       } else if(task==PORTS)                  
 	      for ( StrMapIt it=modeledWgComponent.begin(); it!=modeledWgComponent.end(); it++) if(!abort) analize_ports((*it).first);
    }
@@ -5629,6 +6079,7 @@ void FilterTuner::run(){
 }
     
 
+
 int FilterTuner::check()
 {
     QString script=QString(emcadPath);
@@ -5691,6 +6142,352 @@ int FilterTuner::check()
     return ecode;
 }
 
+
+
+
+SpiceParametrizer::SpiceParametrizer()
+{
+     failure=0;
+}
+
+SpiceParametrizerDialog::SpiceParametrizerDialog(SpiceParametrizer *t, QWidget * p=0, Qt::WindowFlags f=0 ) : QDialog(p, f)
+{
+     parametrizer=t;
+     parent=p;
+     failure=0;
+     setModal(0);
+
+     setWindowTitle("Filter Tuning Wizard");
+     
+     QLabel *varFileLabel= new QLabel();
+     varFileLabel->setText(tr("Variables File:"));
+     varFileLineEdit = new QLineEdit();
+     
+     QPushButton *varFileButton  = new QPushButton(tr("Browse"));
+     varFileButton->resize(1.5,3);
+     connect(varFileButton, SIGNAL(clicked()), this, SLOT(varFileChooser()));
+
+     QIntValidator *iterNumValidator = new QIntValidator(this);
+     iterNumValidator->setBottom(1);
+
+     QDoubleValidator *dvalidator = new QDoubleValidator(this);
+     dvalidator->setDecimals(1000); // (standard anyway)
+     dvalidator->setNotation(QDoubleValidator::ScientificNotation);
+
+     QLabel *maxIterLabel= new QLabel();
+     maxIterLabel->setText(tr("Max Iteration Num:"));
+
+     maxIterLineEdit = new QLineEdit();
+     maxIterLineEdit->setValidator(iterNumValidator);
+
+     QLabel *xTolLabel= new QLabel();
+     xTolLabel->setText(tr("X Tolerance:"));
+
+     xTolLineEdit = new QLineEdit();
+     xTolLineEdit->setValidator(dvalidator);
+     xTolLineEdit->setText(QString("%1").arg(prjData.filterTuneXtol, 0, 'e', 1));
+
+     QLabel *trustRadiusLabel= new QLabel();
+     trustRadiusLabel->setText(tr("Max X Step:"));
+
+     trustRadiusLineEdit = new QLineEdit();
+     trustRadiusLineEdit->setValidator(dvalidator);
+     trustRadiusLineEdit->setText(QString("%1").arg(prjData.filterTuneTrustR, 0, 'e', 1));
+
+
+//   Automatic
+     recomputeJaco=new QCheckBox("Recompute Jacobian", this);
+     if(prjData.filterTuneRecomputeJaco)
+         recomputeJaco->setCheckState(Qt::Checked);
+     else                            
+         recomputeJaco->setCheckState(Qt::Unchecked);
+
+     resetCentralConfig=new QCheckBox("Reset Central Config", this);
+     if(prjData.filterTuneRecomputeError)
+         resetCentralConfig->setCheckState(Qt::Checked);
+     else                            
+         resetCentralConfig->setCheckState(Qt::Unchecked);
+
+
+
+     QGridLayout *parametrizerSettingsLayout = new QGridLayout();
+
+     parametrizerSettingsLayout->addWidget(varFileLabel, 0, 0);
+     parametrizerSettingsLayout->addWidget(varFileLineEdit, 0, 1);
+     parametrizerSettingsLayout->addWidget(varFileButton, 0, 2);
+     parametrizerSettingsLayout->addWidget(recomputeJaco, 1, 1);
+     parametrizerSettingsLayout->addWidget(resetCentralConfig, 1, 2);
+     parametrizerSettingsLayout->addWidget(maxIterLabel, 2, 0);
+     parametrizerSettingsLayout->addWidget(maxIterLineEdit, 2, 1);
+     parametrizerSettingsLayout->addWidget(trustRadiusLabel, 3, 0);
+     parametrizerSettingsLayout->addWidget(trustRadiusLineEdit, 3, 1);
+     parametrizerSettingsLayout->addWidget(xTolLabel, 4, 0);
+     parametrizerSettingsLayout->addWidget(xTolLineEdit, 4, 1);
+
+     QGroupBox *tuneSettingsGroupBox=new QGroupBox();
+     tuneSettingsGroupBox->setLayout(parametrizerSettingsLayout);
+
+
+
+//****************************************
+//   control buttons:
+//
+     setButton = new QPushButton(tr("Set"));
+     setButton->resize(1.5,3);
+     startButton =new QPushButton(tr("Start"));
+     startButton->resize(1.5,3);
+     closeButton =new QPushButton(tr("Close"));
+     closeButton->resize(1.5,3);
+     QPushButton *helpButton  = new QPushButton(tr("Help"));
+     helpButton->resize(1.5,3);
+
+     QHBoxLayout *buttonLayout = new QHBoxLayout();
+     buttonLayout->addWidget(setButton);
+     buttonLayout->addWidget(startButton);
+     buttonLayout->addWidget(closeButton);
+     buttonLayout->addWidget(helpButton);
+
+     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
+     buttonGroupBox->setLayout(buttonLayout);
+
+//******
+     connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(set()));
+     connect(startButton,  SIGNAL(clicked()), this, SLOT(start()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
+     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+   
+
+     setFocusPolicy(Qt::StrongFocus);
+
+     mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(tuneSettingsGroupBox);
+     mainLayout->addWidget(buttonGroupBox);
+
+     setFocusPolicy(Qt::StrongFocus);
+}
+
+void SpiceParametrizerDialog::atMethodChanged(int i){
+}
+
+//*************
+void SpiceParametrizerDialog::init()
+{
+     failure=0;
+     varFileLineEdit->setText(prjData.varFilePath);
+     maxIterLineEdit->setText(QString("%1").arg(prjData.filterTuneItermax));
+     int err=parametrizer->check();
+     startButton->setEnabled(!err);
+}
+void SpiceParametrizerDialog::varFileChooser()
+{
+	QString	path;
+	QFileDialog dialog(this,tr("Open"));
+	QStringList filters({"Text files(*.txt *.csv)","Excel files(*.xlsx)"});
+	dialog.setNameFilters(filters);
+
+	dialog.setDirectory(QDir::currentPath());
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	if(dialog.exec()){
+           QStringList pathList;
+	   pathList = dialog.selectedFiles();
+	   path= pathList.at(0);
+	}
+	if(path.isEmpty()) return;
+	varFileLineEdit->setText(path); 
+	QFileInfo fileinfo(path);
+        QDir::setCurrent(fileinfo.dir().absolutePath());
+
+}
+
+
+void SpiceParametrizerDialog::set(){
+    bool changed;
+    if(prjData.varFilePath!=varFileLineEdit->text()) {
+	changed=true;
+	prjData.varFilePath=varFileLineEdit->text();
+    }
+    int recompJaco=(recomputeJaco->checkState()==Qt::Checked)? 1 :0;
+    if(prjData.filterTuneRecomputeJaco!=recompJaco) {changed=true; prjData.filterTuneRecomputeJaco=recompJaco;}
+    int recompError=(resetCentralConfig->checkState()==Qt::Checked)? 1 :0;
+    if(prjData.filterTuneRecomputeError!=recompError) {changed=true; prjData.filterTuneRecomputeError=recompError;}
+    int maxit=maxIterLineEdit->text().toInt();
+    if(prjData.filterTuneItermax!=maxit) { changed=true; prjData.filterTuneItermax=maxit;}
+
+    double tmp=xTolLineEdit->text().toDouble();
+    if(fabs(prjData.filterTuneXtol-tmp)>1.e-8) { changed=true; prjData.filterTuneXtol=tmp;}
+
+    tmp=trustRadiusLineEdit->text().toDouble();
+    if(fabs(prjData.filterTuneTrustR-tmp)>1.e-8) { changed=true; prjData.filterTuneTrustR=tmp;}
+
+    if(changed) prjData.saveSettings();
+    int err=parametrizer->check();
+    startButton->setEnabled(!err);
+}
+
+void SpiceParametrizerDialog::start(){
+ set();
+ setButton->setEnabled(false);
+ startButton->setEnabled(false);
+ closeButton->setEnabled(false);
+ parametrizer->receiver=parent;
+ parametrizer->start();
+ close();
+}
+
+void SpiceParametrizerDialog::atFilterTuneEnd(){
+ setButton->setEnabled(true);
+ startButton->setEnabled(true);
+ closeButton->setEnabled(true);
+}
+
+void SpiceParametrizerDialog::help()
+{
+    documentation.showDocumentation(QLatin1String("#page=49"));
+}
+
+
+void MainWindow::parametrizeSpice(){	
+  SpiceParametrizerDialog *parametrizeDialog=new SpiceParametrizerDialog(&parametrizer, this);
+  parametrizeDialog->init();
+  parametrizeDialog->show();
+}
+
+
+void SpiceParametrizer::run(){
+    QString script=QString(emcadPath);
+    #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+    #else
+       script.chop(9);
+       QString ext=".py";
+    #endif
+    script+="bin/parametrize_spice";
+    script=nativePath(script+ext);
+
+    QString ideal_cktName="ideal_filter";
+    QString mapped_cktName=prjData.mainAssName;
+    if(prjData.filtermapSource==ZEROPOLES) mapped_cktName=prjData.mainAssName+"_RM_mapped";
+    if(prjData.filtermapSource==IMPORTED_RESPONSE) mapped_cktName="imported_response_mapped";
+    if(prjData.filtermapSource==IMPORTED_CIRCUIT) mapped_cktName="imported_circuit";
+
+    QString workDir=mainWorkPath+"/Data/Circuits";
+    QProcess *proc=new QProcess;
+    proc->setWorkingDirectory(nativePath(workDir));
+
+    QString logFilePath=nativePath(workDir+QString("/")+QString("filter_tune.log"));
+    proc->setStandardErrorFile(logFilePath);
+
+    QStringList args;
+    args << QLatin1String("-varfile");
+    args << prjData.varFilePath;
+    QString tunerMethod;
+    tunerMethod.setNum(prjData.filterTuneMethod);
+    args << QLatin1String("-method");
+    args << tunerMethod;
+    QString filterTuneItermax; 
+    filterTuneItermax.setNum(prjData.filterTuneItermax);
+    args << QLatin1String("-maxiter");
+    args << filterTuneItermax;
+    QString xtol,trustd;
+    xtol.setNum(prjData.filterTuneXtol,'e',3);
+    trustd.setNum(prjData.filterTuneTrustR,'e',3);
+    args << QLatin1String("-xtol");
+    args << xtol;
+    args << QLatin1String("-trustd");
+    args << trustd;
+    if(prjData.filterTuneRecomputeJaco) args << QLatin1String("-recomputejaco");
+    if(prjData.filterTuneRecomputeError) args << QLatin1String("-recomputeerror");
+    args << QLatin1String("-ideal_cktname");
+    args << ideal_cktName;
+    args << QLatin1String("-mapped_cktname");
+    args << mapped_cktName;
+    QString Cmd=script+QString("  ")+args.join(QString(" "));
+    char *cmd=Cmd.toLatin1().data();
+/*
+*/
+    proc->start(script, args);
+    runStatus.runningTuner=true;
+    proc->waitForStarted();
+    proc->waitForFinished(-1);
+    msleep(100);
+    QString mssg;
+    if(proc->exitCode()==0){
+       mssg="Completed Filter Tuning";
+    }else if(proc->exitCode()==1){
+       mssg="Failed Filter Tuning" ;
+    }
+    emit(parametrizerEnd());
+}
+
+
+int SpiceParametrizer::check()
+{
+    QString script=QString(emcadPath);
+    #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+    #else
+       script.chop(9);
+       QString ext=".py";
+    #endif
+    script+="bin/parametrize_spice";
+    script=nativePath(script+ext);
+
+    QString ideal_cktName="ideal_filter";
+    QString mapped_cktName=prjData.mainAssName;
+    if(prjData.filtermapSource==ZEROPOLES) mapped_cktName=prjData.mainAssName+"_RM_mapped";
+    if(prjData.filtermapSource==IMPORTED_RESPONSE) mapped_cktName="imported_response_mapped";
+    if(prjData.filtermapSource==IMPORTED_CIRCUIT)  mapped_cktName="imported_circuit";
+
+    QString workDir=mainWorkPath+"/Data/Circuits";
+
+    if(!FileExists(prjData.varFilePath)) return -2;
+    QString idealParPath=nativePath(workDir+QString("/")+ideal_cktName+QString("_xpar.txt"));
+    if(!FileExists(idealParPath)) return -1;
+
+    QProcess *proc=new QProcess;
+    proc->setWorkingDirectory(nativePath(workDir));
+
+    QString logFilePath=nativePath(workDir+QString("/")+QString("filter_tune.log"));
+    proc->setStandardErrorFile(logFilePath);
+
+    QStringList args;
+    args << QLatin1String("-varfile");
+    args << prjData.varFilePath;
+    args << QLatin1String("-check");
+
+    args << QLatin1String("-ideal_cktname");
+    args << ideal_cktName;
+    args << QLatin1String("-mapped_cktname");
+    args << mapped_cktName;
+
+    QString Cmd=QString("cd  ")+workDir+QString("; ");
+    Cmd=Cmd+script+QString("  ")+args.join(QString(" "));
+    char *cmd=Cmd.toLatin1().data();
+    proc->start(script, args);
+    proc->waitForStarted();
+    proc->waitForFinished(-1);
+    msleep(100);
+    int ecode=proc->exitCode();
+    if(ecode==-1){
+       QString mssg="Ideal Filter not found. Please run \"Ideal Filter\" from \"Design\" menu";
+       sendLogMessage(mssg);
+    }else if(ecode==1){
+       QString mssg="Variables are not defined";
+       sendLogMessage(mssg);
+    }else if(ecode==2){
+       QString mssg="Tunable Circuit Parameters are not defined";
+       sendLogMessage(mssg);
+    }
+    return ecode;
+}
+
+
+
+
+
 void MainWindow::atDecomposerEnd()
 {
   runStatus.runningDecomposer=false;
@@ -5719,6 +6516,11 @@ void MainWindow::setConfig()
 }
 
 
+void MainWindow::setSymmetriesDialog()
+{
+  SymmetriesDialog *dialog=new SymmetriesDialog(this);
+  dialog->show();
+}
 
 
 void MainWindow::print()
@@ -5907,6 +6709,29 @@ void MainWindow::mapped_zeropolePlot()
   mapped_zeroPolePlot->show();
 }
 
+void MainWindow::api_login(){
+  if(!useAPI) return;
+  std::string username="";
+  if(FileExists(EmCADuser_filepath.c_str())){
+   ReadFile(EmCADuser_filepath, &EmCADuser);
+   username=EmCADuser[std::string("username")];
+  }
+  ApiLoginDialog *dialog=new ApiLoginDialog(username,this);
+  dialog->show();
+}
+
+
+void MainWindow::api_change_password(){
+  if(!useAPI) return;
+  std::string username="";
+  if(FileExists(EmCADuser_filepath.c_str())){
+   ReadFile(EmCADuser_filepath, &EmCADuser);
+   username=EmCADuser[std::string("username")];
+  }
+  ApiChangePasswdDialog *dialog=new ApiChangePasswdDialog(username,this);
+  dialog->show();
+}
+
 
 
 void MainWindow::accountStatus()
@@ -5936,28 +6761,27 @@ void MainWindow::createActions()
     abortAction->setEnabled(false);
     connect(abortAction, SIGNAL(triggered()), this, SLOT(abort()));
 
-    closeCompOrPartitionAction = new QAction(tr("&Close Component"), this);
-    closeCompOrPartitionAction->setShortcut(tr("Ctrl+U"));
-    connect(closeCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(closeCompOrPartition()));
-    closeCompOrPartitionAction->setEnabled(false);
+    closeComponentAction = new QAction(tr("&Close Component or Subdomain"), this);
+    closeComponentAction->setShortcut(tr("Ctrl+U"));
+    connect(closeComponentAction, SIGNAL(triggered()), this, SLOT(closeComp()));
+    closeComponentAction->setEnabled(false);
 
-    closeCompAndPartitionAction = new QAction(tr("&Close Component AND Partition"), this);
-    closeCompAndPartitionAction->setShortcut(tr("Ctrl+Shift+U"));
-    connect(closeCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(closeCompAndPartition()));
-    closeCompAndPartitionAction->setEnabled(false);
-
-    openCompOrPartitionAction = new QAction(tr("&Open Component"), this);
-    openCompOrPartitionAction->setShortcut(tr("Ctrl+O"));
-    connect(openCompOrPartitionAction, SIGNAL(triggered()), this, SLOT(openCompOrPartition()));
-    openCompOrPartitionAction->setEnabled(false);
-
-    openCompAndPartitionAction = new QAction(tr("&Open Component AND Partition"), this);
-    openCompAndPartitionAction->setShortcut(tr("Ctrl+Shift+O"));
-    connect(openCompAndPartitionAction, SIGNAL(triggered()), this, SLOT(openCompAndPartition()));
-    openCompAndPartitionAction->setEnabled(false);
+    openComponentAction = new QAction(tr("&Open Component  or Subdomain"), this);
+    openComponentAction->setShortcut(tr("Ctrl+O"));
+    connect(openComponentAction, SIGNAL(triggered()), this, SLOT(openComp()));
+    openComponentAction->setEnabled(false);
 
     viewConvergenceAction = new QAction(tr("&View Convergence"), this);
     connect(viewConvergenceAction, SIGNAL(triggered()), this, SLOT(viewConvergence()));
+
+    importProxyPacAction = new QAction(tr("&Import Proxy Pac file"), this);
+//    importProxyPacAction->setShortcut(tr("Ctrl+I"));
+    connect(importProxyPacAction, SIGNAL(triggered()), this, SLOT(importProxyPac()));
+
+    importApiPemAction = new QAction(tr("&Import certificate for modeler api"), this);
+//    importApiPemAction->setShortcut(tr("Ctrl+I"));
+    connect(importApiPemAction, SIGNAL(triggered()), this, SLOT(importApiPem()));
+
 
     importGeometryAction = new QAction(tr("&Import Geometry"), this);
     importGeometryAction->setShortcut(tr("Ctrl+I"));
@@ -6039,6 +6863,10 @@ void MainWindow::createActions()
     exportFilterTuneParAction->setEnabled(false);
     connect(exportFilterTuneParAction, SIGNAL(triggered()), this, SLOT(exportFilterTunePar()));
 
+    exportMappedShiftersAction = new QAction(tr("&Mapped Phase Shifters"), this);
+    exportMappedShiftersAction->setEnabled(false);
+    connect(exportMappedShiftersAction, SIGNAL(triggered()), this, SLOT(exportMappedShifters()));
+
 
     importADSprjAction = new QAction(tr("&Import ADS project"), this);
     connect(importADSprjAction, SIGNAL(triggered()), this, SLOT(importADSprj()));
@@ -6054,7 +6882,7 @@ void MainWindow::createActions()
     connect(newProjectAction, SIGNAL(triggered()), this, SLOT(newProject()));
 
     defaultBC_Action = new QAction(tr("Default Boundary Condition"), this);
-    defaultBC_Action->setEnabled(true);
+    defaultBC_Action->setEnabled(false);
     connect(defaultBC_Action, SIGNAL(triggered()), treeWidget, SLOT(setDefaultBCdialog()));
 
     saveAction = new QAction(tr("Save"), this);
@@ -6122,6 +6950,11 @@ void MainWindow::createActions()
     filterTuneAction->setEnabled(false);
     connect(filterTuneAction, SIGNAL(triggered()), this, SLOT(filterTune()));
 
+    parametrizeSpiceAction = new QAction(tr("&Parametrize Circuit"), this);
+    parametrizeSpiceAction->setStatusTip(tr("Circuit parametrizes are expressed as linear functions of geometrical variables"));
+    parametrizeSpiceAction->setEnabled(false);
+    connect(parametrizeSpiceAction, SIGNAL(triggered()), this, SLOT(parametrizeSpice()));
+
 
     filterDesignAction = new QAction(tr("&Ideal Filter"), this);
     filterDesignAction->setStatusTip(tr("Design an ideal filter circuit with a specified frequency response"));
@@ -6179,6 +7012,16 @@ void MainWindow::createActions()
     ideal_zeropolePlotAction->setEnabled(false);
     connect(ideal_zeropolePlotAction, SIGNAL(triggered()), this, SLOT(ideal_zeropolePlot()));
 
+    loginAction = new QAction(tr("&Login"), this);
+    loginAction->setStatusTip(tr("Login into EmCAD Modeler Service"));
+    loginAction->setEnabled(true);
+    connect(loginAction, SIGNAL(triggered()), this, SLOT(api_login()));
+
+    changePasswordAction = new QAction(tr("&Change Password"), this);
+    changePasswordAction->setStatusTip(tr("Change Login Password"));
+    changePasswordAction->setEnabled(true);
+    connect(changePasswordAction, SIGNAL(triggered()), this, SLOT(api_change_password()));
+
     accountStatusAction = new QAction(tr("&Account Status"), this);
     accountStatusAction->setStatusTip(tr("View Account Status"));
     accountStatusAction->setEnabled(true);
@@ -6189,11 +7032,18 @@ void MainWindow::createActions()
     connect(setCompPropertiesAction, SIGNAL(triggered()), treeWidget, SLOT(setCompPropertiesDialog()));
 
     defineMaterialAction = new QAction(tr("&Create/Modify"), this);
+    defineMaterialAction->setEnabled(false);
     connect(defineMaterialAction, SIGNAL(triggered()), treeWidget, SLOT(defineMaterialDialog()));
 
     assignMaterialAction = new QAction(tr("&Assign Material"), this);
     assignMaterialAction->setStatusTip(tr("Assign a Material to the Selected Item "));
     connect(assignMaterialAction, SIGNAL(triggered()), treeWidget, SLOT(assignMaterialDialog()));
+
+
+    symmetriesAction = new QAction(tr("&Symmetries"), this);
+    symmetriesAction->setStatusTip(tr("Apply Symmetry Conditions to coordinate planes"));
+    connect(symmetriesAction, SIGNAL(triggered()), this, SLOT(setSymmetriesDialog()));
+
 
     assignLayerAction = new QAction(tr("&Assign Layer"), this);
     assignLayerAction->setStatusTip(tr("Assign a Layer to the Selected Solid "));
@@ -6369,15 +7219,14 @@ void MainWindow::createMenus()
 		exportMenu->addAction( exportFreqResponseAction );
 		exportMenu->addAction( exportIdealResponseAction );
 		exportMenu->addAction( exportMappedResponseAction );
+		exportMenu->addAction( exportMappedShiftersAction );
 		exportMenu->addAction( exportIdealJCAction );
 		exportMenu->addAction( exportIdealSpiceAction );
 		exportMenu->addAction( exportMappedJCAction );
 		exportMenu->addAction( exportMappedSpiceAction );
 		exportMenu->addAction( exportFilterTuneParAction );
-	fileMenu->addAction( closeCompOrPartitionAction );
-	fileMenu->addAction( closeCompAndPartitionAction );
-	fileMenu->addAction(openCompOrPartitionAction);
-	fileMenu->addAction(openCompAndPartitionAction);
+	fileMenu->addAction( openComponentAction);
+	fileMenu->addAction( closeComponentAction );
 	fileMenu->addAction( closeAction );
 //	fileMenu->addAction( printAction );
 
@@ -6430,7 +7279,6 @@ void MainWindow::createMenus()
 		   plotZeroPoleMenu->addAction( mapped_zeropolePlotAction );
 		   plotZeroPoleMenu->addAction( ideal_zeropolePlotAction );
 		viewMenu->addSeparator();
-		viewMenu->addAction( accountStatusAction );
 	        viewMenu->addAction(viewConvergenceAction);
 
         editMenu = menuBar()->addMenu( tr("&Edit ") );
@@ -6440,6 +7288,7 @@ void MainWindow::createMenus()
 			editMaterialsMenu->addAction( defineMaterialAction );
 			editMaterialsMenu->addAction( assignMaterialAction );
 		        editMaterialsMenu->addAction( defaultBC_Action );
+		editMenu->addAction( symmetriesAction );
 		editLayersMenu = editMenu->addMenu( tr("&Layers") );
 			editLayersMenu->addAction( assignLayerAction );
 		editMenu->addSeparator();
@@ -6451,6 +7300,7 @@ void MainWindow::createMenus()
                 designsMenu = editMenu->addMenu( tr("&Designs ") );
 		       designsMenu->addAction( filterDesignAction );
 		       designsMenu->addAction( filterTuneAction );
+		       designsMenu->addAction( parametrizeSpiceAction );
                 analysesMenu = editMenu->addMenu( tr("&Analyses ") );
 		       analysesMenu->addAction( portModesAction );
 		       analysesMenu->addAction( freqAnaAction );
@@ -6458,8 +7308,13 @@ void MainWindow::createMenus()
 		       analysesMenu->addAction( filterMapAction );
 		editMenu->addAction(updateAction);
 		editMenu->addAction(abortAction);
-	editMenu->addSeparator();
-	editMenu->addAction( configAction );
+        adminMenu = menuBar()->addMenu( tr("&Admin ") );
+		adminMenu->addAction(loginAction );
+		adminMenu->addAction(changePasswordAction );
+		adminMenu->addAction(accountStatusAction );
+		adminMenu->addAction(importProxyPacAction);
+		adminMenu->addAction(importApiPemAction);
+//	        adminMenu->addAction(configAction );
 
 
     helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -6539,11 +7394,9 @@ void MainWindow::checkActions()
   saveAction->setEnabled(runStatus.projectIsOpen && prjData.projectName!=QString("Untitled") &&!runStatus.runningModeler &&!runStatus.runningMesher);
   closeAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
   openAction->setEnabled(!runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
-  closeCompOrPartitionAction->setEnabled(runStatus.projectIsOpen && (mainOCAF->EmP->level || mainOCAF->isPartition()));
-  closeCompAndPartitionAction->setEnabled(runStatus.projectIsOpen && (mainOCAF->EmP->level || mainOCAF->isPartition()));
-  openCompAndPartitionAction->setEnabled(runStatus.projectIsOpen &&  mainOCAF->EmP->assemblyType==COMPONENT && !mainOCAF->isPartition());
-  openCompOrPartitionAction->setEnabled(runStatus.projectIsOpen && mainOCAF->EmP->assemblyType==COMPONENT && !mainOCAF->isPartition());
-  viewConvergenceAction->setEnabled(runStatus.projectIsOpen &&  mainOCAF->EmP->assemblyType==COMPONENT && (mainOCAF->subCompNum==0  || mainOCAF->subComp>0  && mainOCAF->isPartition()));
+  closeComponentAction->setEnabled(runStatus.projectIsOpen && (mainOCAF->EmP->level || mainOCAF->subComp) );
+  openComponentAction->setEnabled(runStatus.projectIsOpen &&  (!mainOCAF->EmP->level || (mainOCAF->subCompNum>0 && !mainOCAF->subComp)));
+  viewConvergenceAction->setEnabled(runStatus.projectIsOpen &&  mainOCAF->EmP->assemblyType==COMPONENT && (mainOCAF->subCompNum==0  || mainOCAF->subComp>0));
 //  importDataDirAction->setEnabled(projectIsOpen);
   importGeometryAction->setEnabled(runStatus.projectIsOpen);
   importMaterialAction->setEnabled(runStatus.projectIsOpen);
@@ -6556,9 +7409,12 @@ void MainWindow::checkActions()
   exportIdealResponseAction->setEnabled(runStatus.projectIsOpen && hasIdealTS);
   exportFreqResponseAction->setEnabled(runStatus.projectIsOpen && hasFreqTS);
   exportMappedResponseAction->setEnabled(runStatus.projectIsOpen && hasMappedTS);
+  exportMappedShiftersAction->setEnabled(runStatus.projectIsOpen && hasFreqTS && hasMappedTS);
   exportMappedJCAction->setEnabled(runStatus.projectIsOpen && hasMappedJC);
   exportMappedSpiceAction->setEnabled(runStatus.projectIsOpen && hasMappedSP);
   decomposeAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && !mainOCAF->EmP->level && mainOCAF->prjStatus.partMaterials);
+  defaultBC_Action->setEnabled(!mainOCAF->EmP->level);
+  defineMaterialAction->setEnabled(!mainOCAF->EmP->level);
   meshAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && !mainOCAF->EmP->level && mainOCAF->prjStatus.partMaterials);
   reloadAction->setEnabled(runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher &&mainOCAF->EmP->hasGeo );
   meshViewAction->setEnabled(runStatus.projectIsOpen  &&!runStatus.runningDecomposer &&!runStatus.runningMesher);
@@ -6570,16 +7426,17 @@ void MainWindow::checkActions()
   imported_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasImportedTS);
   importedcircuit_responsePlotAction->setEnabled(runStatus.projectIsOpen && hasImpCircTS);
   ideal_zeropolePlotAction->setEnabled(runStatus.projectIsOpen && hasIdealSZP);
-  modelizeAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && mainOCAF->prjStatus.partMaterials && mainOCAF->prjStatus.wgPorts &&!preproc.failure());
-  portModesAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && mainOCAF->prjStatus.partMaterials);
-  freqAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher );
-  zeropoleAnaAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher);
-  filterDesignAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
-  filterMapAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
-  filterTuneAction->setEnabled(runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && (prjData.filtermapSource==IMPORTED_CIRCUIT) || hasFiltInp);
-  updateAction->setEnabled (runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher &&!preproc.failure());
+  modelizeAction->setEnabled ((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && mainOCAF->prjStatus.partMaterials && mainOCAF->prjStatus.wgPorts &&!preproc.failure());
+  portModesAction->setEnabled ((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher  && mainOCAF->prjStatus.partMaterials);
+  freqAnaAction->setEnabled ((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher );
+  zeropoleAnaAction->setEnabled ((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher);
+  filterDesignAction->setEnabled((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
+  filterMapAction->setEnabled((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
+  filterTuneAction->setEnabled((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher && (prjData.filtermapSource==IMPORTED_CIRCUIT || hasFiltInp ));
+  parametrizeSpiceAction->setEnabled((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen && !runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher);
+  updateAction->setEnabled ((modelerIsAvailable||!useAPI) && runStatus.projectIsOpen &&!runStatus.runningDecomposer &&!runStatus.runningModeler  &&!runStatus.runningMesher &&!preproc.failure());
   exitAction->setEnabled(!runStatus.runningDecomposer &&!runStatus.runningModeler &&!runStatus.runningMesher );
-  abortAction->setEnabled(runStatus.runningModeler);
+  abortAction->setEnabled((API_loggedIn||!useAPI) && runStatus.runningModeler);
 }
 
 /*
@@ -6733,13 +7590,21 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      f1LineEdit->setFixedWidth(150);
      f2LineEdit->setFixedWidth(150);
 
+     QLabel *krylovLabel= new QLabel();
+     krylovLabel->setText(tr("Interpolation Order:"));
+
+     QIntValidator *krylovOrderValidator = new QIntValidator(this);
+     krylovOrderValidator->setRange(1,6);
+     krylovLineEdit = new QLineEdit();
+     krylovLineEdit->setFixedWidth(150);
+     krylovLineEdit->setText(QString("%1").arg(prjData.KrylovOrder));
+     krylovLineEdit->setValidator(krylovOrderValidator);
+
+
 //****************************************
 //   SubDomain Modelization
      QLabel *subDomainLabel= new QLabel();
      subDomainLabel->setText(tr("SUBDOMAIN MODELIZATION AND RESONANCE SEARCH"));
-
-     QLabel *krylovLabel= new QLabel();
-     krylovLabel->setText(tr("Interpolation Order:"));
 
      QLabel *MORFreqNumLabel= new QLabel();
      MORFreqNumLabel->setText(tr("Interpol Freq Points:"));
@@ -6757,13 +7622,6 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      MORFreqNumLineEdit->setValidator(morFreqNumValidator);
      MORFreqNumLineEdit->setFixedWidth(150);
 
-     QIntValidator *krylovOrderValidator = new QIntValidator(this);
-     krylovOrderValidator->setRange(1,6);
-     krylovLineEdit = new QLineEdit();
-     krylovLineEdit->setFixedWidth(150);
-     krylovLineEdit->setText(QString("%1").arg(prjData.KrylovOrder));
-     krylovLineEdit->setValidator(krylovOrderValidator);
-     
      QDoubleValidator *rfRatioValidator = new QDoubleValidator(this);
      rfRatioValidator->setRange(1,1.5,2);
           
@@ -6854,12 +7712,12 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QDoubleValidator *meshRefinementValidator = new QDoubleValidator(this);
      meshRefinementValidator->setRange(1,50,1);
 
-     QLabel *sharedMeshRefineLabel= new QLabel();
-     sharedMeshRefineLabel->setText(tr("Shared Mesh Refinement:"));
-     sharedMeshRefineLineEdit = new QLineEdit();
-     sharedMeshRefineLineEdit->setText(QString("%1").arg(prjData.sharedMeshRefine, 0, 'f', 1));
-     sharedMeshRefineLineEdit->setValidator(meshRefinementValidator);
-     sharedMeshRefineLineEdit->setFixedWidth(150);
+     QLabel *sharedMeshSizeLabel= new QLabel();
+     sharedMeshSizeLabel->setText(tr("Interface Mesh/Wavelength:"));
+     sharedMeshSizeLineEdit = new QLineEdit();
+     sharedMeshSizeLineEdit->setText(QString("%1").arg(prjData.sharedMeshPerWavelen));
+     sharedMeshSizeLineEdit->setValidator(meshRefinementValidator);
+     sharedMeshSizeLineEdit->setFixedWidth(150);
 
      localMeshing3dCB=new QCheckBox("Local 3D Meshing", this);
      if(prjData.localMeshing3d)  localMeshing3dCB->setCheckState(Qt::Checked);
@@ -6902,7 +7760,7 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      meshTetMaxNumLineEdit->setFixedWidth(150);   
 
      QLabel *meshMinEnergyRatioLabel= new QLabel();
-     meshMinEnergyRatioLabel->setText(tr("Mesh Refinement Threshold [dB]:"));
+     meshMinEnergyRatioLabel->setText(tr("Refinement Error Energy Ratio [dB]:"));
      QDoubleValidator *meshMinEnergyRatioValidator = new QDoubleValidator(this);
      meshMinEnergyRatioValidator->setRange(0,50,1);
      meshMinEnergyRatioLineEdit = new QLineEdit();
@@ -6930,10 +7788,12 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QGridLayout *freqLayout = new QGridLayout();
 //     freqLayout->setColumnMinimumWidth(1,30);
 
-     freqLayout->addWidget(freqBandLabel, 1, 0);
-     freqLayout->addWidget(f1LineEdit,2, 0);
-     freqLayout->addWidget(bandSepLabel,2, 1);
-     freqLayout->addWidget(f2LineEdit,2, 2);
+     freqLayout->addWidget(freqBandLabel, 0, 0);
+     freqLayout->addWidget(f1LineEdit,1, 0);
+     freqLayout->addWidget(bandSepLabel,1, 1);
+     freqLayout->addWidget(f2LineEdit,1, 2);
+     freqLayout->addWidget(krylovLabel, 2, 0);
+     freqLayout->addWidget(krylovLineEdit, 2, 2);
 
 
      QGroupBox *freqGroupBox=new QGroupBox();
@@ -6943,40 +7803,38 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QGridLayout *subdomLayout = new QGridLayout();
 
      subdomLayout->addWidget(subDomainLabel, 0, 0);
-     subdomLayout->addWidget(krylovLabel, 1, 0);
-     subdomLayout->addWidget(krylovLineEdit, 1, 2);
+     subdomLayout->addWidget(rFreqBandLabel, 1, 0);
+     subdomLayout->addWidget(rfRatioLineEdit,1, 2);     
      subdomLayout->addWidget(MORFreqNumLabel, 2, 0);
      subdomLayout->addWidget(MORFreqNumLineEdit, 2, 2);
-     subdomLayout->addWidget(rFreqBandLabel, 3, 0);
-     subdomLayout->addWidget(rfRatioLineEdit,3, 2);     
-     subdomLayout->addWidget(MORFreqNum1Label, 4, 0);
-     subdomLayout->addWidget(MORFreqNum1LineEdit, 4, 2);
+     subdomLayout->addWidget(MORFreqNum1Label, 3, 0);
+     subdomLayout->addWidget(MORFreqNum1LineEdit, 3, 2);
 
      QGroupBox *subdomGroupBox=new QGroupBox();
      subdomGroupBox->setLayout(subdomLayout);
 
 //---------------     
      QGridLayout *compLayout = new QGridLayout();
-     compLayout->addWidget(compModLabel, 6, 0);
-     compLayout->addWidget(CMP_rFreqBandLabel, 7, 0);
-     compLayout->addWidget(CMP_rfRatioLineEdit,7, 2);     
-     compLayout->addWidget(CMP_MORFreqNumLabel, 8, 0);
-     compLayout->addWidget(CMP_MORFreqNumLineEdit, 8, 2);
-     compLayout->addWidget(CMP_MORFreqNum1Label, 9, 0);
-     compLayout->addWidget(CMP_MORFreqNum1LineEdit, 9, 2);
+     compLayout->addWidget(compModLabel, 0, 0);
+     compLayout->addWidget(CMP_rFreqBandLabel, 1, 0);
+     compLayout->addWidget(CMP_rfRatioLineEdit,1, 2);     
+     compLayout->addWidget(CMP_MORFreqNumLabel, 2, 0);
+     compLayout->addWidget(CMP_MORFreqNumLineEdit, 2, 2);
+     compLayout->addWidget(CMP_MORFreqNum1Label, 3, 0);
+     compLayout->addWidget(CMP_MORFreqNum1LineEdit, 3, 2);
 
      QGroupBox *compGroupBox=new QGroupBox();
      compGroupBox->setLayout(compLayout);
 
 //---------------     
      QGridLayout *netLayout = new QGridLayout();
-     netLayout->addWidget(netModLabel, 10, 0);
-     netLayout->addWidget(NET_rFreqBandLabel, 11, 0);
-     netLayout->addWidget(NET_rfRatioLineEdit,11, 2);     
-     netLayout->addWidget(NET_MORFreqNumLabel, 12, 0);
-     netLayout->addWidget(NET_MORFreqNumLineEdit, 12, 2);
-     netLayout->addWidget(NET_MORFreqNum1Label, 13, 0);
-     netLayout->addWidget(NET_MORFreqNum1LineEdit, 13, 2);
+     netLayout->addWidget(netModLabel, 0, 0);
+     netLayout->addWidget(NET_rFreqBandLabel, 1, 0);
+     netLayout->addWidget(NET_rfRatioLineEdit,1, 2);     
+     netLayout->addWidget(NET_MORFreqNumLabel, 2, 0);
+     netLayout->addWidget(NET_MORFreqNumLineEdit, 2, 2);
+     netLayout->addWidget(NET_MORFreqNum1Label, 3, 0);
+     netLayout->addWidget(NET_MORFreqNum1LineEdit, 3, 2);
 
      QGroupBox *netGroupBox=new QGroupBox();
      netGroupBox->setLayout(netLayout);
@@ -6987,8 +7845,8 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
 
      otherLayout->addWidget(meshSizeLabel, 0, 0);
      otherLayout->addWidget(meshSizeLineEdit, 0, 2);
-     otherLayout->addWidget(sharedMeshRefineLabel, 1, 0);
-     otherLayout->addWidget(sharedMeshRefineLineEdit, 1, 2);
+     otherLayout->addWidget(sharedMeshSizeLabel, 1, 0);
+     otherLayout->addWidget(sharedMeshSizeLineEdit, 1, 2);
      otherLayout->addWidget(cutoffLabel, 2, 0);
      otherLayout->addWidget(cutoffLineEdit, 2, 2);
      otherLayout->addWidget(meshPerCircleLabel, 3, 0);
@@ -7096,8 +7954,8 @@ void SetGlobalsDialog::set(){
       int ms=meshSizeLineEdit->text().toInt();
       if(prjData.meshPerWavelen!=ms) { prjData.meshPerWavelen=ms; changed=true; prjData.workStatus.remeshNeeded=1;}
 
-      double sms=sharedMeshRefineLineEdit->text().toDouble();
-      if(fabs(prjData.sharedMeshRefine-sms)>1.e-4) { prjData.sharedMeshRefine=sms; changed=true; prjData.workStatus.remeshNeeded=1;}
+      int sms=sharedMeshSizeLineEdit->text().toInt();
+      if(prjData.sharedMeshPerWavelen!=sms) { prjData.sharedMeshPerWavelen=sms; changed=true; prjData.workStatus.remeshNeeded=1;}
 
       int mc=meshPerCircleLineEdit->text().toInt();
       if(prjData.meshPerCircle!=mc) { prjData.meshPerCircle=mc; changed=true; prjData.workStatus.remeshNeeded=1;}
@@ -7171,23 +8029,9 @@ ConfigDialog::ConfigDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(pa
      AWS_bucket_LineEdit = new QLineEdit();
      AWS_bucket_LineEdit->setText(QString(emcadConfig[std::string("AWS_bucket")].c_str()));
 
-     QLabel *AWS_access_key_id_Label= new QLabel();
-     AWS_access_key_id_Label->setText(tr("AWS access key :"));
-     AWS_access_key_id_LineEdit = new QLineEdit();
-     AWS_access_key_id_LineEdit->setText(QString(botoConfig[std::string("aws_access_key_id")].c_str()));
-
-     QLabel *AWS_secret_access_key_Label= new QLabel();
-     AWS_secret_access_key_Label->setText(tr("AWS secret access key :"));
-     AWS_secret_access_key_LineEdit = new QLineEdit();
-     AWS_secret_access_key_LineEdit->setText(QString(botoConfig[std::string("aws_secret_access_key")].c_str()));
-
      QGridLayout *configLayout = new QGridLayout();
      configLayout->addWidget(AWS_bucket_Label, 0, 0);
      configLayout->addWidget(AWS_bucket_LineEdit,0, 1);
-     configLayout->addWidget(AWS_access_key_id_Label, 1, 0);
-     configLayout->addWidget(AWS_access_key_id_LineEdit,1, 1);
-     configLayout->addWidget(AWS_secret_access_key_Label, 2, 0);
-     configLayout->addWidget(AWS_secret_access_key_LineEdit,2, 1);
      QGroupBox *configGroupBox=new QGroupBox();
      configGroupBox->setLayout(configLayout);
 
@@ -7228,28 +8072,337 @@ void ConfigDialog::help()
 
 void ConfigDialog::set(){
   bool emcad_changed=false;
-  bool boto_changed=false;
   std::string tmp;
 
   tmp=std::string(AWS_bucket_LineEdit->text().toLatin1());
   if(tmp!=emcadConfig[std::string("AWS_bucket")]) { emcadConfig[std::string("AWS_bucket")]=tmp; emcad_changed=true;}
 
-  if(emcad_changed) WriteFile(config_filename, &emcadConfig);
-
-  tmp=std::string(AWS_access_key_id_LineEdit->text().toLatin1());
-  if(tmp!=botoConfig[std::string("aws_access_key_id")]) { botoConfig[std::string("aws_access_key_id")]=tmp; boto_changed=true;}
-
-  tmp=std::string(AWS_secret_access_key_LineEdit->text().toLatin1());
-  if(tmp!=botoConfig[std::string("aws_secret_access_key")]) { botoConfig[std::string("aws_secret_access_key")]=tmp; boto_changed=true;}
-
-  if(boto_changed) WriteBoto();
+  if(emcad_changed) WriteFile(config_filepath, &emcadConfig);
 }
+
+
+
+QSize ApiChangePasswdDialog::sizeHint() const
+{
+     QSize size = QSize(700,300);
+     return size;
+}
+
+
+ApiChangePasswdDialog::ApiChangePasswdDialog(std::string username, MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
+{
+     setWindowTitle("Login at Modeler Service");
+     mainw=parent;
+     QLabel *username_Label= new QLabel();
+     username_Label->setText(tr("Username"));
+     username_LineEdit = new QLineEdit();
+     if(username.empty())
+        username_LineEdit->setPlaceholderText("Please enter your username");
+     else
+        username_LineEdit->setText(username.c_str());
+
+     QLabel *password_Label= new QLabel();
+     password_Label->setText(tr("Current Password"));
+     password_LineEdit = new QLineEdit();
+     password_LineEdit->setPlaceholderText("Please enter the current password");
+
+     QLabel *newPassword_Label= new QLabel();
+     newPassword_Label->setText(tr("Current Password"));
+     newPassword_LineEdit = new QLineEdit();
+     newPassword_LineEdit->setPlaceholderText("Please enter the new password");
+
+     QLabel *checkPassword_Label= new QLabel();
+     checkPassword_Label->setText(tr("Current Password"));
+     checkPassword_LineEdit = new QLineEdit();
+     checkPassword_LineEdit->setPlaceholderText("Please reenter the new password");
+
+
+     QGridLayout *loginLayout = new QGridLayout();
+     loginLayout->addWidget(username_Label, 0, 0);
+     loginLayout->addWidget(username_LineEdit,0, 1);
+     loginLayout->addWidget(password_Label, 1, 0);
+     loginLayout->addWidget(password_LineEdit,1, 1);
+     loginLayout->addWidget(newPassword_Label, 2, 0);
+     loginLayout->addWidget(newPassword_LineEdit,2, 1);
+     loginLayout->addWidget(checkPassword_Label, 3, 0);
+     loginLayout->addWidget(checkPassword_LineEdit,3, 1);
+     QGroupBox *loginGroupBox=new QGroupBox();
+     loginGroupBox->setLayout(loginLayout);
+
+//****************************************
+//   control buttons:
+//
+     setButton = new QPushButton(tr("Set"));
+     setButton->resize(1.5,3);
+     setButton->setEnabled(false);
+     QPushButton *closeButton =new QPushButton(tr("Close"));
+     closeButton->resize(1.5,3);
+     QPushButton *helpButton  = new QPushButton(tr("Help"));
+     helpButton->resize(1.5,3);
+
+     QHBoxLayout *buttonLayout = new QHBoxLayout();
+     buttonLayout->addWidget(setButton);
+     buttonLayout->addWidget(closeButton);
+     buttonLayout->addWidget(helpButton);
+
+     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
+     buttonGroupBox->setLayout(buttonLayout);
+
+     connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(set()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(close()));
+     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+
+
+     connect(username_LineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(updateSetButton(const QString &)));
+     connect(password_LineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(updateSetButton(const QString &)));
+     connect(newPassword_LineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(updateSetButton(const QString &)));
+     connect(checkPassword_LineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(updateSetButton(const QString &)));
+
+//****************************************
+//   message:
+     msg=new QTextEdit();
+     msg->setReadOnly(true);
+
+     setFocusPolicy(Qt::StrongFocus);
+
+     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(loginGroupBox);
+     mainLayout->addWidget(buttonGroupBox);
+     mainLayout->addWidget(msg);
+}
+
+
+void ApiChangePasswdDialog::help()
+{
+    documentation.showDocumentation(QLatin1String("#1"));
+}
+
+void ApiChangePasswdDialog::updateSetButton(const QString &text){
+  bool disabled=username_LineEdit->text().isEmpty()||
+               password_LineEdit->text().isEmpty()||
+               newPassword_LineEdit->text().isEmpty()||
+               checkPassword_LineEdit->text()!=newPassword_LineEdit->text();
+  setButton->setEnabled(!disabled);
+}
+
+void ApiChangePasswdDialog::set(){
+    QString script=QString(emcadPath);
+    #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+    #else
+       script.chop(9);
+       QString ext=".py";
+    #endif
+    script+="bin/api_change_password";
+    script=nativePath(script+ext);
+    QString workDir=configdir.c_str();
+
+    QProcess *proc=new QProcess;
+    QString logFilePath=nativePath(workDir+QString("/")+QString("change_password.log"));
+    proc->setStandardErrorFile(logFilePath);
+
+    QStringList args;
+
+    args << QLatin1String("-username");
+    args << username_LineEdit->text();
+    args << QLatin1String("-password");
+    args << password_LineEdit->text();
+    args << QLatin1String("-newpassword");
+    args << newPassword_LineEdit->text();
+    args << QLatin1String("-userfile");
+    args << QLatin1String(EmCADuser_filepath.c_str());
+    if(FileExists(proxy_filepath.c_str())){
+       args << QString("-proxyPacFile");
+       args << QString(proxy_filepath.c_str());
+    } 
+    if(FileExists(api_pem_filepath.c_str())){
+       args << QString("-apiPemFile");
+       args << QString(api_pem_filepath.c_str());
+    } 
+    QString Cmd=script+QString("  ")+args.join(QString(" "));
+    char *cmd=Cmd.toLatin1().data();
+    proc->start(script, args);
+    proc->waitForStarted();
+    proc->waitForFinished(-1);
+    msleep(100);
+    int ecode=proc->exitCode();
+    if(ecode==0 && FileExists(EmCADuser_filepath.c_str())){
+	msg->setText("Password Changed");
+	ReadFile(EmCADuser_filepath, &EmCADuser);
+        API_loggedIn=!(EmCADuser[std::string("id_token")]).empty();
+        mainWindow->updateAccountCredit();
+    } else  {
+	API_loggedIn=false;
+	QFile logfile(logFilePath);
+	if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	    QTextStream logtext(&logfile);
+	    QString logline=logtext.readLine();
+            QString msg1;
+	    while(!logline.isNull()){
+	      msg1+="\n\t"+logline;
+	      logline=logtext.readLine();
+	    }
+            logfile.close();
+	    msg->setText(msg1);
+	}
+    }
+    mainWindow->setModelerStatus();
+}
+
+
+
+
+
+QSize ApiLoginDialog::sizeHint() const
+{
+     QSize size = QSize(700,300);
+     return size;
+}
+
+
+ApiLoginDialog::ApiLoginDialog(std::string username, MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
+{
+     setWindowTitle("Login at Modeler Service");
+     mainw=parent;
+     QLabel *username_Label= new QLabel();
+     username_Label->setText(tr("Username"));
+     username_LineEdit = new QLineEdit();
+     if(username.empty())
+        username_LineEdit->setPlaceholderText("Please enter your username");
+     else
+        username_LineEdit->setText(username.c_str());
+
+     QLabel *password_Label= new QLabel();
+     password_Label->setText(tr("Password"));
+     password_LineEdit = new QLineEdit();
+     password_LineEdit->setPlaceholderText("Please enter your password");
+
+     QGridLayout *loginLayout = new QGridLayout();
+     loginLayout->addWidget(username_Label, 0, 0);
+     loginLayout->addWidget(username_LineEdit,0, 1);
+     loginLayout->addWidget(password_Label, 1, 0);
+     loginLayout->addWidget(password_LineEdit,1, 1);
+     QGroupBox *loginGroupBox=new QGroupBox();
+     loginGroupBox->setLayout(loginLayout);
+
+//****************************************
+//   control buttons:
+//
+     QPushButton *loginButton = new QPushButton(tr("Login"));
+     loginButton->resize(1.5,3);
+     QPushButton *closeButton =new QPushButton(tr("Close"));
+     closeButton->resize(1.5,3);
+     QPushButton *helpButton  = new QPushButton(tr("Help"));
+     helpButton->resize(1.5,3);
+
+     QHBoxLayout *buttonLayout = new QHBoxLayout();
+     buttonLayout->addWidget(loginButton);
+     buttonLayout->addWidget(closeButton);
+     buttonLayout->addWidget(helpButton);
+
+     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
+     buttonGroupBox->setLayout(buttonLayout);
+
+     connect(loginButton, SIGNAL(clicked()), this, SLOT(login()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(login()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(close()));
+     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+
+//****************************************
+//   message:
+     msg=new QTextEdit();
+     msg->setReadOnly(true);
+
+     setFocusPolicy(Qt::StrongFocus);
+
+     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(loginGroupBox);
+     mainLayout->addWidget(buttonGroupBox);
+     mainLayout->addWidget(msg);
+}
+
+void ApiLoginDialog::help()
+{
+    documentation.showDocumentation(QLatin1String("#1"));
+}
+
+void ApiLoginDialog::login(){
+    QString script=QString(emcadPath);
+    #ifdef WNT
+       script.chop(13);
+       QString ext=".exe";
+    #else
+       script.chop(9);
+       QString ext=".py";
+    #endif
+    script+="bin/api_login";
+    script=nativePath(script+ext);
+    QString workDir=configdir.c_str();
+
+    QProcess *proc=new QProcess;
+    QString logFilePath=nativePath(workDir+QString("/")+QString("login.log"));
+    proc->setStandardErrorFile(logFilePath);
+
+    QStringList args;
+
+    args << QLatin1String("-username");
+    args << username_LineEdit->text();
+    args << QLatin1String("-password");
+    args << password_LineEdit->text();
+    args << QLatin1String("-userfile");
+    args << QLatin1String(EmCADuser_filepath.c_str());
+    if(FileExists(proxy_filepath.c_str())){
+       args << QString("-proxyPacFile");
+       args << QString(proxy_filepath.c_str());
+    } 
+    if(FileExists(api_pem_filepath.c_str())){
+       args << QString("-apiPemFile");
+       args << QString(api_pem_filepath.c_str());
+    } 
+    QString Cmd=script+QString("  ")+args.join(QString(" "));
+    char *cmd=Cmd.toLatin1().data();
+    proc->start(script, args);
+    proc->waitForStarted();
+    proc->waitForFinished(-1);
+    msleep(100);
+    int ecode=proc->exitCode();
+    if(ecode==0 && FileExists(EmCADuser_filepath.c_str())){
+	msg->setText("Success");
+	ReadFile(EmCADuser_filepath, &EmCADuser);
+        API_loggedIn=!(EmCADuser[std::string("id_token")]).empty();
+        mainWindow->updateAccountCredit();
+    } else if(ecode==10)  {
+	API_loggedIn=false;
+        msg->setText("NEW PASSWORD REQUIRED\nPlease use Command Change Password from Admin Menu");
+    } else  {
+	API_loggedIn=false;
+	QFile logfile(logFilePath);
+	if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	    QTextStream logtext(&logfile);
+	    QString logline=logtext.readLine();
+            QString msg1;
+	    while(!logline.isNull()){
+	      msg1+="\n\t"+logline;
+	      logline=logtext.readLine();
+	    }
+            logfile.close();
+	    msg->setText(msg1);
+	}
+    }
+    mainWindow->setModelerStatus();
+}
+
 
 
 AccountStatusDialog::AccountStatusDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
 {
      mainw=parent;
      setWindowTitle("Account Status");
+  
+     mainWindow->api_renew_if_expired();
+     mainWindow->updateAccountCredit();
 
      QLabel *credit_Label= new QLabel();
      credit_Label->setText(tr("Credit :"));
@@ -7266,22 +8419,18 @@ AccountStatusDialog::AccountStatusDialog(MainWindow * parent, Qt::WindowFlags f 
 //****************************************
 //   control buttons:
 //
-     QPushButton *updateButton = new QPushButton(tr("Update"));
-     updateButton->resize(1.5,3);
      QPushButton *closeButton =new QPushButton(tr("Close"));
      closeButton->resize(1.5,3);
      QPushButton *helpButton  = new QPushButton(tr("Help"));
      helpButton->resize(1.5,3);
 
      QHBoxLayout *buttonLayout = new QHBoxLayout();
-     buttonLayout->addWidget(updateButton);
      buttonLayout->addWidget(closeButton);
      buttonLayout->addWidget(helpButton);
 
      QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
      buttonGroupBox->setLayout(buttonLayout);
 
-     connect(updateButton, SIGNAL(clicked()), this, SLOT(updateCredit()));
      connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
      connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
 
@@ -7297,11 +8446,6 @@ void AccountStatusDialog::help()
     documentation.showDocumentation(QLatin1String("#1"));
 }
 
-void AccountStatusDialog::updateCredit(){
-  mainw->updateAccountCredit();
-  if(FileExists(account_filename.c_str())) ReadFile(account_filename, &emcadAccount);
-  credit_LineEdit->setText(QString(emcadAccount[std::string("credit")].c_str())+QString(" $"));
-}
 
 //void FreqAnaDialog::updateParType(int i) {freqRespParType=(FreqRespParType) i;}
 
@@ -7599,15 +8743,13 @@ ZeroPoleDialog::ZeroPoleDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialo
      zeroCurvesTW->setHorizontalHeaderItem(1, Sij_header2);
      zeroCurvesTW->verticalHeader()->hide();
      
-     int SijCurveNum=prjData.zeropoleCurves.size()-1;
-     SijCurveNumSB->setValue(SijCurveNum); 
+     getPrjData();
 
      QGridLayout *SijLayout = new QGridLayout();
      SijLayout->addWidget(zeroParNumLabel, 0, 0);
      SijLayout->addWidget(SijCurveNumSB,   0, 1);
      SijLayout->addWidget(zeroCurvesTW,    1, 0, 1, 2);
 
-     getPrjData();
 
      QGroupBox *SijBox=new QGroupBox(tr("S Par Zeros Selection:"));
      SijBox->setLayout(SijLayout);
@@ -7667,7 +8809,7 @@ ZeroPoleDialog::ZeroPoleDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialo
      connect(startButton,  SIGNAL(clicked()), this, SLOT(start()));
      connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
      connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
-     connect(SijCurveNumSB, SIGNAL( valueChanged (int) ), this, SLOT(setSijCurveNum(int)) );
+     connect(SijCurveNumSB, SIGNAL( valueChanged (int) ), this, SLOT(slotSetSijCurveNum(int)) );
      connect(circuitChooser, SIGNAL(currentIndexChanged(int)), this, SLOT(onCircuitChanged(int)));
 
      setFocusPolicy(Qt::StrongFocus);
@@ -7715,6 +8857,9 @@ void ZeroPoleDialog::onCircuitChanged(int circi)
          automatic->setCheckState(Qt::Unchecked);
 }
 
+void ZeroPoleDialog::slotSetSijCurveNum(int n){
+ setSijCurveNum(n);
+}
 
 void ZeroPoleDialog::setSijCurveNum(int n){
 	zeroCurvesTW->setRowCount(n);
@@ -7728,16 +8873,17 @@ void ZeroPoleDialog::setSijCurveNum(int n){
               zeroCurvesTW->setCellWidget(i,j,spb);
   	   }
 	}
-	getPrjData();
-/*
-	int n1=min(n,prjData.zeropoleCurves.size()-definedpole);
-        for (int i = n1; i <n; ++i){
-           for (int j = 0; j <2; ++j){
-              QLineEdit* fle = (QLineEdit*) zeroCurvesTW->cellWidget(i,j);
-              fle->setText(QString("%1").arg(prjData.anaFreqBand[j], 0, 'f', 5));
-  	   }
-	}
-*/
+        int ic=0;
+        for ( ZeroPoleCurvesIterator it=prjData.zeropoleCurves.begin(); it!= prjData.zeropoleCurves.end(); it++) 
+         if(ic<zeroCurvesTW->rowCount()) 
+           if((*it).first!=0 && (*it).second!=0){
+             for (int j = 0; j <2; ++j){
+               QSpinBox *spb = (QSpinBox*) zeroCurvesTW->cellWidget(ic,j);
+	       if(j==0) spb->setValue((*it).first);
+	       if(j==1) spb->setValue((*it).second);
+              }
+              ic++;
+           }
 }
 
 void ZeroPoleDialog::getPrjData(){
@@ -7750,16 +8896,10 @@ void ZeroPoleDialog::getPrjData(){
      f2LineEdit->setText(QString("%1").arg(prjData.zpFreqBand[1], 0, 'f', 5));
      winRatioLineEdit->setText(QString("%1").arg(prjData.zpWinRatio, 0, 'f', 5));
 
-     int ic=0;
-     for ( ZeroPoleCurvesIterator it=prjData.zeropoleCurves.begin(); it!= prjData.zeropoleCurves.end(); it++) 
-      if(ic<zeroCurvesTW->rowCount()) if((*it).first!=0 && (*it).second!=0){
-        for (int j = 0; j <2; ++j){
-         QSpinBox *spb = (QSpinBox*) zeroCurvesTW->cellWidget(ic,j);
-	 if(j==0) spb->setValue((*it).first);
-	 if(j==1) spb->setValue((*it).second);
-        }
-        ic++;
-      }
+     int SijCurveNum=prjData.zeropoleCurves.size()-1;
+     SijCurveNumSB->setValue(SijCurveNum);
+     setSijCurveNum(SijCurveNum);
+
 }
 
 void ZeroPoleDialog::setInitialScale(){
@@ -8400,6 +9540,7 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      filterTypeChooser = new QComboBox();
      filterTypeChooser->addItem(tr("Chebyshev"));
      filterTypeChooser->addItem(tr("Maximally Flat"));
+     filterTypeChooser->addItem(tr("Papoulis"));
      filterTypeChooser->setCurrentIndex(prjData.idealFilterType);
 
 
@@ -8844,12 +9985,18 @@ void FilterDesignDialog::setTxZerosNum(int n){
 	int n0=txZeros->rowCount();
 	txZeros->setRowCount(n);
         for (int i = n0; i <n; ++i){
-              QLineEdit* ler = new QLineEdit();
-	      ler->setValidator(freqvalidator);
-              txZeros->setCellWidget(i,0,ler);
-              QLineEdit* lei = new QLineEdit();
-	      lei->setValidator(freqvalidator);
-              txZeros->setCellWidget(i,1,lei);
+              QLineEdit* ler = (QLineEdit*) txZeros->cellWidget(i,0);
+	      if(!ler){
+                ler = new QLineEdit();
+	        ler->setValidator(freqvalidator);
+                txZeros->setCellWidget(i,0,ler);
+	      }
+              QLineEdit* lei = (QLineEdit*) txZeros->cellWidget(i,1);
+	      if(!lei){
+                 lei = new QLineEdit();
+	         lei->setValidator(freqvalidator);
+                 txZeros->setCellWidget(i,1,lei);
+	      }
 	}
 }
 
@@ -9182,7 +10329,103 @@ void FilterMapDialog::help()
 }
 
 
+//*************
+SymmetriesDialog::SymmetriesDialog(MainWindow * parent, Qt::WindowFlags f ) : QDialog(parent, f)
+{
+     mainw=parent;
+     setModal(0);
 
+     QLabel *XYplaneSymmetryLabel= new QLabel();
+     XYplaneSymmetryLabel->setText(tr("XY Plane Symmetry:"));
+     XYplaneSymmetry = new QComboBox();
+     XYplaneSymmetry->addItem(tr("NONE"));
+     XYplaneSymmetry->addItem(tr("ELECTRIC"));
+     XYplaneSymmetry->addItem(tr("MAGNETIC"));
+     XYplaneSymmetry->setCurrentIndex(prjData.XYplaneSymmetry);
+
+
+     QLabel *YZplaneSymmetryLabel= new QLabel();
+     YZplaneSymmetryLabel->setText(tr("YZ Plane Symmetry:"));
+     YZplaneSymmetry = new QComboBox();
+     YZplaneSymmetry->addItem(tr("NONE"));
+     YZplaneSymmetry->addItem(tr("ELECTRIC"));
+     YZplaneSymmetry->addItem(tr("MAGNETIC"));
+     YZplaneSymmetry->setCurrentIndex(prjData.YZplaneSymmetry);
+
+     QLabel *ZXplaneSymmetryLabel= new QLabel();
+     ZXplaneSymmetryLabel->setText(tr("ZX Plane Symmetry:"));
+     ZXplaneSymmetry = new QComboBox();
+     ZXplaneSymmetry->addItem(tr("NONE"));
+     ZXplaneSymmetry->addItem(tr("ELECTRIC"));
+     ZXplaneSymmetry->addItem(tr("MAGNETIC"));
+     ZXplaneSymmetry->setCurrentIndex(prjData.ZXplaneSymmetry);
+
+     QGridLayout *symmetriesLayout = new QGridLayout();
+     symmetriesLayout->addWidget(XYplaneSymmetryLabel, 0, 0);
+     symmetriesLayout->addWidget(XYplaneSymmetry,0, 1);
+     symmetriesLayout->addWidget(YZplaneSymmetryLabel, 1, 0);
+     symmetriesLayout->addWidget(YZplaneSymmetry,1, 1);
+     symmetriesLayout->addWidget(ZXplaneSymmetryLabel, 2, 0);
+     symmetriesLayout->addWidget(ZXplaneSymmetry,2, 1);
+     QGroupBox *symmetriesGroupBox=new QGroupBox();
+     symmetriesGroupBox->setLayout(symmetriesLayout);
+
+//****************************************
+//   control buttons:
+//
+     setButton = new QPushButton(tr("Set"));
+     setButton->resize(1.5,3);
+     closeButton =new QPushButton(tr("Close"));
+     closeButton->resize(1.5,3);
+     QPushButton *helpButton  = new QPushButton(tr("Help"));
+     helpButton->resize(1.5,3);
+
+     QHBoxLayout *buttonLayout = new QHBoxLayout();
+     buttonLayout->addWidget(setButton);
+     buttonLayout->addWidget(closeButton);
+     buttonLayout->addWidget(helpButton);
+
+     QGroupBox *buttonGroupBox=new QGroupBox(tr(""));
+     buttonGroupBox->setLayout(buttonLayout);
+
+//******
+     connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
+     connect(parent, SIGNAL(enterPressed()), this, SLOT(set()));
+     connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
+     connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+
+     setFocusPolicy(Qt::StrongFocus);
+
+//****************************************
+
+     mainLayout = new QVBoxLayout(this);
+     mainLayout->addWidget(symmetriesGroupBox);
+     mainLayout->addWidget(buttonGroupBox);
+
+
+}
+
+void SymmetriesDialog::set(){
+    bool changed;
+    if(prjData.XYplaneSymmetry!=XYplaneSymmetry->currentIndex()) {
+	changed=true;
+	prjData.XYplaneSymmetry = XYplaneSymmetry->currentIndex();
+    }
+    if(prjData.YZplaneSymmetry!=YZplaneSymmetry->currentIndex()) {
+	changed=true;
+	prjData.YZplaneSymmetry = YZplaneSymmetry->currentIndex();
+    }
+    if(prjData.ZXplaneSymmetry!=ZXplaneSymmetry->currentIndex()) {
+	changed=true;
+	prjData.ZXplaneSymmetry = ZXplaneSymmetry->currentIndex();
+    }
+    if(changed) prjData.saveSettings();
+}
+
+void SymmetriesDialog::help()
+{
+    documentation.showDocumentation(QLatin1String("#page=48"));
+}
 
 
 

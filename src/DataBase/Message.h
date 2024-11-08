@@ -57,7 +57,6 @@
 
 namespace DB {
 
-void   Msg(int level, char *fmt, ...);
-void   yymsg(int type, char *fmt, ...);
+void  Msg(int level, char *fmt, ...);
 
 }

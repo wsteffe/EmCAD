@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <projectData_parser.hpp>
-#include<ListUtils.h>
+#include <List.h>
 #include <Message.h>
 
 extern char projectDataFileName[256];
@@ -182,6 +182,10 @@ mor	                        { return MOR; }
 ana	                        { return ANA; }
 "+I"	                        { return PLUSI; }
 "-I"	                        { return MINUSI; }
+xyplane	                	{ return XYPLANE; }
+yzplane	                	{ return YZPLANE; }
+zxplane	                	{ return ZXPLANE; }
+symmetry	                { return SYMMETRY; }
 symmetric	                { return SYMMETRIC; }
 response                        { return RESPONSE; }
 port		                { return PORT; }
@@ -205,6 +209,10 @@ parameter                       { return PARAMETER; }
 freq	                        { return FREQ; }
 num	                        { return NUM; }
 filter	                	{ return FILTER; }
+spice	                	{ return SPICE; }
+set	                	{ return SET; }
+central	                	{ return CENTRAL; }
+config	                	{ return CONFIG; }
 custom	                	{ return CUSTOM; }
 krylov	                	{ return KRYLOV; }
 order	                	{ return ORDER; }

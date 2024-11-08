@@ -153,7 +153,10 @@ def mag_field(x, f, rq, sigma0=5.8e7):
     elif isinstance(f, ndarray) and len(f) > 1:
         mag = np.empty_like(f, dtype=complex)
         for i in range(len(f)):
-            mag[i] = zeta ** alpha[i] * hyp2f1(a1[i], a2[i], b1[i], zeta)
+            try:
+               mag[i] = zeta ** alpha[i] * hyp2f1(a1[i], a2[i], b1[i], zeta)
+            except ValueError:
+               mag[i]=float('inf')
     else:
         mag = zeta ** alpha * hyp2f1(a1, a2, b1, zeta)
     return mag

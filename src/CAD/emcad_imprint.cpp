@@ -36,23 +36,49 @@
 extern int modeldebug;
 extern int model_flex_debug;
 
+namespace DB {
+ char yyFileName[256];
+ int yyLineNum;
+ void yyMsg(int type, const char *fmt, ...){
+  va_list args;
+  char tmp[1024];
+  va_start (args, fmt);
+  vsprintf (tmp, fmt, args);
+  va_end (args);
+  Msg(type, "'%s', line %d : %s", yyFileName, yyLineNum, tmp);
+ }
+}
+
+extern int XYplaneSymmetry;
+extern int YZplaneSymmetry;
+extern int ZXplaneSymmetry;
+
 int main(int argc, char **argv)
 {
       modeldebug=0;
       model_flex_debug=0;
-
+      for(int i=1; i<argc-2; i++) for(int l=0; l<strlen(argv[i]); l++) argv[i][l]=tolower(argv[i][l]); 
+      int ii =1;
+      while (ii < argc-3) {
+	     if (!strcmp(argv[ii], "-xyplanesymmetry") ) { ii++; XYplaneSymmetry =atoi(argv[ii++]);}
+	else if (!strcmp(argv[ii], "-yzplanesymmetry") ) { ii++; YZplaneSymmetry =atoi(argv[ii++]);}
+	else if (!strcmp(argv[ii], "-zxplanesymmetry") ) { ii++; ZXplaneSymmetry =atoi(argv[ii++]);}
+	else {
+         fprintf(stderr, "\n  Sintax Error with the Agrument: \"%s\" \n\n", argv[ii]);
+         return 1;
+       }
+      }
 // ** input data:
-      if (argc < 2){
+      if (argc-ii < 2){
           fprintf(stderr, "\n");
 	  fprintf(stderr, \
-          "  Usage:   emcad_imprint downImprint subprojDir\n"\
+          "  Usage:   emcad_imprint [-XYplaneSymmetry 1/2 -YZplaneSymmetry 1/2 -ZXplaneSymmetry 1/2 ] downImprint subprojDir\n"\
           " \n");
 	  exit(1);
 //	  return 1;
       }
-
-      int downImprint= (int) atoi(argv[1]);
-      std::string subprojDir=argv[2];
+      int downImprint= (int) atoi(argv[ii++]);
+      std::string subprojDir=argv[ii++];
 
 #if defined(_WIN32) || defined(__WIN32__)
       subprojDir=cleanWindowsPath(subprojDir);

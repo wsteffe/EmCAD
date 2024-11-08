@@ -19,31 +19,43 @@
 
 from cx_Freeze import setup, Executable
 
-import sys
+import sys,os
 import site
+import requests
 
-build_exe_options = { "packages": ["os"],
-                     "includes": ["PyQt5","tarfile"],
+build_exe_options = {"packages": ["os"],
+                     "includes": ["PyQt5","tarfile","requests","pypac","boto3","botocore","certifi","encodings","jwt"],
                      "excludes": ["tkinter"],
-		     "optimize": 2}
+		             "optimize": 2,
+                     "include_files" : [(requests.certs.where(), 'cacert.pem')]
+                     }
+
 setup(
         name = "aws_scripts",
         version = "1.0",
         description = "cx_Freeze script",
-	options = {"build_exe": build_exe_options},
+        requires = ["requests"],
+	    options = {"build_exe": build_exe_options},
         py_modules=[],
         executables = [
 		       Executable("api_utils.py"),
+		       Executable("api_proxy.py"),
+		       Executable("api_login.py"),
+		       Executable("api_getcredit.py"),
+		       Executable("api_change_password.py"),
+		       Executable("api_renew_if_expired.py"),
 		       Executable("api_download.py"),
 		       Executable("api_upload_file.py"),
 		       Executable("api_submit.py"),
 		       Executable("filter_tune.py"),
-		       Executable("remove_dir.py"),
+#		       Executable("parametrize_spice.py"),
+               Executable("remove_dir.py"),
 		       Executable("tar_create.py"),
 		       Executable("tar_extract.py"),
 		       Executable("tar_component.py"),
 		       Executable("touchstone2to1.py"),
-		       Executable("roughSurfaceFit.py")
+		       Executable("roughSurfaceFit.py"),
+		       Executable("mappedPhaseShifters.py")
 		       ]
         )
 

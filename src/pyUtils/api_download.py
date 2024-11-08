@@ -22,25 +22,18 @@
 import os,sys,time
 import json
 import api_utils
+import api_proxy
+
 
 argv=sys.argv
 
-username=None
+token=None
 for i,arg in enumerate(argv):
-    if arg=="-user":
+    if arg=="-token":
        argv.pop(i)
-       username=argv.pop(i)
+       token=argv.pop(i)
        break
-if username is None:
-    sys.exit(1)
-
-password=None
-for i,arg in enumerate(argv):
-    if arg=="-password":
-       argv.pop(i)
-       password=argv.pop(i)
-       break
-if password is None:
+if token is None:
     sys.exit(1)
 
 folder=None
@@ -59,6 +52,18 @@ for i,arg in enumerate(argv):
        saveUrl=True
        break
 
+for i,arg in enumerate(argv):
+    if arg=="-proxyPacFile":
+       argv.pop(i)
+       api_proxy.getPac(argv.pop(i))
+       break
+
+api_proxy.verify=True
+for i,arg in enumerate(argv):
+    if arg=="-apiPemFile":
+       argv.pop(i)
+       api_proxy.verify=argv.pop(i)
+       break
 
 argl=len(argv)
 filename=argv[argl-1]
@@ -69,7 +74,7 @@ if os.path.exists (filename+".url"):
        signedUrl=json.load(f)
 
 
-signedUrls=api_utils.download_project_file(username,password,folder,filename,signedUrl=signedUrl)
+signedUrls=api_utils.download_project_file(token,folder,filename,signedUrl=signedUrl)
 if saveUrl and len(signedUrls)==1:
     if signedUrls[0]!=signedUrl:
        with open(filename+".url", 'w') as f:
