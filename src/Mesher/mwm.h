@@ -13,6 +13,8 @@
 
 #define TETMODELTYPE 'y'
 
+#include <cstdio>
+
 #include<Malloc.h>
 #include<string.h>
 #include<math.h>

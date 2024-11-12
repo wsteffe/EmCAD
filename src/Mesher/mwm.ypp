@@ -1,0 +1,553 @@
+/******************************************************************
+*
+*	MWM for C++
+*
+*	Copyright (C) Walter Steffe` 2004-2004
+*
+*	File:	mwm.y
+*
+******************************************************************/
+
+
+%{
+//parserdebug:
+#define YYDEBUG 1
+#define YYPRINT(file, type, value) yyprint(file, type, value)
+//parserdebug
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cstdio>
+#include <mwm.h>
+#include <Message.h>
+#include <DataBase.h>
+#include <SPoint3.h>
+
+#include <assert.h>
+#include <vector>
+
+#define YYINITDEPTH  (1024 * 64)
+#define	YYMAXDEPTH	(YYINITDEPTH * 64)
+
+
+extern char *mwmtext;
+
+namespace DB {
+ extern char yyFileName[256];
+ extern int yyLineNum;
+}
+
+void yyerror(char *s);
+int yyparse (void);
+int yylex ();
+
+namespace MWM {
+
+int changedBinFile=1;
+int openBinFile=0;
+
+//parserdebug:
+# define YYSTYPE MWM::yystype
+typedef union {
+int	ival;
+double	fval;
+char	*sval;
+} yystype;
+
+
+static void yyprint (FILE *file, int type, YYSTYPE value);
+//parserdebug
+
+extern MWM::Mesh *mesh;
+
+
+DB::BufferIn<double> 	*Fbuff;
+DB::BufferIn<int> 	*Ibuff;
+
+DB::StringList_t *strList;
+DB::StringList_t  curveNameList;
+DB::StringList_t  curveVertexList;
+
+Surface  *surf;
+Curve *curv;
+DB::str_t    name,str1,str2;
+
+
+DB::Buffer<char,10,80>	 StringBuffer;
+DB::Buffer<char,10,80>	 *Sbuff=&StringBuffer;
+DB::Vec<char>                Cnames;
+
+DB::Buffer<int,    100>     IntBuffer;
+DB::Buffer<double, 100>     DBuffer;
+DB::Buffer<double, 100, 3>  D3Buffer;
+DB::Buffer<double, 100, 4>  D4Buffer;
+DB::Buffer_I<100, 3>        I3Buffer;
+DB::Buffer_I<100, 4>        I4Buffer;
+DB::Vec<int>		    Ivec;	
+DB::Vec<int>		    cPoints;	
+DB::Vec<double>		    cTangents;
+DB::Vec<double>		    cLengths;
+DB::Vec<int>		    PECcurves,ECcurves,PMCcurves,LPcurves,SPANcurves,indepVcurves;	
+DB::Vec<int>		    PECvertices,ECvertices,PMCvertices,SHAREDvertices;	
+
+bool isEdgePort;
+
+}
+
+%} 
+
+%union {
+int	ival;
+double	fval;
+char	*sval;
+}
+
+%token <ival> INTEGER
+%token <fval> FLOAT
+%token <sval> STRING NAME
+
+%token DEF SET 
+%token MWM_SURFACE MWM_CURVE MWM_UNITS
+%token MWM_TAG TAGSTRING POSITION CUTOFFREFINEMENT
+%token VOLUMES CURVES CURVESIGN CURVELENGTH CURVEPNUM POINTS POINTSI POINTSU POINTSUV
+%token NORMALS CTANGENTS TRIANGLES TRIACENTERS CONDUCTOR
+%token LENGTH FREQUENCY
+%token VERTICES CURVEVERTICES CURVEPOINTS PECCURVES ECCURVES PMCCURVES LPCURVES 
+%token PECVERTICES ECVERTICES PMCVERTICES SHAREDVERTICES
+%token SHAREDCURVES SPANTREECURVES CURVEBDR
+
+
+%type <fval> SFFloat
+%type <ival> SFBool SFInt32
+
+%start All
+
+
+%%
+
+All
+        : MwmItems
+        ;
+
+MwmItems 
+         :  // nothing
+         | MwmItems MwmItem
+         ;
+
+
+MwmItem
+	: Curve
+	| Surface
+	| Tag
+	| error		{YYABORT;}
+	;
+
+
+
+
+//***	BaseType
+
+
+SFInt32
+	: INTEGER
+		{
+			if(MWM::Ibuff) MWM::Ibuff->input($1);
+		}
+	;
+
+SFBool
+	: INTEGER
+	;
+
+
+SFFloat
+	: FLOAT
+		{
+			if(MWM::Fbuff) MWM::Fbuff->input($1);
+		}
+	| INTEGER
+		{
+			$$ = (double)$1;
+			if(MWM::Fbuff) MWM::Fbuff->input((double)$1);
+		}
+	;
+
+
+SFVec2f
+	: SFFloat SFFloat {}
+	;
+
+
+SFVec3f
+	: SFFloat SFFloat SFFloat {}
+	;
+
+
+SFInt32List
+	: SFInt32
+	| SFInt32List SFInt32
+	| SFInt32List ','
+	|
+	;
+
+MFInt32
+	: SFInt32 {}
+	| '[' SFInt32List ']' {}
+	; 
+
+
+SFFloatList
+	: SFFloat
+	| SFFloatList SFFloat
+	| SFFloatList ',' 
+	|
+	;
+
+MFFloat
+	: SFFloat {}
+	| '[' SFFloatList ']' {}
+	; 
+
+
+SFVec2fList
+	: SFVec2f
+	| SFVec2fList SFVec2f
+	| SFVec2fList ','
+	|
+	;
+
+MFVec2f
+	: SFVec2f
+	| '[' SFVec2fList ']'
+	; 
+
+SFVec3fList
+	: SFVec3f
+	| SFVec3fList SFVec3f
+	| SFVec3fList ','
+	|
+	;
+
+MFVec3f
+	: SFVec3f
+	| '[' SFVec3fList ']'
+	; 
+
+
+SFVec4f
+	: SFFloat SFFloat SFFloat SFFloat {}
+	;
+
+SFVec4fList
+	: SFVec4f
+	| SFVec4fList SFVec4f
+	| SFVec4fList ','
+	|
+	;
+
+MFVec4f
+	: SFVec4f
+	| '[' SFVec4fList ']'
+	; 
+
+
+
+StringList
+	 :  STRING {MWM::strList->add($1);}
+	 |  StringList STRING {MWM::strList->add($2);}
+	 |  StringList ','
+	 ;
+
+MFString
+	: '[' StringList ']'
+	; 
+
+NodeBegin
+	: '{'
+	;
+
+NodeEnd
+	: '}'
+	| '}' ','
+	;
+
+//*** 
+
+Name  : NAME {if (strlen($1) > sizeof(DB::str_t)-1) YYERROR; else strcpy(MWM::name,$1);}
+
+
+
+
+//***   Tag
+
+TagElements
+	: TagElement TagElements
+	|
+	;
+
+TagElement
+ 	:  TAGSTRING    STRING
+	|  POSITION     {MWM::Fbuff = nullptr;}   SFVec3f
+	;
+
+TagBegin : DEF Name MWM_TAG 
+
+Tag      : TagBegin NodeBegin TagElements NodeEnd
+
+
+
+
+//***   Curve
+
+CurveElements
+	: CurveElement CurveElements
+	|
+	;
+
+CurveElement
+        :  CURVEVERTICES   {MWM::strList = &MWM::curveVertexList;     }     MFString
+            {
+                DB::str_t cname, cbeg, cend;
+                MWM::curveVertexList.get(0,cbeg);
+                MWM::curveVertexList.get(1,cend);
+                MWM::curv =MWM::mesh->insertCurve(MWM::name,cbeg,cend);
+            }
+        |  ECVERTICES  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	 MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::ECvertices);
+              MWM::curv->beg->onEC=MWM::ECvertices[0];
+              MWM::curv->end->onEC=MWM::ECvertices[1];
+            }
+        |  PMCVERTICES  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	 MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::PMCvertices);
+              MWM::curv->beg->onPMC=MWM::PMCvertices[0];
+              MWM::curv->end->onPMC=MWM::PMCvertices[1];
+            }
+        |  SHAREDVERTICES  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	 MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::SHAREDvertices);
+              MWM::curv->beg->shared=MWM::SHAREDvertices[0];
+              MWM::curv->end->shared=MWM::SHAREDvertices[1];
+            }
+	|  LENGTH	{MWM::Fbuff   =nullptr;             }	SFFloat
+            {
+              MWM::curv->length=$3;
+            }
+	|  POINTS	{MWM::Fbuff   = &MWM::D3Buffer;             }	MFVec3f
+            {
+              MWM::D3Buffer.flush(MWM::curv->points);
+            }
+/*
+	|  POINTSU	{MWM::Fbuff   = &MWM::DBuffer;             }	MFFloat
+            {
+              MWM::DBuffer.flush(MWM::curv->pointsU);
+            }
+*/
+	|  POINTSI	{MWM::Ibuff  = nullptr;               }	MFInt32
+            {
+            }
+	|  CTANGENTS  	{MWM::Fbuff  = nullptr;	         }	MFVec3f
+            {
+            }
+	;
+
+CurveBegin
+	: DEF Name MWM_CURVE 
+		{
+                     MWM::curveVertexList.reset();
+		}
+	;
+
+Curve
+	: CurveBegin NodeBegin CurveElements NodeEnd
+            {
+               MWM::cTangents.n=0;
+               MWM::PECvertices.n=0;
+               MWM::ECvertices.n=0;
+               MWM::PMCvertices.n=0;
+               MWM::SHAREDvertices.n=0;
+ 	    }
+	;
+
+
+
+                                                             
+//***   Surface
+
+SurfaceElements
+	: SurfaceElement SurfaceElements
+	|
+	;
+
+SurfaceElement
+	:  VOLUMES    '[' STRING  {if (strlen($3)>sizeof(DB::str_t)-1) YYERROR; else strcpy(MWM::str1,$3);} ',' STRING {if (strlen($6)>sizeof(DB::str_t)-1) YYERROR; else strcpy(MWM::str2,$6);} ']'
+            { 
+            }
+        |  CUTOFFREFINEMENT  {MWM::Fbuff = nullptr;}    SFFloat      
+           {
+           }
+        |  CURVES         {MWM::strList  = &MWM::curveNameList;      }     MFString
+        |  CURVEVERTICES  {MWM::strList = &MWM::curveVertexList;     }     MFString
+        |  CURVELENGTH    {MWM::Fbuff  =  &MWM::DBuffer;             }	 MFFloat
+            {
+              MWM::DBuffer.flush(MWM::cLengths);
+            }
+	|  POINTS	{MWM::Fbuff  = &MWM::D3Buffer;               }	MFVec3f
+            {
+              MWM::D3Buffer.flush(MWM::surf->points);
+              MWM::surf->mesh_vertices.resize(MWM::surf->points.n,NULL);
+            }
+	|  POINTSI	{MWM::Ibuff  = nullptr;               }	MFInt32
+            {
+            }
+	|  NORMALS	{MWM::Fbuff  ==nullptr;               }	 MFVec3f
+            {
+            }
+        |  CURVESIGN    {MWM::Ibuff  =  &MWM::IntBuffer;             }	MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::surf->curveSgn);
+            }
+        |  PECCURVES  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	 MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::PECcurves);
+            }
+        |  ECCURVES  {MWM::Ibuff  = &MWM::IntBuffer;     	           }	 MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::ECcurves);
+            }
+        |  PMCCURVES  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::PMCcurves);
+            }
+        |  LPCURVES  {MWM::Ibuff  = &MWM::IntBuffer;     	           }	MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::LPcurves);
+            }
+        |  CURVEPOINTS  {MWM::Ibuff  = &MWM::IntBuffer;     	   }	MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::cPoints);
+            }
+	|  CTANGENTS  	{MWM::Fbuff  = nullptr;	           }	MFVec3f
+            {
+            }
+        |  TRIANGLES    {MWM::Ibuff  = &MWM::I3Buffer;   }	        MFInt32
+            {
+              MWM::I3Buffer.flush(MWM::surf->triangles);
+            }
+        |  TRIACENTERS  {MWM::Ibuff  = &MWM::IntBuffer; }	                MFInt32
+            {
+              MWM::IntBuffer.flush(MWM::surf->triaCenters);
+            }
+	;
+
+SurfaceBegin
+	: DEF Name MWM_SURFACE 
+		{
+                        MWM::cPoints.n=0;
+                        MWM::cTangents.n=0;
+                        MWM::curveNameList.reset();
+                        MWM::curveVertexList.reset();
+			MWM::surf = new MWM::Surface();
+			strcpy(MWM::surf->name,MWM::name);
+			MWM::mesh->addSurface(MWM::surf);
+		}
+	;
+
+Surface
+	: SurfaceBegin NodeBegin SurfaceElements NodeEnd
+            {
+              MWM::surf->NumOfCurves=MWM::curveNameList.num();
+              MWM::surf->curves=(MWM::Curve  **) DB::Realloc(MWM::surf->curves, MWM::surf->NumOfCurves*sizeof(MWM::Curve *));
+              MWM::surf->curveP =new DB::Vec<int>[MWM::surf->NumOfCurves];
+              bool newCurve=false;
+              for(int ic=0; ic<MWM::surf->NumOfCurves; ic++){
+                  DB::str_t cname, cbeg, cend;
+                  MWM::curveNameList.get(ic,cname);
+                  MWM::surf->curves[ic] =MWM::mesh->FindCurve(cname);
+                  if(!MWM::surf->curves[ic]){
+                   assert(MWM::curveVertexList.num()==2*MWM::surf->NumOfCurves);
+                   MWM::curveVertexList.get(2*ic+0,cbeg);
+                   MWM::curveVertexList.get(2*ic+1,cend);
+                   MWM::surf->curves[ic] =MWM::mesh->insertCurve(cname,cbeg,cend);
+                   newCurve=true;
+                  }
+              }
+              int ic=0;
+              int j=0;
+              std::vector<int> cpoints;
+              for(int i=0; i<MWM::cPoints.n; i++){
+                if(MWM::cPoints[i]>=0 && MWM::cPoints[i]<MWM::surf->points.n){
+                  SPoint3 SP( (&MWM::surf->points[MWM::cPoints[i]])[0], 
+                             (&MWM::surf->points[MWM::cPoints[i]])[1], 
+                             (&MWM::surf->points[MWM::cPoints[i]])[2] 
+                            );
+                  SPoint3 CP( (&MWM::surf->curves[ic]->points[j])[0],
+                              (&MWM::surf->curves[ic]->points[j])[1],
+                              (&MWM::surf->curves[ic]->points[j])[2]
+                            );
+                  j++;
+                  assert(CP.distance(SP)<1.e-5);
+                  cpoints.push_back(MWM::cPoints[i]);
+                } else {
+                   MWM::surf->curvePoints.push_back(cpoints);
+                   ic++; j=0; cpoints.clear();
+                }
+              }
+              for(int ic=0; ic<MWM::surf->NumOfCurves; ic++){
+                 MWM::Curve *c =MWM::surf->curves[ic];
+                 if(MWM::PECcurves.n>=MWM::surf->NumOfCurves)    c->onPEC=MWM::PECcurves[ic];
+                 if(MWM::ECcurves.n>=MWM::surf->NumOfCurves)     c->onEC=MAX(c->onEC,MWM::ECcurves[ic]);
+                 if(MWM::PMCcurves.n>=MWM::surf->NumOfCurves)    c->onPMC=MWM::PMCcurves[ic];
+                 if(MWM::LPcurves.n >=MWM::surf->NumOfCurves)    c->onLP=MWM::LPcurves[ic];
+              }
+              MWM::PECcurves.n=0;
+              MWM::ECcurves.n=0;
+              MWM::PMCcurves.n=0;
+              MWM::LPcurves.n=0;
+              MWM::SPANcurves.n=0;
+              MWM::cLengths.n=0;
+              MWM::indepVcurves.n=0;
+            }
+	;
+
+
+%%
+
+
+
+extern void mwmSetInputFile(FILE *fp);
+
+
+void yyerror(char *s){
+  printf("\n  %s (%s) at file: %s, line: %d\n\n", s, mwmtext, DB::yyFileName, DB::yyLineNum);
+}
+
+static void yyprint (FILE *file, int type, YYSTYPE value)
+{
+  if (type==STRING || type==NAME)
+     fprintf(file, " %s", value.sval);
+  else if (type==FLOAT)
+     fprintf(file, " %f", value.fval);
+  else if (type==INTEGER)
+     fprintf(file, " %d", value.ival);
+}
+
+
+int loadMwm(const char *fName) 
+{
+        FILE *fid;
+        if(!(fid = fopen(fName, "r"))){
+		DB::Msg(ERROR, "Cannot open file %s\n", fName);
+		return 1;
+	}
+        strncpy(DB::yyFileName, fName, 255);
+        DB::yyLineNum=1;
+        mwmSetInputFile(fid);
+        int result=yyparse();
+        if(strcmp(fName,"-")) fclose(fid);
+	return result;
+}
+
+
+
