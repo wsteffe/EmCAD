@@ -611,11 +611,18 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     int OCC_GMSH_Fsign=GfaceOCCfaceSign(gf);
     int GMSH_Fsign=OCC_GMSH_Fsign*OCC_Fsign;
     bool onWG=false;
+    int FtriaNum=gf->triangles.size();
+    std::vector<int> masterTria(FtriaNum,0);
+    for (int i=0; i<FtriaNum; i++) masterTria[i]=i;
     {
       if(mesh3D){
        std::string upFaceName="UF"+ocaf->faceData[FI-1].name;
        MWM::Surface *mwms=MWM::mesh->FindSurface(upFaceName.c_str());
-       if(mwms){GMSH_Fsign=mwms->masterSign; OCC_Fsign=GMSH_Fsign*OCC_GMSH_Fsign;}
+       if(mwms){
+	       GMSH_Fsign=mwms->masterSign;
+	       OCC_Fsign=GMSH_Fsign*OCC_GMSH_Fsign;
+	       mwms->setCorrespondingTriangles(masterTria);
+       }
       }
       int reversed_vol=OCC_Fsign>0 ? 0 : 1;
       TCollection_AsciiString bdrname= (ocaf->faceData[FI-1].BrCond.size()>0) ? ocaf->faceData[FI-1].BrCond.begin()->c_str() : "-";
@@ -743,7 +750,6 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 
 
     int FPNum=0;
-    int FtriaNum=gf->triangles.size();
 
     if(REUSE_CIRCUITS) if(mesh3D) if(Fmaster[FI-1]<0) OCC_Fsign=1;
 
@@ -751,7 +757,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 
     Handle(Geom_Surface) GS = BRep_Tool::Surface(F);
     std::map<int, std::pair<double, double> > faceContPar; 
-    for(int k = 0; k <3; k++) for(int TI = 0; TI <FtriaNum; ++TI){
+    for(int k = 0; k <3; k++) for(int ti = 0; ti <FtriaNum; ++ti){
+      int TI=masterTria[ti];
       MTriangle *t = gf->triangles[TI];
       SPoint3 CP(0.0,0.0,0.0);
       for(int j = 0; j < 3; ++j){
@@ -816,7 +823,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
         }
       }
     }
-    for(int TI = 0; TI <FtriaNum; ++TI){
+    for(int ti = 0; ti <FtriaNum; ++ti){
+      int TI=masterTria[ti];
       MTriangle *t = gf->triangles[TI];
       SPoint2 CUV(0.0,0.0);
       SPoint3 cpnt(0,0,0);
@@ -1117,7 +1125,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 //----------------------------------
   if(fout){
     fprintf(fout, "  triangles [\n");
-    for(int TI = 0; TI <FtriaNum;  ++TI){
+    for(int ti = 0; ti <FtriaNum;  ++ti){
+       int TI=masterTria[ti];
        MTriangle *t = gf->triangles[TI];
        fprintf(fout, "\t");
        for(int j = 0; j < 3; ++j){ 
@@ -1130,7 +1139,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
   }
   if(fwg && onWG){
     fprintf(fwg, "  triangles [\n");
-    for(int TI = 0; TI <FtriaNum;  ++TI){
+    for(int ti = 0; ti <FtriaNum;  ++ti){
+       int TI=masterTria[ti];
        MTriangle *t = gf->triangles[TI];
        fprintf(fwg, "\t");
        for(int j = 0; j < 3; ++j){
@@ -1144,12 +1154,12 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 //----------------------------------
    if(fout){
      fprintf(fout, "  triaCenters [\n");
-     for(int TI = 0; TI <FtriaNum;  ++TI) fprintf(fout, "\t%d,\n", TI2FPI[TI]);
+     for(int ti = 0; ti <FtriaNum;  ++ti) fprintf(fout, "\t%d,\n", TI2FPI[masterTria[ti]]);
      fprintf(fout, "  ]\n");
    }
    if(fwg && onWG){
      fprintf(fwg, "  triaCenters [\n");
-     for(int TI = 0; TI <FtriaNum;  ++TI) fprintf(fwg, "\t%d,\n", TI2FPI[TI]);
+     for(int ti = 0; ti <FtriaNum;  ++ti) fprintf(fwg, "\t%d,\n", TI2FPI[masterTria[ti]]);
      fprintf(fwg, "  ]\n");
    }
 

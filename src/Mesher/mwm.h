@@ -146,6 +146,7 @@ public:
   void setMesh();
   void checkMesh();
   void checkMasterMesh();
+  void setCorrespondingTriangles(std::vector<int> &correspondingTriangles);
 };
 //-------------------------------------
 

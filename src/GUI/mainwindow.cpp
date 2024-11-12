@@ -626,7 +626,7 @@ ProjectData::ProjectData(){
        strcpy(lengthUnitName,"MM");
        freqUnitE=9;
        meshPerWavelen=6;
-       sharedMeshPerWavelen=5;
+       sharedMeshPerWavelen=10;
        sharedMeshRefine=2;
        meshPerCircle=12;
        meshRefineMinNum=1;
@@ -3319,7 +3319,7 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     double c0_mks =299792458;
     double waveLen=c0_mks/(prjData.freqBand[1]*prjData.freqUnit());
     double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
-    double sharedMeshsize=waveLen/prjData.lengthUnit()/(prjData.cutoffRatio*prjData.sharedMeshPerWavelen);
+    double sharedMeshsize=waveLen/prjData.lengthUnit()/prjData.sharedMeshPerWavelen;
     QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
     QString str_meshpercircle; str_meshpercircle.setNum(prjData.meshPerCircle);
     QString str_sharedMeshsize; str_sharedMeshsize.setNum(sharedMeshsize,'f',2);
@@ -3987,7 +3987,7 @@ void Modeler::modelize(std::string compNameStr)
       double c0_mks =299792458;
       double waveLen=c0_mks/(prjData.freqBand[1]*prjData.freqUnit());
       double meshsize=waveLen/prjData.lengthUnit()/prjData.meshPerWavelen;
-      double sharedMeshsize=waveLen/prjData.lengthUnit()/(prjData.cutoffRatio*prjData.sharedMeshPerWavelen);
+      double sharedMeshsize=waveLen/prjData.lengthUnit()/prjData.sharedMeshPerWavelen;
       QString str_meshsize; str_meshsize.setNum(meshsize,'f',5);
       QString str_meshRefineMinNum; str_meshRefineMinNum.setNum(prjData.meshRefineMinNum);
       QString str_meshRefineMaxNum; str_meshRefineMaxNum.setNum(prjData.meshRefineMaxNum);

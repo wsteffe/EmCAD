@@ -483,7 +483,6 @@ void MWM::Surface::setMesh(){
     for(int j=0; j<3; j++){
        int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
        tv[j]=mesh_vertices[i];
-       SPoint3 TP=mesh_vertices[i]->point();
 /*
        int I=pointsI[iS];
        MVertex *v=getMeshVertexByTag(I);
@@ -541,7 +540,6 @@ void MWM::Surface::setMasterMesh(){
     for(int j=0; j<3; j++){
        int i=(&(triangles[itr]))[masterSign<0 ? (3-j-1) : j];
        tv[j]=mesh_vertices[i];
-       SPoint3 TP=mesh_vertices[i]->point();
 /*
        int I=pointsI[iS];
        MVertex *v=getMeshVertexByTag(I);
@@ -574,206 +572,55 @@ void MWM::Surface::checkMasterMesh(){
   }
 }
 
-static SPoint3 transform(MVertex *vsource, const std::vector<double> &tfo)
-{
-  double ps[4] = {vsource->x(), vsource->y(), vsource->z(), 1.};
-  double res[4] = {0., 0., 0., 0.};
-  int idx = 0;
-  for(int i = 0; i < 4; i++)
-    for(int j = 0; j < 4; j++) res[i] += tfo[idx++] * ps[j];
-
-  return SPoint3(res[0], res[1], res[2]);
-}
-
-
-static void copyMesh(GFace *source, GFace *target)
-{
-  std::map<MVertex *, MVertex *> vs2vt;
-
-  // add principal GVertex pairs
-
-  std::vector<GVertex *> s_vtcs = source->vertices();
-  s_vtcs.insert(s_vtcs.end(), source->embeddedVertices().begin(),
-                source->embeddedVertices().end());
-  for(auto it = source->embeddedEdges().begin();
-      it != source->embeddedEdges().end(); it++) {
-    if((*it)->getBeginVertex()) s_vtcs.push_back((*it)->getBeginVertex());
-    if((*it)->getEndVertex()) s_vtcs.push_back((*it)->getEndVertex());
+void MWM::Surface::setCorrespondingTriangles(std::vector<int> &correspondingTriangles){
+  GFace *mf = dynamic_cast<GFace *>(gf->getMeshMaster());
+  if(!mf || mf==gf) return;
+  std::map<std::set<MVertex *>, int> mtv2I;
+  for(int I = 0; I <mf->triangles.size(); ++I){
+      MTriangle *mt = mf->triangles[I];
+      std::set<MVertex *> mtv;
+      for(int j = 0; j < 3; ++j) mtv.insert(mt->getVertex(j));
+      mtv2I[mtv]=I;
   }
-  std::vector<GVertex *> t_vtcs = target->vertices();
-  t_vtcs.insert(t_vtcs.end(), target->embeddedVertices().begin(),
-                target->embeddedVertices().end());
-  for(auto it = target->embeddedEdges().begin();
-      it != target->embeddedEdges().end(); it++) {
-    if((*it)->getBeginVertex()) t_vtcs.push_back((*it)->getBeginVertex());
-    if((*it)->getEndVertex()) t_vtcs.push_back((*it)->getEndVertex());
-  }
-
-  if(s_vtcs.size() != t_vtcs.size()) {
-    Msg::Info("Periodicity imposed on topologically incompatible surfaces"
-              "(%d vs %d points)",
-              s_vtcs.size(), t_vtcs.size());
-  }
-
-  std::set<GVertex *> checkVtcs(s_vtcs.begin(), s_vtcs.end());
-
-  for(auto tvIter = t_vtcs.begin(); tvIter != t_vtcs.end(); ++tvIter) {
-    GVertex *gvt = *tvIter;
-    auto gvsIter = target->vertexCounterparts.find(gvt);
-
-    if(gvsIter == target->vertexCounterparts.end()) {
-      Msg::Error("Periodic meshing of surface %d with surface %d: "
-                 "point %d has no periodic counterpart",
-                 target->tag(), source->tag(), gvt->tag());
-    }
-    else {
-      GVertex *gvs = gvsIter->second;
-      if(checkVtcs.find(gvs) == checkVtcs.end()) {
-        if(gvs)
-          Msg::Error(
-            "Periodic meshing of surface %d with surface %d: "
-            "point %d has periodic counterpart %d outside of source surface",
-            target->tag(), source->tag(), gvt->tag(), gvs->tag());
-
-        else
-          Msg::Error("Periodic meshing of surface %d with surface %d: "
-                     "point %d has no periodic counterpart",
-                     target->tag(), source->tag(), gvt->tag());
-      }
-      if(gvs) {
-        MVertex *vs = gvs->mesh_vertices[0];
-        MVertex *vt = gvt->mesh_vertices[0];
-        vs2vt[vs] = vt;
-        target->correspondingVertices[vt] = vs;
-      }
-    }
-  }
-
-  // add corresponding curve nodes assuming curves were correctly meshed already
-
-  std::vector<GEdge *> s_edges = source->edges();
-  s_edges.insert(s_edges.end(), source->embeddedEdges().begin(),
-                 source->embeddedEdges().end());
-  std::vector<GEdge *> t_edges = target->edges();
-  t_edges.insert(t_edges.end(), target->embeddedEdges().begin(),
-                 target->embeddedEdges().end());
-
-  std::set<GEdge *> checkEdges;
-  checkEdges.insert(s_edges.begin(), s_edges.end());
-
-  for(auto te_iter = t_edges.begin(); te_iter != t_edges.end(); ++te_iter) {
-    GEdge *get = *te_iter;
-
-    auto gesIter = target->edgeCounterparts.find(get);
-    if(gesIter == target->edgeCounterparts.end()) {
-      Msg::Error("Periodic meshing of surface %d with surface %d: "
-                 "curve %d has no periodic counterpart",
-                 target->tag(), source->tag(), get->tag());
-    }
-    else {
-      GEdge *ges = gesIter->second.first;
-      if(checkEdges.find(ges) == checkEdges.end()) {
-        Msg::Error("Periodic meshing of surface %d with surface %d: "
-                   "curve %d has periodic counterpart %d",
-                   target->tag(), source->tag(), get->tag(), ges->tag());
-      }
-      if(get->mesh_vertices.size() != ges->mesh_vertices.size()) {
-        Msg::Error("Periodic meshing of surface %d with surface %d: "
-                   "curve %d has %d vertices, whereas correspondant %d has %d",
-                   target->tag(), source->tag(), get->tag(),
-                   get->mesh_vertices.size(), ges->tag(),
-                   ges->mesh_vertices.size());
-      }
-      int orientation = gesIter->second.second;
-      int is = orientation == 1 ? 0 : get->mesh_vertices.size() - 1;
-      for(unsigned it = 0; it < get->mesh_vertices.size();
-          it++, is += orientation) {
-        MVertex *vs = ges->mesh_vertices[is];
-        MVertex *vt = get->mesh_vertices[it];
-        vs2vt[vs] = vt;
-        target->correspondingVertices[vt] = vs;
-      }
-    }
-   }
-
-  // transform interior nodes
-  std::vector<double> &tfo = target->affineTransform;
-
-  for(std::size_t i = 0; i < source->mesh_vertices.size(); i++) {
-    MVertex *vs = source->mesh_vertices[i];
-    SPoint2 XXX;
-
-    double ps[4] = {vs->x(), vs->y(), vs->z(), 1.};
-    double res[4] = {0., 0., 0., 0.};
-    int idx = 0;
-    for(int i = 0; i < 4; i++)
-      for(int j = 0; j < 4; j++) res[i] += tfo[idx++] * ps[j];
-
-    SPoint3 tp(res[0], res[1], res[2]);
-    XXX = target->parFromPoint(tp);
-
-    GPoint gp = target->point(XXX);
-    MVertex *vt =
-      new MFaceVertex(gp.x(), gp.y(), gp.z(), target, gp.u(), gp.v());
-    target->mesh_vertices.push_back(vt);
-    target->correspondingVertices[vt] = vs;
-    vs2vt[vs] = vt;
-  }
-
-  // create new elements
-  for(unsigned i = 0; i < source->triangles.size(); i++) {
-    MVertex *v1 = vs2vt[source->triangles[i]->getVertex(0)];
-    MVertex *v2 = vs2vt[source->triangles[i]->getVertex(1)];
-    MVertex *v3 = vs2vt[source->triangles[i]->getVertex(2)];
-    if(v1 && v2 && v3) {
-      target->triangles.push_back(new MTriangle(v1, v2, v3));
-    }
-    else {
-      Msg::Error("Could not find periodic counterpart of triangle nodes "
-                 "%lu %lu %lu",
-                 source->triangles[i]->getVertex(0)->getNum(),
-                 source->triangles[i]->getVertex(1)->getNum(),
-                 source->triangles[i]->getVertex(2)->getNum());
-    }
-  }
-
-  for(unsigned i = 0; i < source->quadrangles.size(); i++) {
-    MVertex *v1 = vs2vt[source->quadrangles[i]->getVertex(0)];
-    MVertex *v2 = vs2vt[source->quadrangles[i]->getVertex(1)];
-    MVertex *v3 = vs2vt[source->quadrangles[i]->getVertex(2)];
-    MVertex *v4 = vs2vt[source->quadrangles[i]->getVertex(3)];
-    if(v1 && v2 && v3 && v4) {
-      target->quadrangles.push_back(new MQuadrangle(v1, v2, v3, v4));
-    }
-    else {
-      Msg::Error("Could not find periodic counterpart of quadrangle nodes "
-                 "%lu %lu %lu %lu",
-                 source->quadrangles[i]->getVertex(0)->getNum(),
-                 source->quadrangles[i]->getVertex(1)->getNum(),
-                 source->quadrangles[i]->getVertex(2)->getNum(),
-                 source->quadrangles[i]->getVertex(3)->getNum());
-    }
+  for(int I = 0; I <gf->triangles.size(); ++I){
+      MTriangle *gt = gf->triangles[I];
+      std::set<MVertex *> mtv;
+      for(int j = 0; j < 3; ++j) mtv.insert(gf->correspondingVertices[gt->getVertex(j)]);
+      correspondingTriangles[mtv2I[mtv]]=I;
   }
 }
+
 
 
 namespace MWM {
-  void setMasterMesh(GModel *gm){
-     DB::List_T  *surfs=DB::Tree2List(MWM::mesh->surfaces);
+  void setMasterMesh(int dim, GModel *gm){
      DB::List_T  *curvs=DB::Tree2List(MWM::mesh->curves);
-     int ns=DB::List_Nbr(surfs);
      int nc=DB::List_Nbr(curvs);
+     int ns=0; DB::List_T  *surfs=NULL;
      std::vector<std::pair<int, int> > inDimTags, outDimTags;
-     for(int is=0; is< ns; is++){
-       MWM::Surface *s;  DB::List_Read(surfs,is,&s);
-       inDimTags.push_back(std::pair<int,int>(s->gf->dim(),s->gf->tag()));
+     if(dim==1){
+      for(int ic=0; ic< nc; ic++){
+        MWM::Curve *c;  DB::List_Read(curvs,ic,&c);
+        inDimTags.push_back(std::pair<int,int>(c->ge->dim(),c->ge->tag()));
+      }
+     } else {
+       surfs=DB::Tree2List(MWM::mesh->surfaces);
+       ns=DB::List_Nbr(surfs);
+       for(int is=0; is< ns; is++){
+         MWM::Surface *s;  DB::List_Read(surfs,is,&s);
+         inDimTags.push_back(std::pair<int,int>(s->gf->dim(),s->gf->tag()));
+       }
      }
      bool r = gm->getOCCInternals()->copy(inDimTags, outDimTags);
      GModel::current()->getOCCInternals()->synchronize(GModel::current());
-     for(int is=0; is< ns; is++){
+     std::vector<double> tfo={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+     if(dim==1) for(int ic=0; ic< nc; ic++){
+         MWM::Curve *c;  DB::List_Read(curvs,ic,&c);
+	 GEdge *me=gm->getEdgeByTag(outDimTags[ic].second);
+         c->ge->setMeshMaster(me,tfo);
+     } else for(int is=0; is< ns; is++){
          MWM::Surface *s;  DB::List_Read(surfs,is,&s);
 	 GFace *mf=gm->getFaceByTag(outDimTags[is].second);
-	 std::vector<double> tfo={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
          s->gf->setMeshMaster(mf,tfo);
      }
      std::set<GVertex *> verts;
@@ -796,22 +643,12 @@ namespace MWM {
           MWM::Curve *c;  DB::List_Read(curvs,ic,&c);
           c->setMasterMesh();
      }
-     for(int is=0; is< ns; is++){
+     if(dim>1) for(int is=0; is< ns; is++){
            MWM::Surface *s;  DB::List_Read(surfs,is,&s);
            s->setMasterMesh();
      }
      List_Delete(curvs);
-     List_Delete(surfs);
-  }
-  void checkCopyFaceMesh(GModel *gm){
-     DB::List_T  *surfs=DB::Tree2List(MWM::mesh->surfaces);
-     int ns=DB::List_Nbr(surfs);
-     for(int is=0; is< ns; is++){
-         MWM::Surface *s;  DB::List_Read(surfs,is,&s);
-         GFace *mf = dynamic_cast<GFace *>(s->gf->getMeshMaster());
-         if(!mf || mf==s->gf) return;
-         copyMesh(mf,s->gf);
-     }
+     if(dim>1) List_Delete(surfs);
   }
 }
 
@@ -2309,7 +2146,8 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       }
 
       if(useMaster){
-       MWM::setMasterMesh(gm);
+       if(mesh3D)                                         MWM::setMasterMesh(2,gm);
+       else if(ocaf->EmP->level>0 || ocaf->subComp)       MWM::setMasterMesh(1,gm);
        gm->mesh(1);
       }
 
