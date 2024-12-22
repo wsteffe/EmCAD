@@ -706,6 +706,7 @@ class SetGlobalsDialog : public QDialog
       RTextComboBox* lUnitChooser;
       RTextComboBox* fUnitChooser;
       QCheckBox  *localMeshing3dCB;
+      QCheckBox  *conformalMeshCB;
       QLineEdit *meshSizeLineEdit;
       QLineEdit *sharedMeshSizeLineEdit;
       QLineEdit *meshPerCircleLineEdit;
@@ -950,6 +951,7 @@ class FilterDesignDialog : public QDialog
       void set();
       void start();
       void help();
+      void atFilterType(int n);
       void atFilterOrder(int n);
       void setTxZerosNum(int n);
       void atFilterDesignEnd();
@@ -986,6 +988,13 @@ class FilterDesignDialog : public QDialog
       QSpinBox   *txZerosNumSB;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
+      QLabel    *stopBandLabel;
+      QLineEdit *stopf1LineEdit;
+      QLineEdit *stopf2LineEdit;
+      QGroupBox *passBandGroupBox;
+      QGroupBox *stopBandGroupBox;
+      QGroupBox *retLossGroupBox;
+      QGroupBox *zerosGroupBox;
       QTableWidget *txZeros;
       QCheckBox *mappedTzCB;
       QCheckBox *addConjTzCB;

@@ -281,18 +281,24 @@ class SetCompPropertiesDialog : public QDialog
      QLineEdit *TEMnumLE;
      QSpinBox  *TEnumSB;
      QSpinBox  *TMnumSB;
-     QComboBox *TEM_TabularOrder;
+     QComboBox *TEM_TabularOrder1;
+     QComboBox *TEM_TabularOrder2;
+     QComboBox *TEM_refCond;
+     QSpinBox  *disconnectedTEM;
+     QComboBox *disconnectOrient;
      QCheckBox *PML;
 #if defined(EXPLICIT_INVARIANT)
      QCheckBox *invariant;
 #endif
      QGroupBox *nameGroupBox;
      QGroupBox *WgGroupBox;
+     QGroupBox *TEMGroupBox;
      QGroupBox *LPGroupBox;
      QGroupBox *GridGroupBox;
      QGroupBox *buttonGroupBox;
      QGroupBox *meshGroupBox;
      QGroupBox *cutoffGroupBox;
+     QGroupBox *disconnectGroupBox;
      QVBoxLayout *mainLayout;
 private:
      std::string LPname;

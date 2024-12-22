@@ -632,6 +632,7 @@ ProjectData::ProjectData(){
        meshRefineMinNum=1;
        meshRefineMaxNum=3;
        meshTetMaxNum=10000;
+       conformalMeshIF=0;
        meshMinEnergyRatio=20.0;
        localMeshing3d=1;
        XYplaneSymmetry=0;
@@ -642,6 +643,7 @@ ProjectData::ProjectData(){
        cmpResonFreqMaxRatio=1.2;
        netResonFreqMaxRatio=1.2;
        filterPassBand[0]=filterPassBand[1]=0.0;
+       filterStopBand[0]=filterStopBand[1]=0.0;
        mapFreqBand[0]=mapFreqBand[1]=0.0;
        filterOrder=0;
        idealFilterWithMappedTZ=0;
@@ -649,7 +651,7 @@ ProjectData::ProjectData(){
        anaFreqBand[0]=anaFreqBand[1]=0.0;
        zpFreqBand[0]=zpFreqBand[1]=0.0;
        zpWinRatio=1.0;
-       cutoffRatio=4.0;
+       cutoffRatio=3.0;
        zeropoleCurves.clear();
        idealFilterJ.clear();
        idealFilterCK.clear();
@@ -2139,6 +2141,7 @@ void ProjectData::saveSettings(){
    fprintf(fid, "mesh refine min num %d\n", meshRefineMinNum);
    fprintf(fid, "mesh refine max num %d\n", meshRefineMaxNum);
    fprintf(fid, "mesh tet max num %d\n", meshTetMaxNum);
+   fprintf(fid, "conformal mesh %d\n", conformalMeshIF);
    fprintf(fid, "mesh min energy ratio %10.3f\n", meshMinEnergyRatio);
    fprintf(fid, "local meshing3d %d\n", localMeshing3d);
    fprintf(fid, "xyplane symmetry %d\n", XYplaneSymmetry);
@@ -2150,6 +2153,7 @@ void ProjectData::saveSettings(){
    fprintf(fid, "network resonance freq max ratio %10.5f\n", netResonFreqMaxRatio);
    fprintf(fid, "mapping freq band %10.5f %10.5f\n", mapFreqBand[0], mapFreqBand[1]);
    fprintf(fid, "filter pass band %14.8f %14.8f\n", filterPassBand[0], filterPassBand[1]);
+   fprintf(fid, "filter stop band %14.8f %14.8f\n", filterStopBand[0], filterStopBand[1]);
    fprintf(fid, "filter order %d\n", filterOrder);
    fprintf(fid, "ideal filter with mapped zeros %d\n", idealFilterWithMappedTZ);
    fprintf(fid, "ideal filter add conjugate zeros %d\n", idealFilterAddConjugateTZ);
@@ -2945,7 +2949,6 @@ void Preprocessor::upImprintSubass(QString dir, QString assName, int l)
   bool modified=isModified(dir);
 
   if(modified || isDownModified(dir, subdirs) ) {
-   if(extproc){
       QStringList args;
       if(prjData.XYplaneSymmetry){
         args << QString("-XYplaneSymmetry");
@@ -2991,36 +2994,10 @@ void Preprocessor::upImprintSubass(QString dir, QString assName, int l)
       sendLogMessage(mssg);
       proc->terminate();
 //      delete procLog;
-   }else{
-      char dirname[101]; if(strlen(dir.toLatin1().data())< 100 ) strcpy(dirname,dir.toLatin1().data());
-      std::cout <<"Starting upward imprinting of " << dirname <<"\n";
-      MwOCAF* ocaf=new MwOCAF();
-      ocaf->workopen(dir.toLatin1().data());
-      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint(0);
-      ocaf->saveIF();
-      if(!ocaf->EmP->level) { 
-         if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
-         ocaf->initFEPdataStruct();
-	 if(ocaf->EmP->assemblyType==COMPONENT){
-//	      ocaf->makeFaceAdjCells();
-	      ocaf->setFaceComp();
-	 }
-      } 
-      if(ocaf->EmP->assemblyType==COMPONENT) ocaf->updatePartColors();
-      ocaf->worksave();
-      ocaf->closeDoc();
-      delete ocaf;
-      QString mssg="Completed Up Imprinting of \""; mssg+=assName; mssg+="\"";
-      sendLogMessage(mssg);
-    }
-/*---------------------------------------------------------------------------*/
       if(modified) rmModified(dir);
       rmDownModified(dir, subdirs);
       return;
   }
-
-
-
 }
 
 
@@ -3030,7 +3007,6 @@ void Preprocessor::downImprintSubass(QString dir, QString assName, int l)
   QString dataDir=mainWorkPath+"/Data";
   QString app= QString("emcad_imprint");
   if(l>0){
-   if(extproc){
       QStringList args;
       QString str_downImprint; 
       str_downImprint.setNum(1);
@@ -3058,26 +3034,7 @@ void Preprocessor::downImprintSubass(QString dir, QString assName, int l)
       sendLogMessage(mssg);
       proc->terminate();
 //      delete procLog;
-   }else{
-      char dirname[101]; if(strlen(dir.toLatin1().data())< 100 ) strcpy(dirname,dir.toLatin1().data());
-      MwOCAF* ocaf=new MwOCAF();
-      ocaf->workopen(dir.toLatin1().data());
-      if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF)  ocaf->imprint(1);
-      ocaf->worksave();
-      if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
-      ocaf->initFEPdataStruct();
-      if(ocaf->EmP->assemblyType==COMPONENT){
-//	   ocaf->makeFaceAdjCells();
-	   ocaf->setFaceComp();
-      }
-      ocaf->closeDoc();
-      delete ocaf;
-      QString mssg="Completed Down Imprinting of \""; mssg+=assName; mssg+="\"";
-      sendLogMessage(mssg);
-   }
-/*-----------------------------------------------------------------------------------------*/
   }
-
 
   QStringList subdirs;
   if(readStringlist(dir+"/subdirs", subdirs)){
@@ -3096,8 +3053,6 @@ void Preprocessor::downImprintSubass(QString dir, QString assName, int l)
         }
      }
   }
-
-
 
 }
 
@@ -3214,6 +3169,10 @@ void Preprocessor::setSuperFaces(QString dir)
      ocaf->regenerateIndexedSubShapes();
      ocaf->readFEproperties();
      ocaf->setSuperFaces();
+     if(ocaf->subCompNum>1){
+	 ocaf->setSuperFaceSplitterMap();
+	 ocaf->saveSuperfaceSplitterMap();
+     }
 //     ocaf->checkSuperFacesTEMnum();
      if(ocaf->subCompNum==0) ocaf->addToComponentLists(&(prjData.subcomponents.list),&(prjData.wgcomponents.map));
      int subCompNum=ocaf->subCompNum;
@@ -3326,6 +3285,7 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     QString str_onServer; str_onServer.setNum(0);
     QString str_subcompI; str_subcompI.setNum(0);
     QString str_mesh3DonClient; str_mesh3DonClient.setNum(prjData.localMeshing3d);
+    QString str_conformalMeshIF; str_conformalMeshIF.setNum(prjData.conformalMeshIF);
 
     QString subprjDir=dir;
     QString dataDir=mainWorkPath+"/Data";
@@ -3351,6 +3311,8 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     args << str_onServer;
     args << QString("-mesh3DonClient");
     args << str_mesh3DonClient;
+    args << QString("-conformalmesh");
+    args << str_conformalMeshIF;
     QProcess *proc=new QProcess;
     proc->setWorkingDirectory(nativePath(dataDir));
     
@@ -4909,6 +4871,7 @@ void Modeler::idealFilterTune(QString targetCktName, QString tunedCktName)
     args << QString("-passband");
     args << f_min_pass;
     args << f_max_pass;
+
     args << QString("-portimpedance");
     args << portimp;
     args << QString("-nresonator");
@@ -5040,7 +5003,6 @@ void Modeler::filterDesign()
       }
       fprintf(mufid , "//Ideal Filter Design:\n\n");
       fprintf(mufid,  "f_unit:=\"%s\":\n",f_unit);
-      fprintf(mufid,  "filterType:= %d:\n",prjData.idealFilterType);
 
       int NZ0=prjData.filterZeros.size();
       int NZ=0;
@@ -5101,13 +5063,14 @@ void Modeler::filterDesign()
     proc->setWorkingDirectory(nativePath(workDir));
 
 
-    QString nresonator,f_min_pass,f_max_pass,rloss,outrloss,portimp;
+    QString nresonator,f_min_pass,f_max_pass,rloss,outrloss,portimp,filterType;
     nresonator.setNum(prjData.filterOrder);
     f_min_pass.setNum(prjData.filterPassBand[0],'f',10);
     f_max_pass.setNum(prjData.filterPassBand[1],'f',10);
     rloss.setNum(prjData.filterRetLoss,'f',5);
     outrloss.setNum(prjData.filterOutbandRetLoss,'f',5);
     portimp.setNum(prjData.filterPortImpedance,'f',5);
+    filterType.setNum(prjData.idealFilterType);
 
     QString app=script;
     QStringList args;
@@ -5115,13 +5078,28 @@ void Modeler::filterDesign()
     args << QString("-idealFilterDesign");
     args << QString("-nresonator");
     args << nresonator;
+    args << QString("-filterType");
+    args << filterType;
     args << QString("-rloss");
     args << rloss;
     args << QString("-outbandRloss");
     args << outrloss;
-    args << QString("-passband");
-    args << f_min_pass;
-    args << f_max_pass;
+    if(prjData.idealFilterType!=STOP_BAND){
+     QString f_min_pass,f_max_pass;
+     f_min_pass.setNum(prjData.filterPassBand[0],'f',10);
+     f_max_pass.setNum(prjData.filterPassBand[1],'f',10);
+     args << QString("-passband");
+     args << f_min_pass;
+     args << f_max_pass;
+    }
+    if(prjData.idealFilterType==STOP_BAND || prjData.idealFilterType==STOP_PASS_BAND){
+     QString f_min_stop,f_max_stop;
+     f_min_stop.setNum(prjData.filterStopBand[0],'f',10);
+     f_max_stop.setNum(prjData.filterStopBand[1],'f',10);
+     args << QString("-stopband");
+     args << f_min_stop;
+     args << f_max_stop;
+    }
     args << QString("-portimpedance");
     args << portimp;
     if(prjData.canonicalFilterTopology==SYMMETRIC_ONLY_LC){
@@ -5232,7 +5210,7 @@ void Modeler::filterMap()
 	 case 3: strcpy(f_unit,"GHz"); break;
     }
 
-    QString nresonator,ntxzeros,f_min_pass,f_max_pass,f_min_map,f_max_map,Qfactor,portimp;
+    QString nresonator,ntxzeros,f_min_pass,f_max_pass,f_min_map,f_max_map,Qfactor,portimp,filterType;
     nresonator.setNum(prjData.filterOrder);
     if(prjData.symmFilterResponse){
       ntxzeros.setNum(2*prjData.filterZeros.size());
@@ -5245,6 +5223,7 @@ void Modeler::filterMap()
     f_max_map.setNum(prjData.mapFreqBand[1],'f',10);
     Qfactor.setNum(prjData.filtermapQfactor,'f',10);
     portimp.setNum(prjData.filterPortImpedance,'f',5);
+    filterType.setNum(prjData.idealFilterType);
 
     QProcess *proc=new QProcess;
     proc->setWorkingDirectory(nativePath(workDir));
@@ -5253,9 +5232,17 @@ void Modeler::filterMap()
     args << QString("-passband");
     args << f_min_pass;
     args << f_max_pass;
+    args << QString("-filterType");
+    args << filterType;
     args << QString("-portimpedance");
     args << portimp;
-    if(prjData.filtermapSource==ZEROPOLES) args << QString("-mapFilterFromAna");
+    if(prjData.filtermapSource==ZEROPOLES){
+	args << QString("-mapFilterFromAna");
+	if(prjData.idealFilterType==STOP_BAND || prjData.idealFilterType==STOP_PASS_BAND){ 
+         args << QString("-nresonator");
+         args << nresonator;
+	}
+    }
     if(prjData.filtermapSource==IMPORTED_RESPONSE){
 	   args << QString("-mapFilterFromS2P");
            if(!prjData.filtermapSymmetric) args << QString("-asymmetric");
@@ -7723,6 +7710,10 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      if(prjData.localMeshing3d)  localMeshing3dCB->setCheckState(Qt::Checked);
      else                        localMeshing3dCB->setCheckState(Qt::Unchecked);
 
+     conformalMeshCB=new QCheckBox("Conformal Mesh IF", this);
+     if(prjData.conformalMeshIF) conformalMeshCB->setCheckState(Qt::Checked);
+     else                        conformalMeshCB->setCheckState(Qt::Unchecked);
+
      QLabel *meshPerCircleLabel= new QLabel();
      meshPerCircleLabel->setText(tr("Mesh/Circle:"));
      QIntValidator *meshPerCircleValidator = new QIntValidator(this);
@@ -7860,6 +7851,7 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      otherLayout->addWidget(meshTetMaxNumLabel, 7, 0);
      otherLayout->addWidget(meshTetMaxNumLineEdit, 7, 2);
      otherLayout->addWidget(localMeshing3dCB, 8, 0);
+     otherLayout->addWidget(conformalMeshCB, 8, 1);
 
      QGroupBox *otherGroupBox=new QGroupBox();
      otherGroupBox->setLayout(otherLayout);
@@ -7950,6 +7942,9 @@ void SetGlobalsDialog::set(){
 
       int localMeshing3d=(localMeshing3dCB->checkState()==Qt::Checked)? 1:0;
       if(localMeshing3d!=prjData.localMeshing3d) {prjData.localMeshing3d=localMeshing3d; changed=true;}
+
+      int conformalMeshIF=(conformalMeshCB->checkState()==Qt::Checked)? 1:0;
+      if(conformalMeshIF!=prjData.conformalMeshIF) {prjData.conformalMeshIF=conformalMeshIF; changed=true;}
 
       int ms=meshSizeLineEdit->text().toInt();
       if(prjData.meshPerWavelen!=ms) { prjData.meshPerWavelen=ms; changed=true; prjData.workStatus.remeshNeeded=1;}
@@ -9540,6 +9535,8 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      filterTypeChooser = new QComboBox();
      filterTypeChooser->addItem(tr("Chebyshev"));
      filterTypeChooser->addItem(tr("Maximally Flat"));
+     filterTypeChooser->addItem(tr("Stop Band"));
+     filterTypeChooser->addItem(tr("Stop and Pass Band"));
      filterTypeChooser->addItem(tr("Papoulis"));
      filterTypeChooser->setCurrentIndex(prjData.idealFilterType);
 
@@ -9578,18 +9575,22 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      else                            
          tuneOnlyJtCB->setCheckState(Qt::Unchecked);
 
-     QLabel *passBandLabel= new QLabel();
-     passBandLabel->setText(tr("Pass Band:"));
-     int fI=prjData.freqUnitE/3;
-     switch(fI){
-	  case 0: passBandLabel->setText(tr("Pass Band [Hz]:")); break;
-	  case 1: passBandLabel->setText(tr("Pass Band [KHz]:")); break;
-	  case 2: passBandLabel->setText(tr("Pass Band [MHz]:")); break;
-	  case 3: passBandLabel->setText(tr("Pass Band [GHz]:")); break;
-     }
+     QLabel  *passBandLabel= new QLabel();
 
-     QLabel *bandSepLabel= new QLabel();
-     bandSepLabel->setText(tr("  :  "));
+     int fI=prjData.freqUnitE/3;
+     QString funit;
+     switch(fI){
+	  case 0: funit="[Hz]:"; break;
+	  case 1: funit="[KHz]:"; break;
+	  case 2: funit="[MHz]:"; break;
+	  case 3: funit="[GHz]:"; break;
+     }
+     passBandLabel->setText(tr("Pass Band ")+funit);
+     stopBandLabel= new QLabel();
+     if(prjData.idealFilterType==STOP_BAND)
+       stopBandLabel->setText(tr("Stop Band ")+funit);
+     else if(prjData.idealFilterType==STOP_PASS_BAND)
+       stopBandLabel->setText(tr("Notch Freq ")+funit);
 
      freqvalidator = new QDoubleValidator(this);
      freqvalidator->setDecimals(1000); // (standard anyway)
@@ -9609,6 +9610,15 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      f1LineEdit->setFixedWidth(150);
      f2LineEdit->setFixedWidth(150);
 
+     stopf1LineEdit = new QLineEdit();
+     stopf1LineEdit->setText(QString("%1").arg(prjData.filterStopBand[0], 0, 'f', 8));
+     stopf1LineEdit->setValidator(freqvalidator);
+     if(prjData.idealFilterType==STOP_PASS_BAND) prjData.filterStopBand[1]=prjData.filterStopBand[0];
+     stopf2LineEdit = new QLineEdit();
+     stopf2LineEdit->setText(QString("%1").arg(prjData.filterStopBand[1], 0, 'f', 8));
+     stopf2LineEdit->setValidator(freqvalidator);
+     stopf1LineEdit->setFixedWidth(150);
+     stopf2LineEdit->setFixedWidth(150);
      QDoubleValidator *rlvalidator = new QDoubleValidator(this);
      rlvalidator->setDecimals(1000); // (standard anyway)
      rlvalidator->setNotation(QDoubleValidator::ScientificNotation);
@@ -9681,9 +9691,9 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      txZeros= new QTableWidget(0, 2, this);
      txZeros->setColumnWidth(1,200);
      #if defined(QT5)
-      txZeros->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+       txZeros->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
      #elif defined(QT4)
-      txZeros->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+       txZeros->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
      #endif
      QTableWidgetItem *Zheader1 = new QTableWidgetItem();
      switch(fI){
@@ -9767,6 +9777,8 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
 
      QGridLayout *designSettingsLayout = new QGridLayout();
      QGridLayout *bandLayout = new QGridLayout();
+     QGridLayout *stopBandLayout = new QGridLayout();
+     QGridLayout *retLossLayout = new QGridLayout();
      QGridLayout *lossyLayout = new QGridLayout();
      QGridLayout *nLayout = new QGridLayout();
      QGridLayout *zerosLayout = new QGridLayout();
@@ -9788,13 +9800,19 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
 
      bandLayout->addWidget(passBandLabel, 0, 0);
      bandLayout->addWidget(f1LineEdit,0, 1);
-     bandLayout->addWidget(bandSepLabel,0, 2);
      bandLayout->addWidget(f2LineEdit,0, 3);
+
+     stopBandLayout->addWidget(stopBandLabel, 0, 0);
+     stopBandLayout->addWidget(stopf1LineEdit,0, 1);
+     stopBandLayout->addWidget(stopf2LineEdit,0, 3);
+
      bandLayout->setRowMinimumHeight(0,25);
-     bandLayout->addWidget(retLossLabel,1, 0);
-     bandLayout->addWidget(retLossLineEdit,1, 1);
-     bandLayout->addWidget(outRetLossLabel,1, 3);
-     bandLayout->addWidget(outRetLossLineEdit,1, 4);
+     stopBandLayout->setRowMinimumHeight(0,25);
+
+     retLossLayout->addWidget(retLossLabel,0, 0);
+     retLossLayout->addWidget(retLossLineEdit,0, 1);
+     retLossLayout->addWidget(outRetLossLabel,0, 3);
+     retLossLayout->addWidget(outRetLossLineEdit,0, 4);
 
      lossyLayout->addWidget(RLossOptimLabel,0, 0);
      lossyLayout->addWidget(RLossOptimLineEdit,0, 1);
@@ -9810,10 +9828,8 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
 
      nLayout->addWidget(txZerosNumLabel, 1, 0);
      nLayout->addWidget(txZerosNumSB, 1, 1);
-     
      nLayout->addWidget(addConjTzCB, 2, 0);
      nLayout->addWidget(mappedTzCB, 2, 1);
-
      zerosLayout->addWidget(txZeros, 0, 0);
 
      qfactorLayout->addWidget(QfactorLabel, 1, 0);
@@ -9831,17 +9847,33 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      predistOptimGroupBox->setLayout(lossyLayout);
      predistOptimGroupBox->hide();
 
-     QGroupBox *bandGroupBox=new QGroupBox();
-     bandGroupBox->setLayout(bandLayout);
+     passBandGroupBox=new QGroupBox();
+     passBandGroupBox->setLayout(bandLayout);
+
+     stopBandGroupBox=new QGroupBox();
+     stopBandGroupBox->setLayout(stopBandLayout);
+
+     retLossGroupBox=new QGroupBox();
+     retLossGroupBox->setLayout(retLossLayout);
 
      QGroupBox *nGroupBox=new QGroupBox();
      nGroupBox->setLayout(nLayout);
 
-     QGroupBox *zerosGroupBox=new QGroupBox();
+     zerosGroupBox=new QGroupBox();
      zerosGroupBox->setLayout(zerosLayout);
 
      qfactorGroupBox=new QGroupBox();
      qfactorGroupBox->setLayout(qfactorLayout);
+
+     if(prjData.idealFilterType==STOP_BAND){
+	 passBandGroupBox->hide();
+	 zerosGroupBox->hide();
+     } else if(prjData.idealFilterType==STOP_PASS_BAND){
+	 zerosGroupBox->hide();
+	 stopf2LineEdit->hide();
+     } else{
+	 stopBandGroupBox->hide();
+     }
 
 //****************************************
 //   control buttons:
@@ -9872,6 +9904,7 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      connect(symmResponseCB, SIGNAL( stateChanged (int) ), this, SLOT(updateSymmResponse(int)) );
      connect(mappedTzCB, SIGNAL( stateChanged (int) ), this, SLOT(onMappedTxZeros(int)) );
      connect(addConjTzCB, SIGNAL( stateChanged (int) ), this, SLOT(onAddConjugateTZ(int)) );
+     connect(txZerosNumSB, SIGNAL( valueChanged (int) ), this, SLOT(setTxZerosNum(int)) );
      connect(predistortedFilterCB, SIGNAL( stateChanged (int) ), this, SLOT(updatePredistorted(int)) );
      connect(predistFilterOptimCB, SIGNAL( stateChanged (int) ), this, SLOT(updatePredistOptim(int)) );
      connect(setButton, SIGNAL(clicked()), this, SLOT(set()));
@@ -9880,14 +9913,16 @@ FilterDesignDialog::FilterDesignDialog(MainWindow * parent, Qt::WindowFlags f ) 
      connect(startButton,  SIGNAL(clicked()), this, SLOT(start()));
      connect(closeButton,  SIGNAL(clicked()), this, SLOT(accept()));
      connect(helpButton,  SIGNAL(clicked()), this, SLOT(help()));
+     connect(filterTypeChooser, SIGNAL( currentIndexChanged (int) ), this, SLOT(atFilterType(int)) );
      connect(filterOrderSB, SIGNAL( valueChanged (int) ), this, SLOT(atFilterOrder(int)) );
-     connect(txZerosNumSB, SIGNAL( valueChanged (int) ), this, SLOT(setTxZerosNum(int)) );
 
      setFocusPolicy(Qt::StrongFocus);
 
      mainLayout = new QVBoxLayout(this);
      mainLayout->addWidget(designSettingsGroupBox);
-     mainLayout->addWidget(bandGroupBox);
+     mainLayout->addWidget(passBandGroupBox);
+     mainLayout->addWidget(stopBandGroupBox);
+     mainLayout->addWidget(retLossGroupBox);
      mainLayout->addWidget(nGroupBox);
      mainLayout->addWidget(zerosGroupBox);
      mainLayout->addWidget(qfactorGroupBox);
@@ -9973,6 +10008,34 @@ void FilterDesignDialog::updateCustomIdealFilter(int state)
 }
 
 
+void FilterDesignDialog::atFilterType(int n){
+     int fI=prjData.freqUnitE/3;
+     QString funit;
+     switch(fI){
+	  case 0: funit="[Hz]:"; break;
+	  case 1: funit="[KHz]:"; break;
+	  case 2: funit="[MHz]:"; break;
+	  case 3: funit="[GHz]:"; break;
+     }
+     if(n==STOP_BAND)
+       stopBandLabel->setText(tr("Stop Band ")+funit);
+     else if(n==STOP_PASS_BAND)
+       stopBandLabel->setText(tr("Notch Freq ")+funit);
+     if(n==STOP_BAND){
+	 stopf2LineEdit->show();
+	 passBandGroupBox->hide();
+	 zerosGroupBox->hide();
+     } else if(n==STOP_PASS_BAND){
+	 stopf2LineEdit->hide();
+	 passBandGroupBox->show();
+	 zerosGroupBox->hide();
+     } else{
+	 stopBandGroupBox->hide();
+	 passBandGroupBox->show();
+	 zerosGroupBox->show();
+     }
+}
+
 void FilterDesignDialog::atFilterOrder(int n){
    int symmResponse=(symmResponseCB->checkState()==Qt::Checked) ? 1:0;
    if(symmResponse)
@@ -10041,10 +10104,21 @@ void FilterDesignDialog::set(){
     int customFilt=(customIdealFilterCB->checkState()==Qt::Checked)? 1 :0;
     if(prjData.customIdealFilter!=customFilt) {changed=true; prjData.customIdealFilter=customFilt;}
 
-    tmp=f1LineEdit->text().toDouble();
-    if(fabs(prjData.filterPassBand[0]-tmp)>1.e-7) { prjData.filterPassBand[0]=tmp; changed=true;}
-    tmp=f2LineEdit->text().toDouble();
-    if(fabs(prjData.filterPassBand[1]-tmp)>1.e-7) { prjData.filterPassBand[1]=tmp; changed=true;}
+    if(prjData.idealFilterType!=STOP_BAND){
+     tmp=f1LineEdit->text().toDouble();
+     if(fabs(prjData.filterPassBand[0]-tmp)>1.e-7) { prjData.filterPassBand[0]=tmp; changed=true;}
+     tmp=f2LineEdit->text().toDouble();
+     if(fabs(prjData.filterPassBand[1]-tmp)>1.e-7) { prjData.filterPassBand[1]=tmp; changed=true;}
+    }
+
+    if(prjData.idealFilterType==STOP_BAND || prjData.idealFilterType==STOP_PASS_BAND){
+     tmp=stopf1LineEdit->text().toDouble();
+     if(fabs(prjData.filterStopBand[0]-tmp)>1.e-7) { prjData.filterStopBand[0]=tmp; changed=true;}
+     if(prjData.idealFilterType==STOP_BAND){
+         tmp=stopf2LineEdit->text().toDouble();
+         if(fabs(prjData.filterStopBand[1]-tmp)>1.e-7) { prjData.filterStopBand[1]=tmp; changed=true;}
+     } else prjData.filterStopBand[1]=prjData.filterStopBand[0];
+    }
 
     tmp=retLossLineEdit->text().toDouble();
     if(fabs(prjData.filterRetLoss-tmp)>1.e-2) { prjData.filterRetLoss=tmp; changed=true;}

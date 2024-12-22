@@ -89,6 +89,7 @@ extern bool REUSE_CIRCUITS;
 #define SIGN(a)  (((a) > 0) ? 1 : -1)
 #endif
 
+extern bool conformalMeshIF;
 
 void  curveTangent(Handle(Geom_Curve) GC, gp_Pnt GP, gp_Vec &T);
 
@@ -282,8 +283,16 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 	}
 	if(!fout) continue;
      }
-     if(fout) fprintf(fout, "DEF %s  MWM_Curve {\n", ocaf->edgeData[EI-1].name.c_str());
-     if(fwg)  fprintf(fwg, "DEF %s  MWM_Curve {\n", ocaf->edgeData[EI-1].name.c_str());
+     if(conformalMeshIF){
+       if(fout) fprintf(fout, "DEF %s  MWM_Curve {\n", ocaf->edgeData[EI-1].name.c_str());
+       if(fwg)  fprintf(fwg, "DEF %s  MWM_Curve {\n", ocaf->edgeData[EI-1].name.c_str());
+     }else if(meshIF){
+       if(fout) fprintf(fout, "DEF L%dC%d  MWM_Curve {\n", ocaf->EmP->level, EI);
+       if(fwg)  fprintf(fwg,  "DEF L%dC%d  MWM_Curve {\n", ocaf->EmP->level, EI);
+     }else{
+       if(fout) fprintf(fout, "DEF C%d  MWM_Curve {\n", EI);
+       if(fwg)  fprintf(fwg,  "DEF C%d  MWM_Curve {\n", EI);
+     }
 //---------------------------
      if(fout) fprintf(fout, "  curveVertices [\n");
      if(fwg)  fprintf(fwg, "  curveVertices [\n");
@@ -552,7 +561,9 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       GEdge *ge=(*ccit).second.curves[ei];
       TopoDS_Shape E=* (TopoDS_Shape *) ge->getNativePtr();
       int EI=ocaf->indexedEdges->FindIndex(E);
-      fprintf(fout, "\t\"%s\"\n", ocaf->edgeData[EI-1].name.c_str());
+      if(conformalMeshIF) fprintf(fout, "\t\"%s\"\n", ocaf->edgeData[EI-1].name.c_str());
+      else if(meshIF)     fprintf(fout, "\t\"L%dC%d\"\n", ocaf->EmP->level, EI);
+      else                fprintf(fout, "\t\"C%d\"\n", EI); 
      }
      fprintf(fout, "  ]\n");
 //----------------------------------
@@ -593,7 +604,13 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     if(!FI) continue;
     int internal=1;
     internal=FI>ocaf->extFaceNum;
-    if(meshIF && ocaf->faceData[FI-1].level <ocaf->EmP->level) continue;
+    if(meshIF){
+     if(ocaf->faceData[FI-1].level <ocaf->EmP->level) continue;
+     if(ocaf->faceData[FI-1].cmp1=="-") continue;
+     if(ocaf->faceData[FI-1].cmp2=="-") continue;
+     if(ocaf->faceData[FI-1].cmp1==ocaf->faceData[FI-1].cmp2) continue;
+     if(ocaf->faceData[FI-1].cmp1 > ocaf->faceData[FI-1].cmp2) OCC_Fsign*=-1;
+    }
 //    int TriSsign=GmshOCCfaceSign(gf);
 //    assert(TriSsign==1);
     bool skipFaceMesh=REUSE_CIRCUITS;
@@ -615,7 +632,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     std::vector<int> masterTria(FtriaNum,0);
     for (int i=0; i<FtriaNum; i++) masterTria[i]=i;
     {
-      if(mesh3D){
+      if(mesh3D && conformalMeshIF){
        std::string upFaceName="UF"+ocaf->faceData[FI-1].name;
        MWM::Surface *mwms=MWM::mesh->FindSurface(upFaceName.c_str());
        if(mwms){
@@ -892,8 +909,16 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     GEdge *ge=Fedges[i];
     TopoDS_Shape E=* (TopoDS_Shape *) ge->getNativePtr();
     int EI=ocaf->indexedEdges->FindIndex(E);
-    fprintf(fout, "\t\"%s\"\n",  ocaf->edgeData[EI-1].name.c_str());
-    if(fwg && onWG) fprintf(fwg, "\t\"%s\"\n", ocaf->edgeData[EI-1].name.c_str());
+    if(conformalMeshIF){
+      fprintf(fout, "\t\"%s\"\n",  ocaf->edgeData[EI-1].name.c_str());
+      if(fwg && onWG) fprintf(fwg, "\t\"%s\"\n", ocaf->edgeData[EI-1].name.c_str());
+    }else if(meshIF){
+      fprintf(fout, "\t\"L%dC%d\"\n", ocaf->EmP->level, EI);
+      if(fwg && onWG) fprintf(fwg, "\t\"L%dC%d\"\n", ocaf->EmP->level, EI);
+    }else{
+      fprintf(fout, "\t\"C%d\"\n", EI);
+      if(fwg && onWG) fprintf(fwg, "\t\"C%d\"\n", EI);
+    }
   }
   if(fout) fprintf(fout, "  ]\n");  
   if(fwg && onWG) fprintf(fwg, "  ]\n");

@@ -160,7 +160,11 @@ Volume::Volume(){
   TEMportsNum=0;
   TEportsNum=0;
   TMportsNum=0;
-  TEM_TabularOrder=0;
+  orientation=0;
+  TEM_TabularOrder1=0;
+  TEM_TabularOrder2=0;
+  TEM_refCond=0;
+  disconnectedTEM=0;
   gridNum=0;
   PML=0;
   invariant=1;
@@ -503,8 +507,16 @@ void _mwm_print_volume(void *a, void *b)
       fprintf(EMMFILE, "  TEportsNum    %d\n",  vol->TEportsNum);
   if(vol->TMportsNum>0)
       fprintf(EMMFILE, "  TMportsNum    %d\n",  vol->TMportsNum);
-  if(vol->TEM_TabularOrder>0)
-      fprintf(EMMFILE, "  TEMTabularOrder  %d\n",  vol->TEM_TabularOrder);
+  if(vol->orientation>0)
+      fprintf(EMMFILE, "  orientation  %d\n",  vol->orientation);
+  if(vol->TEM_TabularOrder1>0)
+      fprintf(EMMFILE, "  TEMtabularOrder1  %d\n",  vol->TEM_TabularOrder1);
+  if(vol->TEM_TabularOrder2>0)
+      fprintf(EMMFILE, "  TEMtabularOrder2  %d\n",  vol->TEM_TabularOrder2);
+  if(vol->TEM_refCond>0)
+      fprintf(EMMFILE, "  TEMrefConductor  %d\n",  vol->TEM_refCond);
+  if(vol->disconnectedTEM>0)
+      fprintf(EMMFILE, "  disconnectedTEM  %d\n",  vol->disconnectedTEM);
   if(vol->disabled)
       fprintf(EMMFILE, "  disabled\n");
   fprintf(EMMFILE, "}\n\n");

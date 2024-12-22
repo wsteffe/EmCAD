@@ -35,6 +35,8 @@
 extern int modeldebug;
 extern int model_flex_debug;
 
+int conformalMeshIF=0;
+
 namespace DB {
  char yyFileName[256];
  int yyLineNum;
@@ -63,6 +65,8 @@ int main(int argc, char **argv)
                 "       -asstype         <integer>    \n"\
                 "       -meshsize        <float>      \n"\
                 "       -meshpercircle   <integer>    \n"\
+                "       -sharedmeshsize   <integer>    \n"\
+                "       -conformalmesh   <integer>    \n"\
                 "       -subcomp         <integer>    \n"\
                 "       -dir             <string>     \n"\
                 "       -outdir          <string>     \n"\
@@ -107,6 +111,10 @@ int main(int argc, char **argv)
        else if ( !strcmp(argv[i], "-sharedmeshsize")  ) { 
          i++; 
          sharedMeshsize=(double) atof(argv[i++]);
+       }
+       else if ( !strcmp(argv[i], "-conformalmesh")  ) { 
+         i++;
+         conformalMeshIF=(int) atoi(argv[i++]);
        }
        else if ( !strcmp(argv[i], "-subcomp")  ) { 
          i++; 

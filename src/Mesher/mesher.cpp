@@ -121,6 +121,8 @@ bool useFaceAttractor=false;
 bool useEdgeAttractor=true;
 bool useBoundaryLayer=false;
 
+extern bool conformalMeshIF;
+
 
 void gp_trsf_2_gmsh(gp_Trsf& trsf,std::vector<double>& tfo)
 {
@@ -2019,8 +2021,8 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       else            
 //        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
 //        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
-        if(meshIF)  CTX::instance()->mesh.algo2d=ALGO_2D_FRONTAL;
-        else        CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
+        if(meshIF)  CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
+        else        CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
       CTX::instance()->mesh.lcFromPoints=1;
       CTX::instance()->mesh.lcFromCurvature=1;
       CTX::instance()->mesh.lcExtendFromBoundary=0;
@@ -2087,11 +2089,10 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 
 
 
-     MWM::newMesh();
+     if(conformalMeshIF) MWM::newMesh();
 
-     bool useMaster=true;
 
-     if(ocaf->EmP->level>0 || ocaf->subComp) for(GModel::eiter it = gm->firstEdge(); it != gm->lastEdge(); it++){
+     if(conformalMeshIF) if(ocaf->EmP->level>0 || ocaf->subComp) for(GModel::eiter it = gm->firstEdge(); it != gm->lastEdge(); it++){
         GEdge *ge=(*it);
         unsigned int ElineNum=ge->getNumMeshElements();
         TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
@@ -2104,7 +2105,6 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
            edgeFileName+=ename;
 	   if(!FileExists(nativePath(edgeFileName).c_str())) continue;
 	   loadMwm(nativePath(edgeFileName).c_str());
-	   MWM::Curve *mwmc=MWM::mesh->FindCurve(ocaf->edgeData[EI-1].name.c_str());
            GVertex *gv1=ge->getBeginVertex();
            GVertex *gv2=ge->getEndVertex();
            TopoDS_Vertex V1= *(TopoDS_Vertex *) gv1->getNativePtr();
@@ -2112,16 +2112,13 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
            TopoDS_Vertex V2= *(TopoDS_Vertex *) gv2->getNativePtr();
            int IP2=ocaf->indexedVertices->FindIndex(V2);
            int GMSH_Esign=ocaf->vertexData[IP1-1].name < ocaf->vertexData[IP2-1].name ? 1:-1;
-           if(mwmc){
-		    mwmc->setGEdge(ge,GMSH_Esign); 
- 		    if(!useMaster) mwmc->setMesh();
-	           }
+	   MWM::Curve *mwmc=MWM::mesh->FindCurve(ocaf->edgeData[EI-1].name.c_str());
+           if(mwmc) mwmc->setGEdge(ge,GMSH_Esign);
 	}
      }
      
-      if(!useMaster) gm->mesh(1);
 
-      if(mesh3D) for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
+      if(conformalMeshIF) if(mesh3D) for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
          GFace *gf=*fit;
 	 if(gf->meshAttributes.method!=MESH_NONE){
            TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
@@ -2138,25 +2135,21 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 	   loadMwm(nativePath(faceFileName).c_str());
 	   std::string upFaceName="UF"+ocaf->faceData[FI-1].name;
 	   MWM::Surface *mwms=MWM::mesh->FindSurface(upFaceName.c_str());
-           if(mwms){
-		    mwms->setGFace(gf); 
-		    if(!useMaster) mwms->setMesh();
-	           }
+           if(mwms) mwms->setGFace(gf); 
 	 }
       }
 
-      if(useMaster){
+      if(conformalMeshIF){
        if(mesh3D)                                         MWM::setMasterMesh(2,gm);
        else if(ocaf->EmP->level>0 || ocaf->subComp)       MWM::setMasterMesh(1,gm);
-       gm->mesh(1);
       }
 
-
+      gm->mesh(1);
       gm->mesh(2);
 
 
       bool checkMesh2D=false;
-      if(checkMesh2D){
+      if(conformalMeshIF) if(checkMesh2D){
 	 if(mesh3D) for(GModel::fiter fit = gm->firstFace(); fit != gm->lastFace(); ++fit){
             GFace *gf=*fit;
 	    if(gf->meshAttributes.method!=MESH_NONE){
@@ -2226,6 +2219,8 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
 {
 
+    ocaf->readSuperfaceSplitterMap();
+
     TCollection_AsciiString assName; ocaf->getAssName(assName);
     TCollection_AsciiString modelFileName=TCollection_AsciiString(modelDir)+"/"+assName+".mwm";
 
@@ -2253,6 +2248,17 @@ void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
        std::string sfname=(*it);
        fprintf(fout, "DEF %s  MWM_Volume {\n",  sfname.c_str());
        fprintf(fout, "  type  WaveGuide\n");
+       std::map<std::string,std::string>::const_iterator sfit=ocaf->superfaceSplitterMap.find(sfname);
+       if(sfit!=ocaf->superfaceSplitterMap.end()){
+         DB::Volume *vol=ocaf->EmP->FindVolume(sfit->second.c_str());
+	 if(vol){
+  	   if(vol->orientation>0)       fprintf(fout, "  orientation  %d\n",  vol->orientation);
+  	   if(vol->TEM_TabularOrder1>0) fprintf(fout, "  TEMtabularOrder1  %d\n",  vol->TEM_TabularOrder1);
+           if(vol->TEM_TabularOrder2>0) fprintf(fout, "  TEMtabularOrder2  %d\n",  vol->TEM_TabularOrder2);
+           if(vol->TEM_refCond>0)       fprintf(fout, "  TEMrefConductor  %d\n",  vol->TEM_refCond);
+           if(vol->disconnectedTEM>0)   fprintf(fout, "  disconnectedTEM  %d\n",  vol->disconnectedTEM);
+	 }
+       }
        fprintf(fout, "}\n\n");
        std::vector<int> FI=WGIF_FI[sfname];
        for (int j=0; j<FI.size(); j++){

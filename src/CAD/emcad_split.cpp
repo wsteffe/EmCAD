@@ -76,7 +76,8 @@ int main(int argc, char **argv)
       ocaf->regenerateIndexedSubShapes();
       ocaf->initFEPdataStruct();
       ocaf->readFEproperties();
-      if(ocaf->subCompNum>1) ocaf->setSuperFaces();
+      if(ocaf->subCompNum>1)
+      ocaf->setSuperFaces();
       int subCompNum=ocaf->subCompNum;
       delete ocaf;
       for (int subcmpI=1; subcmpI<=subCompNum; subcmpI++) {

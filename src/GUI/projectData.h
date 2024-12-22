@@ -33,8 +33,8 @@ enum FreqRespParType {SPAR=0, ZPAR=1, YPAR=2};
 enum SelectedCircuit {ELECROMAGNETICDEVICE=0, MAPPEDCIRCUIT=1, IDEALCIRCUIT=2, IMPORTEDCIRCUIT=3, IDEALCIRCUITMAPPEDTZ=4, IMPORTEDRESPONSE=5};
 #endif
 enum FilterMapSource {ZEROPOLES=0, IMPORTED_RESPONSE=1, IMPORTED_CIRCUIT=2};
-enum FilterTopology   {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JLC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
-enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1};
+enum FilterTopology  {SYMMETRIC_TRANSVERSE_LC=0, SYMMETRIC_TRANSVERSE_JLC=1, SYMMETRIC_ONLY_LC=2, SYMMETRIC_WITH_MAGICT=3 };
+enum FilterType      {CHEBYSHEV=0, MAXIMALLY_FLAT=1, STOP_BAND=2, STOP_PASS_BAND=3};
 
 
 struct StringList
@@ -103,6 +103,7 @@ struct ProjectData
     int    meshRefineMinNum;
     int    meshRefineMaxNum;
     int    meshTetMaxNum;
+    int    conformalMeshIF;
     double meshMinEnergyRatio;
     int    localMeshing3d;
     int    XYplaneSymmetry;
@@ -145,6 +146,7 @@ struct ProjectData
     int    autoFilterMapping;
 
     double filterPassBand[2];
+    double filterStopBand[2];
     double filterRetLoss;
     double filterOutbandRetLoss;
     double filterQfactor;

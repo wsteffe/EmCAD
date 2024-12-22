@@ -666,13 +666,36 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      TMnumSB->setValue(0);
      TMnumSB->setMinimum(0);
 
-     QLabel *TEM_TabularOrderLabel= new QLabel();
-     TEM_TabularOrderLabel->setText(tr("TEM tabular order:"));
-     TEM_TabularOrder= new QComboBox();
-     TEM_TabularOrder->addItem(tr("None"));
-     TEM_TabularOrder->addItem(tr("Left-Right"));
-     TEM_TabularOrder->addItem(tr("Right-Left"));
-     TEM_TabularOrder->setCurrentIndex(0);
+     QLabel *TEM_TabularOrder1Label= new QLabel();
+     TEM_TabularOrder1Label->setText(tr("TEM major tabular order:"));
+     TEM_TabularOrder1= new QComboBox();
+     TEM_TabularOrder1->addItem(tr("Unspecified"));
+     TEM_TabularOrder1->addItem(tr("Increasing X"));
+     TEM_TabularOrder1->addItem(tr("Increasing Y"));
+     TEM_TabularOrder1->addItem(tr("Increasing Z"));
+     TEM_TabularOrder1->addItem(tr("Decreasing X"));
+     TEM_TabularOrder1->addItem(tr("Decreasing Y"));
+     TEM_TabularOrder1->addItem(tr("Decreasing Z"));
+     TEM_TabularOrder1->setCurrentIndex(0);
+
+     QLabel *TEM_TabularOrder2Label= new QLabel();
+     TEM_TabularOrder2Label->setText(tr("TEM minor tabular order:"));
+     TEM_TabularOrder2= new QComboBox();
+     TEM_TabularOrder2->addItem(tr("Unspecified"));
+     TEM_TabularOrder2->addItem(tr("Increasing X"));
+     TEM_TabularOrder2->addItem(tr("Increasing Y"));
+     TEM_TabularOrder2->addItem(tr("Increasing Z"));
+     TEM_TabularOrder2->addItem(tr("Decreasing X"));
+     TEM_TabularOrder2->addItem(tr("Decreasing Y"));
+     TEM_TabularOrder2->addItem(tr("Decreasing Z"));
+     TEM_TabularOrder2->setCurrentIndex(0);
+
+     QLabel *TEM_refCondLabel= new QLabel();
+     TEM_refCondLabel->setText(tr("TEM reference conductor:"));
+     TEM_refCond= new QComboBox();
+     TEM_refCond->addItem(tr("Largest outer conductor"));
+     TEM_refCond->addItem(tr("First in tabular order"));
+     TEM_refCond->addItem(tr("Last in tabular order"));
 
      QGridLayout *WgLayout = new QGridLayout();
      WgLayout->addWidget(WgLabel,     0, 0);
@@ -682,11 +705,20 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      WgLayout->addWidget(TEnumSB,     2, 1);
      WgLayout->addWidget(TMnumLabel,  3, 0);
      WgLayout->addWidget(TMnumSB,     3, 1);
-     WgLayout->addWidget(TEM_TabularOrderLabel,  4, 0);
-     WgLayout->addWidget(TEM_TabularOrder,     4, 1);
-     
+
      WgGroupBox=new QGroupBox();
      WgGroupBox->setLayout(WgLayout);
+
+     QGridLayout *TEMLayout = new QGridLayout();
+     TEMLayout->addWidget(TEM_TabularOrder1Label,  0, 0);
+     TEMLayout->addWidget(TEM_TabularOrder1,     0, 1);
+     TEMLayout->addWidget(TEM_TabularOrder2Label,  1, 0);
+     TEMLayout->addWidget(TEM_TabularOrder2,     1, 1);
+     TEMLayout->addWidget(TEM_refCondLabel,  2, 0);
+     TEMLayout->addWidget(TEM_refCond,       2, 1);
+     
+     TEMGroupBox=new QGroupBox();
+     TEMGroupBox->setLayout(TEMLayout);
 
 
 //****************************************
@@ -782,6 +814,38 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      if(mainOCAF->EmP->assemblyType==NET) cutoffGroupBox->hide();
 
 //****************************************
+//   internal ports:
+     QLabel *disconnectedTEMlabel= new QLabel(); 
+     disconnectedTEMlabel->setText(tr("Num Disconnected TEM ports:"));
+     disconnectedTEM=new QSpinBox(this);
+     disconnectedTEM->setValue(0);
+     disconnectedTEM->setMinimum(0);
+
+     QLabel *disconnectOrientLabel= new QLabel();
+     disconnectOrientLabel->setText(tr("Disconnect Orientation:"));
+     disconnectOrient= new QComboBox();
+     disconnectOrient->addItem(tr("Unspecified"));
+     disconnectOrient->addItem(tr("Increasing X"));
+     disconnectOrient->addItem(tr("Increasing Y"));
+     disconnectOrient->addItem(tr("Increasing Z"));
+     disconnectOrient->addItem(tr("Decreasing X"));
+     disconnectOrient->addItem(tr("Decreasing Y"));
+     disconnectOrient->addItem(tr("Decreasing Z"));
+     disconnectOrient->setCurrentIndex(0);
+
+     QGridLayout *disconnectLayout = new QGridLayout();
+     disconnectLayout->addWidget(disconnectedTEMlabel,0, 0);
+     disconnectLayout->addWidget(disconnectedTEM,0, 1);
+     disconnectLayout->addWidget(disconnectOrientLabel,1, 0);
+     disconnectLayout->addWidget(disconnectOrient,1, 1);
+
+     disconnectGroupBox=new QGroupBox(tr(""));
+     disconnectGroupBox->setLayout(disconnectLayout);
+
+     if(mainOCAF->EmP->assemblyType==NET) disconnectGroupBox->hide();
+
+
+//****************************************
 //   control buttons:
 //
      QPushButton *setButton = new QPushButton(tr("Set"));
@@ -811,7 +875,9 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      mainLayout = new QVBoxLayout(this);
      mainLayout->addWidget(nameGroupBox);
      mainLayout->addWidget(WgGroupBox);
+     mainLayout->addWidget(TEMGroupBox);
      mainLayout->addWidget(LPGroupBox);
+     mainLayout->addWidget(disconnectGroupBox);
      mainLayout->addWidget(meshGroupBox);
      mainLayout->addWidget(cutoffGroupBox);
      mainLayout->addWidget(GridGroupBox);
@@ -826,9 +892,14 @@ void SetCompPropertiesDialog::updateType(int t)
     if(t==WAVEGUIDE){
   	 WgGroupBox->show();
   	 meshGroupBox->show();
-	 w=400; h=420;
     }else{
   	 WgGroupBox->hide();
+    }
+    if(t==WAVEGUIDE || t==SPLITTER){
+  	 TEMGroupBox->show();
+	 w=400; h=420;
+    }else{
+  	 TEMGroupBox->hide();
 	 w=400; h=250;
     }
     if(t==DIELECTRIC){
@@ -850,7 +921,10 @@ void SetCompPropertiesDialog::updateType(int t)
     if(t!=WAVEGUIDE && t!=DIELECTRIC && t!=HOLE && t!=BOUNDARYCOND && t!=SPLITTER){
   	 meshGroupBox->hide();
     }
-    if(t!=SPLITTER) cutoffGroupBox->hide();
+    if(t!=SPLITTER){
+	 disconnectGroupBox->hide();
+	 cutoffGroupBox->hide();
+    }
     QApplication::processEvents();
     window()->resize(w,h);
 }
@@ -859,11 +933,21 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
   if(volname.isEmpty()) return;
   DB::Volume* vol = mainOCAF->EmP->FindVolume(volname.toLatin1().data());
   if(!vol) return;
-  QString TEMnum; TEMnum.setNum(vol->TEMportsNum);
-  TEMnumLE->setText(TEMnum);
-  TEnumSB->setValue(vol->TEportsNum);
-  TMnumSB->setValue(vol->TMportsNum);
-  TEM_TabularOrder->setCurrentIndex(vol->TEM_TabularOrder);
+  if(vol->type==WAVEGUIDE){
+   QString TEMnum; TEMnum.setNum(vol->TEMportsNum);
+   TEMnumLE->setText(TEMnum);
+   TEnumSB->setValue(vol->TEportsNum);
+   TMnumSB->setValue(vol->TMportsNum);
+  }
+  if(vol->type==WAVEGUIDE || vol->type==SPLITTER){
+   TEM_TabularOrder1->setCurrentIndex(vol->TEM_TabularOrder1);
+   TEM_TabularOrder2->setCurrentIndex(vol->TEM_TabularOrder2);
+   TEM_refCond->setCurrentIndex(vol->TEM_refCond);
+  }
+  if(vol->type==SPLITTER){
+      disconnectedTEM->setValue(vol->disconnectedTEM);
+      disconnectOrient->setCurrentIndex(vol->orientation);
+  }
   updateType(vol->type);
   if(vol->type==DIELECTRIC || vol->type==HOLE || vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND  || vol->type==SPLITTER)  meshRefLineEdit->setText(QString("%1").arg(vol->meshRefinement));
   if(vol->type==SPLITTER)  cutoffRefLineEdit->setText(QString("%1").arg(vol->cutoffRefinement));
@@ -907,11 +991,30 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
         bool portChanged=false;	
 	if(vol->TEportsNum!=TEnumSB->value())  {vol->TEportsNum=TEnumSB->value(); portChanged=changed=true;}
 	if(vol->TMportsNum!=TMnumSB->value())  {vol->TMportsNum=TMnumSB->value(); portChanged=changed=true;}
-	if(vol->TEM_TabularOrder!=TEM_TabularOrder->currentIndex())  {vol->TEM_TabularOrder=TEM_TabularOrder->currentIndex(); portChanged=changed=true;}
 	if(portChanged) {
            mainOCAF->setPartsStatus();
            prjData.workStatus.decompositionNeeded=true;
         }
+  }
+  if(vol->type==WAVEGUIDE || vol->type==SPLITTER){
+        bool portChanged=false;	
+	if(vol->TEM_TabularOrder1!=TEM_TabularOrder1->currentIndex())  {vol->TEM_TabularOrder1=TEM_TabularOrder1->currentIndex(); portChanged=changed=true;}
+	if(vol->TEM_TabularOrder2!=TEM_TabularOrder2->currentIndex())  {vol->TEM_TabularOrder2=TEM_TabularOrder2->currentIndex(); portChanged=changed=true;}
+	if(vol->TEM_refCond!=TEM_refCond->currentIndex())  {vol->TEM_refCond=TEM_refCond->currentIndex(); portChanged=changed=true;}
+	if(portChanged) {
+           mainOCAF->setPartsStatus();
+           prjData.workStatus.decompositionNeeded=true;
+        }
+  }
+  if(vol->type==SPLITTER){
+	if(vol->disconnectedTEM!=disconnectedTEM->value())  {
+	      vol->disconnectedTEM=disconnectedTEM->value();
+              prjData.workStatus.decompositionNeeded=true;
+	}
+	if(vol->orientation!=disconnectOrient->currentIndex())  {
+	     vol->orientation=disconnectOrient->currentIndex();
+             prjData.workStatus.decompositionNeeded=true;
+	}
   }
   if(vol->type==LINEPORT)
    if(fabs(prjData.portloads.map[LPname]-LinePortZcLineEdit->text().toDouble())>1.e-5){

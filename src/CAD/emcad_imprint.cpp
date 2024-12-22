@@ -94,7 +94,7 @@ int main(int argc, char **argv)
         if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
         ocaf->initFEPdataStruct();
 	if(ocaf->EmP->assemblyType==COMPONENT){
-//	     ocaf->makeFaceAdjCells();
+	     ocaf->makeFaceAdjCells();
 	     ocaf->setFaceComp();
              ocaf->setDisabledVolumes();
 	}
@@ -106,9 +106,9 @@ int main(int argc, char **argv)
         ocaf->workopen(subprojDir.c_str());
         if (ocaf->EmP->assemblyType==COMPONENT||ocaf->hasDownIF) ocaf->imprint(downImprint);
         ocaf->saveIF();
-        if(!ocaf->EmP->level) {
-          if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
+        if(ocaf->EmP->level==0) {
           ocaf->initFEPdataStruct();
+          if(ocaf->EmP->assemblyType==NET) ocaf->savePartsIF();
 	  if(ocaf->EmP->assemblyType==COMPONENT){
 //                 ocaf->makeFaceAdjCells();
 		 ocaf->setFaceComp();

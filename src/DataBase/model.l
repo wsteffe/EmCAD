@@ -232,7 +232,11 @@ material			{ return MATERIAL; }
 TEMportsNum			{ return TEMPORTSNUM; }
 TEportsNum			{ return TEPORTSNUM; }
 TMportsNum			{ return TMPORTSNUM; }
-TEMTabularOrder 		{ return TEMTABULARORDER; }
+orientation			{ return ORIENTATION; }
+TEMtabularOrder1 		{ return TEMTABULARORDER1; }
+TEMtabularOrder2 		{ return TEMTABULARORDER2; }
+TEMrefConductor 		{ return TEMREFCONDUCTOR; }
+disconnectedTEM 		{ return DISCONNECTEDTEM; }
 gridNum			        { return GRIDNUM; }
 PML			        { return PML; }
 invariant			{ return INVARIANT; }

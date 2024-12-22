@@ -143,7 +143,7 @@ struct FaceData
    cutoffref=1;
    BrCond.clear();
   }
-  int Shared(){return cmp1!=std::string("-") && cmp2!=std::string("-");}
+  int Shared(){return cmp1!=std::string("-") && cmp2!=std::string("-")  && cmp1!=cmp2;}
   void read(FILE *fin)
   {
 /*
@@ -456,6 +456,7 @@ class MwOCAF
   void setFaceComp();
   void setFaceSubdom();
   void setSuperFaces();
+  void setSuperFaceSplitterMap();
   void setSuperCurves();
   void setSuperCurveFaceData(
           std::map<std::string, std::set<std::string> > &SCSFlinks,
@@ -477,6 +478,8 @@ class MwOCAF
   void readPartitionMap();
   void saveSubdomainMap();
   void readSubdomainMap();
+  void saveSuperfaceSplitterMap();
+  void readSuperfaceSplitterMap();
   void putVolumesInDB();
   void checkPartNF(Handle(TDocStd_Document) doc);
   void save();
@@ -522,6 +525,7 @@ class MwOCAF
   std::vector<int>  subSplitVerticesMap;
   std::vector<int>  edgeConductorMap;
   std::vector<int>  faceConductorMap;
+  std::map<std::string,std::string>  superfaceSplitterMap;
 
   FaceData    *faceData;
   EdgeData    *edgeData;

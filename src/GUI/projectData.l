@@ -235,6 +235,7 @@ trustR	                	{ return TRUSTR; }
 tx	                	{ return TX; }
 zeros	                	{ return ZEROS; }
 pass	                	{ return PASS; }
+stop	                	{ return STOP; }
 automatic	  	 	{ return AUTOMATIC; }
 design	  	 		{ return DESIGN; }
 mapping	  	 	        { return MAPPING; }
@@ -256,6 +257,7 @@ band	                        { return BAND; }
 exp	                        { return EXP; }
 shared	                        { return SHARED; }
 mesh	                        { return MESH; }
+conformal	                { return CONFORMAL; }
 tet	                        { return TET; }
 refine	                        { return REFINE; }
 resonance                       { return RESONANCE; }

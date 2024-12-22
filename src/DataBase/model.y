@@ -109,7 +109,8 @@ char	*sval;
 %token IMPORT
 %token ASSEMBLYTYPE LEVEL
 %token DEF SET CIRCUITNAME DEFAULTBC
-%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM TEMTABULARORDER GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
+%token MWM_MATERIAL TEMPORTSNUM TEPORTSNUM TMPORTSNUM TEMTABULARORDER1 TEMTABULARORDER2 TEMREFCONDUCTOR DISCONNECTEDTEM ORIENTATION
+%token GRIDNUM PML INVARIANT TRANSLATION ROTATION ANGLE ORIGIN AXIS MWM_VOLUME MWM_INVARIANT MWM_UNITS MWM_LINEPORT
 %token LENGTH FREQUENCY BAND SURFACE RESISTANCE INDUCTANCE IMPEDANCE LOSSFACTOR QFACTOR SURFRATIO BALLRADIUS ROUGH MODELTYPE RZ RQ
 %token MESHREFINEMENT CUTOFFREFINEMENT COMPSOLID
 %token VOLTYPE EPSILONR MUR EPSLORENTZ MULORENTZ POLESRESIDUES POLESNUM ECONDUCTIVITY HCONDUCTIVITY ETANDELTA HTANDELTA  MATERIAL COLOR
@@ -519,9 +520,25 @@ VolumeElement
                 {
                   vol->TMportsNum =$3;
                 }
-	|  TEMTABULARORDER	{Ibuff  =NULL;}       SFInt32
+	|  ORIENTATION	{Ibuff  =NULL;}       SFInt32
                 {
-                  vol->TEM_TabularOrder=$3;
+                  vol->orientation=$3;
+                }
+	|  TEMTABULARORDER1	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->TEM_TabularOrder1=$3;
+                }
+	|  TEMTABULARORDER2	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->TEM_TabularOrder2=$3;
+                }
+	|  TEMREFCONDUCTOR	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->TEM_refCond=$3;
+                }
+	|  DISCONNECTEDTEM	{Ibuff  =NULL;}       SFInt32
+                {
+                  vol->disconnectedTEM =$3;
                 }
 	|  GRIDNUM	{Ibuff  =NULL;}       SFInt32
                 {

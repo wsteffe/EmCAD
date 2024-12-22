@@ -141,7 +141,11 @@ public:
   int        TEMportsNum;
   int        TEportsNum;
   int        TMportsNum;
-  int        TEM_TabularOrder;
+  int        orientation;
+  int        TEM_TabularOrder1;
+  int        TEM_TabularOrder2;
+  int        TEM_refCond;
+  int        disconnectedTEM;
   int        defined;
   int        disabled;
   int        gridNum;
