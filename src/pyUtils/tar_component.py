@@ -45,6 +45,7 @@ if int(subcmpNum) > 0:
     tarI = tarfile.open(tar_dir+"/"+cmp_name+"_SUB"+subcmpI+".tgz", 'w:gz', compresslevel=9)
     tarI.add("interfaces")
     tarI.add("partition.map")
+    tarI.add("sfaceSplitter.map")
     tarI.add("partition_"+subcmpI+".map")
     tarI.add("model.em")
     tarI.add("model_"+subcmpI+".xml")

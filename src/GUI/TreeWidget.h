@@ -285,6 +285,8 @@ class SetCompPropertiesDialog : public QDialog
      QComboBox *TEM_TabularOrder2;
      QComboBox *TEM_refCond;
      QSpinBox  *disconnectedTEM;
+     QSpinBox  *subcircuitIndex;
+     QSpinBox  *subcircuitIFindex;
      QComboBox *disconnectOrient;
      QCheckBox *PML;
 #if defined(EXPLICIT_INVARIANT)

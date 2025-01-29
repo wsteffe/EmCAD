@@ -162,10 +162,18 @@ int main(int argc, char **argv)
          bool mesh3D=!ocaf->subCompNum;
          bool meshIF=false;
 //         if(mesh3D) MESHER::addIF(ocaf, subprojDir.c_str(),outDir.c_str());
+         ocaf->regenerateIndexedSubShapes();
+         ocaf->readFEproperties();
+	 ocaf->setConductorMap()>0;
+	 if(ocaf->setConductorMap()>0){
+	 }
          if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         } else {
          bool mesh3D=!ocaf->subCompNum && mesh3DonClient;
          bool meshIF=ocaf->subCompNum;
+         ocaf->regenerateIndexedSubShapes();
+         ocaf->readFEproperties();
+	 if(!meshIF) ocaf->setConductorMap();
          if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         }
         subCompNum=ocaf->subCompNum;
@@ -182,6 +190,13 @@ int main(int argc, char **argv)
       if(mesh3D || meshIF) for (int subcmpI=subcmpMin; subcmpI<=subcmpMax; subcmpI++) {
          ocaf=new MwOCAF();
          ocaf->workopen(subprojDir.c_str(),subcmpI);
+         ocaf->regenerateIndexedSubShapes();
+         ocaf->readFEproperties();
+	 int badEdgeI=ocaf->setConductorMap();
+	 if(badEdgeI>0) {
+            fprintf(stderr, "Isolated conductive Edge E%d has been found in Subdomain %d.\n", badEdgeI, subcmpI);
+            exit(11);
+	 }
 	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
          ocaf->closeDoc();
          delete ocaf;
@@ -189,6 +204,8 @@ int main(int argc, char **argv)
  } else {
       MwOCAF* ocaf=new MwOCAF();
       ocaf->workopen(subprojDir.c_str());
+      ocaf->regenerateIndexedSubShapes();
+      ocaf->readFEproperties();
       bool mesh3D=false;
       bool meshWG=false;
       bool meshIF=true;

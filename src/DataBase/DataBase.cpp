@@ -165,6 +165,8 @@ Volume::Volume(){
   TEM_TabularOrder2=0;
   TEM_refCond=0;
   disconnectedTEM=0;
+  subcircuitIndex=1;
+  subcircuitIFindex=1;
   gridNum=0;
   PML=0;
   invariant=1;
@@ -517,6 +519,10 @@ void _mwm_print_volume(void *a, void *b)
       fprintf(EMMFILE, "  TEMrefConductor  %d\n",  vol->TEM_refCond);
   if(vol->disconnectedTEM>0)
       fprintf(EMMFILE, "  disconnectedTEM  %d\n",  vol->disconnectedTEM);
+  if(vol->subcircuitIndex>1)
+      fprintf(EMMFILE, "  subcircuitIndex  %d\n",  vol->subcircuitIndex);
+  if(vol->subcircuitIFindex>1)
+      fprintf(EMMFILE, "  subcircuitIFindex  %d\n",  vol->subcircuitIFindex);
   if(vol->disabled)
       fprintf(EMMFILE, "  disabled\n");
   fprintf(EMMFILE, "}\n\n");

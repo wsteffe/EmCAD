@@ -73,65 +73,67 @@ extern int modeldebug;
     TEMTABULARORDER2 = 274,        /* TEMTABULARORDER2  */
     TEMREFCONDUCTOR = 275,         /* TEMREFCONDUCTOR  */
     DISCONNECTEDTEM = 276,         /* DISCONNECTEDTEM  */
-    ORIENTATION = 277,             /* ORIENTATION  */
-    GRIDNUM = 278,                 /* GRIDNUM  */
-    PML = 279,                     /* PML  */
-    INVARIANT = 280,               /* INVARIANT  */
-    TRANSLATION = 281,             /* TRANSLATION  */
-    ROTATION = 282,                /* ROTATION  */
-    ANGLE = 283,                   /* ANGLE  */
-    ORIGIN = 284,                  /* ORIGIN  */
-    AXIS = 285,                    /* AXIS  */
-    MWM_VOLUME = 286,              /* MWM_VOLUME  */
-    MWM_INVARIANT = 287,           /* MWM_INVARIANT  */
-    MWM_UNITS = 288,               /* MWM_UNITS  */
-    MWM_LINEPORT = 289,            /* MWM_LINEPORT  */
-    LENGTH = 290,                  /* LENGTH  */
-    FREQUENCY = 291,               /* FREQUENCY  */
-    BAND = 292,                    /* BAND  */
-    SURFACE = 293,                 /* SURFACE  */
-    RESISTANCE = 294,              /* RESISTANCE  */
-    INDUCTANCE = 295,              /* INDUCTANCE  */
-    IMPEDANCE = 296,               /* IMPEDANCE  */
-    LOSSFACTOR = 297,              /* LOSSFACTOR  */
-    QFACTOR = 298,                 /* QFACTOR  */
-    SURFRATIO = 299,               /* SURFRATIO  */
-    BALLRADIUS = 300,              /* BALLRADIUS  */
-    ROUGH = 301,                   /* ROUGH  */
-    MODELTYPE = 302,               /* MODELTYPE  */
-    RZ = 303,                      /* RZ  */
-    RQ = 304,                      /* RQ  */
-    MESHREFINEMENT = 305,          /* MESHREFINEMENT  */
-    CUTOFFREFINEMENT = 306,        /* CUTOFFREFINEMENT  */
-    COMPSOLID = 307,               /* COMPSOLID  */
-    VOLTYPE = 308,                 /* VOLTYPE  */
-    EPSILONR = 309,                /* EPSILONR  */
-    MUR = 310,                     /* MUR  */
-    EPSLORENTZ = 311,              /* EPSLORENTZ  */
-    MULORENTZ = 312,               /* MULORENTZ  */
-    POLESRESIDUES = 313,           /* POLESRESIDUES  */
-    POLESNUM = 314,                /* POLESNUM  */
-    ECONDUCTIVITY = 315,           /* ECONDUCTIVITY  */
-    HCONDUCTIVITY = 316,           /* HCONDUCTIVITY  */
-    ETANDELTA = 317,               /* ETANDELTA  */
-    HTANDELTA = 318,               /* HTANDELTA  */
-    MATERIAL = 319,                /* MATERIAL  */
-    COLOR = 320,                   /* COLOR  */
-    VOLUMES = 321,                 /* VOLUMES  */
-    DISABLED = 322,                /* DISABLED  */
-    tDIELECTRIC = 323,             /* tDIELECTRIC  */
-    tHOLE = 324,                   /* tHOLE  */
-    tBOUNDARYCONDITION = 325,      /* tBOUNDARYCONDITION  */
-    tWAVEGUIDE = 326,              /* tWAVEGUIDE  */
-    tLINEPORT = 327,               /* tLINEPORT  */
-    tSPLITTER = 328,               /* tSPLITTER  */
-    tGRID = 329,                   /* tGRID  */
-    tCOMPONENT = 330,              /* tCOMPONENT  */
-    tINTERFACE = 331,              /* tINTERFACE  */
-    tNET = 332,                    /* tNET  */
-    tASSEMBLY = 333,               /* tASSEMBLY  */
-    tUNDEFINED = 334,              /* tUNDEFINED  */
-    SOLID = 335                    /* SOLID  */
+    SUBCIRCUITINDEX = 277,         /* SUBCIRCUITINDEX  */
+    SUBCIRCUITIFINDEX = 278,       /* SUBCIRCUITIFINDEX  */
+    ORIENTATION = 279,             /* ORIENTATION  */
+    GRIDNUM = 280,                 /* GRIDNUM  */
+    PML = 281,                     /* PML  */
+    INVARIANT = 282,               /* INVARIANT  */
+    TRANSLATION = 283,             /* TRANSLATION  */
+    ROTATION = 284,                /* ROTATION  */
+    ANGLE = 285,                   /* ANGLE  */
+    ORIGIN = 286,                  /* ORIGIN  */
+    AXIS = 287,                    /* AXIS  */
+    MWM_VOLUME = 288,              /* MWM_VOLUME  */
+    MWM_INVARIANT = 289,           /* MWM_INVARIANT  */
+    MWM_UNITS = 290,               /* MWM_UNITS  */
+    MWM_LINEPORT = 291,            /* MWM_LINEPORT  */
+    LENGTH = 292,                  /* LENGTH  */
+    FREQUENCY = 293,               /* FREQUENCY  */
+    BAND = 294,                    /* BAND  */
+    SURFACE = 295,                 /* SURFACE  */
+    RESISTANCE = 296,              /* RESISTANCE  */
+    INDUCTANCE = 297,              /* INDUCTANCE  */
+    IMPEDANCE = 298,               /* IMPEDANCE  */
+    LOSSFACTOR = 299,              /* LOSSFACTOR  */
+    QFACTOR = 300,                 /* QFACTOR  */
+    SURFRATIO = 301,               /* SURFRATIO  */
+    BALLRADIUS = 302,              /* BALLRADIUS  */
+    ROUGH = 303,                   /* ROUGH  */
+    MODELTYPE = 304,               /* MODELTYPE  */
+    RZ = 305,                      /* RZ  */
+    RQ = 306,                      /* RQ  */
+    MESHREFINEMENT = 307,          /* MESHREFINEMENT  */
+    CUTOFFREFINEMENT = 308,        /* CUTOFFREFINEMENT  */
+    COMPSOLID = 309,               /* COMPSOLID  */
+    VOLTYPE = 310,                 /* VOLTYPE  */
+    EPSILONR = 311,                /* EPSILONR  */
+    MUR = 312,                     /* MUR  */
+    EPSLORENTZ = 313,              /* EPSLORENTZ  */
+    MULORENTZ = 314,               /* MULORENTZ  */
+    POLESRESIDUES = 315,           /* POLESRESIDUES  */
+    POLESNUM = 316,                /* POLESNUM  */
+    ECONDUCTIVITY = 317,           /* ECONDUCTIVITY  */
+    HCONDUCTIVITY = 318,           /* HCONDUCTIVITY  */
+    ETANDELTA = 319,               /* ETANDELTA  */
+    HTANDELTA = 320,               /* HTANDELTA  */
+    MATERIAL = 321,                /* MATERIAL  */
+    COLOR = 322,                   /* COLOR  */
+    VOLUMES = 323,                 /* VOLUMES  */
+    DISABLED = 324,                /* DISABLED  */
+    tDIELECTRIC = 325,             /* tDIELECTRIC  */
+    tHOLE = 326,                   /* tHOLE  */
+    tBOUNDARYCONDITION = 327,      /* tBOUNDARYCONDITION  */
+    tWAVEGUIDE = 328,              /* tWAVEGUIDE  */
+    tLINEPORT = 329,               /* tLINEPORT  */
+    tSPLITTER = 330,               /* tSPLITTER  */
+    tGRID = 331,                   /* tGRID  */
+    tCOMPONENT = 332,              /* tCOMPONENT  */
+    tINTERFACE = 333,              /* tINTERFACE  */
+    tNET = 334,                    /* tNET  */
+    tASSEMBLY = 335,               /* tASSEMBLY  */
+    tUNDEFINED = 336,              /* tUNDEFINED  */
+    SOLID = 337                    /* SOLID  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -146,7 +148,7 @@ int	ival;
 double	fval;
 char	*sval;
 
-#line 150 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/DataBase/model_parser.hpp"
+#line 152 "/home/walter/MwCAD/EmCAD/EmCAD-dev/src/DataBase/model_parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

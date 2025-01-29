@@ -127,10 +127,9 @@ void  putPointOnSurf(Handle(Geom_Surface) GS,
 typedef struct CompCurve{
     int linePort;
     int shared;
-    int hasConstU;
     double cutoffref;
     std::vector<GEdge *> curves;
-    CompCurve(){linePort=0; shared=0; hasConstU=0; cutoffref=1;}
+    CompCurve(){linePort=0; shared=0; cutoffref=1;}
 } CompCurveType;
 
 
@@ -295,7 +294,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
      }
 //---------------------------
      if(fout) fprintf(fout, "  curveVertices [\n");
-     if(fwg)  fprintf(fwg, "  curveVertices [\n");
+     if(fwg)  fprintf(fwg,  "  curveVertices [\n");
       GVertex *gv1=ge->getBeginVertex();
       GVertex *gv2=ge->getEndVertex();
       TopoDS_Vertex V1= *(TopoDS_Vertex *) gv1->getNativePtr();
@@ -452,7 +451,6 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
      name=ocaf->edgeData[EI-1].scname;
      compCurves[name].curves.push_back(ge);
      compCurves[name].shared=1;
-     compCurves[name].hasConstU=ocaf->edgeData[EI-1].hasConstU;
      compCurves[name].cutoffref=MAX(ocaf->edgeData[EI-1].cutoffref,compCurves[name].cutoffref);
    }
    typedef std::map<std::string, CompCurveType >::const_iterator CompCurveIt;
@@ -554,7 +552,6 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 	  fprintf(fout, "  shared   %d\n", 1);
           fprintf(fout, "  cutoffRefinement  %f \n", (*ccit).second.cutoffref) ;
      }
-     if((*ccit).second.hasConstU) fprintf(fout, "  addConstU\n");
      fprintf(fout, "  curves [\n");
      for (int ei_=0; ei_< EN; ei_++){
       int ei=permu[ei_];
@@ -659,7 +656,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
       DB::Volume *vol2=NULL;
       if(vol2name!=TCollection_AsciiString("-")) vol2=ocaf->EmP->FindVolume(vol2name.ToCString());
       if(vol2) if(vol2->disabled) vol2=NULL;
-      if(mesh3D) if(ocaf->faceData[FI-1].cmp1!=ocaf->faceData[FI-1].cmp2
+      if(mesh3D) if(ocaf->faceData[FI-1].cmp1!=ocaf->faceData[FI-1].cmp2 && ocaf->faceData[FI-1].BrCond.size()==0
 	 && ocaf->faceData[FI-1].cmp1!=std::string("-") && ocaf->faceData[FI-1].cmp2!=std::string("-")){
           if(!vol1) vol1name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
           if(!vol2) vol2name=TCollection_AsciiString("UF")+TCollection_AsciiString(ocaf->faceData[FI-1].name.c_str());
@@ -922,6 +919,20 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
   }
   if(fout) fprintf(fout, "  ]\n");  
   if(fwg && onWG) fprintf(fwg, "  ]\n");
+//----------------------------------
+  if(meshIF){
+    if(fout) fprintf(fout, "  compCurves [\n");
+    if(fwg && onWG) fprintf(fwg, "  compCurves [\n");
+    if(fout) for (int i=0; i<Fedges.size(); i++){
+      GEdge *ge=Fedges[i];
+      TopoDS_Shape E=* (TopoDS_Shape *) ge->getNativePtr();
+      int EI=ocaf->indexedEdges->FindIndex(E);
+      fprintf(fout, "\t\"%s\"\n",  ocaf->edgeData[EI-1].name.c_str());
+      if(fwg && onWG) fprintf(fwg, "\t\"%s\"\n", ocaf->edgeData[EI-1].name.c_str());
+    }
+    if(fout) fprintf(fout, "  ]\n");  
+    if(fwg && onWG) fprintf(fwg, "  ]\n");
+  }
 //----------------------------------
   if(fout) fprintf(fout, "  curveSign [\n");
   if(fwg && onWG) fprintf(fwg, "  curveSign [\n");

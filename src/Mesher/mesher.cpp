@@ -841,6 +841,8 @@ void mesher_setSingularVertices(GModel *gm, MwOCAF* ocaf,
                   Pnormals[VI1].second+=BN1;
 		  double dd=Pnormals[VI1].first.Dot(Pnormals[VI1].second);
 		  if(dd>0.2 ) ocaf->vertexData[VI1-1].singular=1;
+		  if(Pnormals[VI1].second.Magnitude()<0.001) ocaf->vertexData[VI1-1].singular=1;
+
             }
 	    if(Pnormals.find(VI2)==Pnormals.end()){
                   Pnormals[VI2]=std::pair<gp_Vec, gp_Vec >(ET2,BN2);
@@ -849,6 +851,7 @@ void mesher_setSingularVertices(GModel *gm, MwOCAF* ocaf,
                   Pnormals[VI2].second+=BN2;
 		  double dd=Pnormals[VI2].first.Dot(Pnormals[VI2].second);
 		  if(dd>0.2 ) ocaf->vertexData[VI2-1].singular=1;
+		  if(Pnormals[VI2].second.Magnitude()<0.001) ocaf->vertexData[VI2-1].singular=1;
             }
 	 }
      }
@@ -867,7 +870,7 @@ void mesher_setSingularVertices(GModel *gm, MwOCAF* ocaf,
   FieldManager *fields = gm->getFields();
   int fieldTag1=fields->newId(); 
   Field *distance=fields->newField(fieldTag1, "Distance");
-  distance->options["PointsList"]->list(Vl);; 
+  distance->options["PointsList"]->list(Vl); 
   int fieldTag=fields->newId(); mshFieldList.push_back(fieldTag);
   Field *thsld=fields->newField(fieldTag, "Threshold");
   thsld->options["InField"]->numericalValue(fieldTag1);
@@ -877,9 +880,9 @@ void mesher_setSingularVertices(GModel *gm, MwOCAF* ocaf,
         thsld->options["SizeMin"]->numericalValue(meshsize/3);
         thsld->options["SizeMax"]->numericalValue(meshsize);
   }else{
-        thsld->options["DistMin"]->numericalValue(meshsize/10);
+        thsld->options["DistMin"]->numericalValue(meshsize/50);
         thsld->options["DistMax"]->numericalValue(meshsize);
-        thsld->options["SizeMin"]->numericalValue(meshsize/10);
+        thsld->options["SizeMin"]->numericalValue(meshsize/50);
         thsld->options["SizeMax"]->numericalValue(meshsize);
   }
 }
@@ -1842,9 +1845,7 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
 {
     bool CHECK=false;
 
-    ocaf->regenerateIndexedSubShapes();
     if(mesh3D || meshWG) ocaf->makeFaceAdjCells();
-    ocaf->readFEproperties();
 //    ocaf->makeTheCompound();
 
 
@@ -2191,7 +2192,6 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       if(ocaf->EmP->assemblyType==COMPONENT && !ocaf->subComp) writeIFmap(gm, ocaf, dirName);
 
       if(mesh3D) addIF(ocaf, dirName, modelDir);
-      if(mesh3D) ocaf->setConductorMap();
       
       print_mwm(gm, ocaf, meshIF, mesh3D, meshWG,
 		dirName, modelDir,
@@ -2257,6 +2257,8 @@ void MESHER::addIF(MwOCAF* ocaf, const char* dirName, const char* modelDir)
            if(vol->TEM_TabularOrder2>0) fprintf(fout, "  TEMtabularOrder2  %d\n",  vol->TEM_TabularOrder2);
            if(vol->TEM_refCond>0)       fprintf(fout, "  TEMrefConductor  %d\n",  vol->TEM_refCond);
            if(vol->disconnectedTEM>0)   fprintf(fout, "  disconnectedTEM  %d\n",  vol->disconnectedTEM);
+           if(vol->subcircuitIndex>1)   fprintf(fout, "  subcircuitIndex  %d\n",  vol->subcircuitIndex);
+           if(vol->subcircuitIFindex>1) fprintf(fout, "  subcircuitIFindex  %d\n",  vol->subcircuitIFindex);
 	 }
        }
        fprintf(fout, "}\n\n");

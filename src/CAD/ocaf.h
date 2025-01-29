@@ -143,7 +143,7 @@ struct FaceData
    cutoffref=1;
    BrCond.clear();
   }
-  int Shared(){return cmp1!=std::string("-") && cmp2!=std::string("-")  && cmp1!=cmp2;}
+  int Shared(){return cmp1!=std::string("-") && cmp2!=std::string("-")  && cmp1!=cmp2  && BrCond.size()==0;}
   void read(FILE *fin)
   {
 /*
@@ -196,7 +196,6 @@ struct EdgeData
   double mur;
   double meshref;
   double cutoffref;
-  int hasConstU;
   int singular;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
@@ -208,7 +207,6 @@ struct EdgeData
    epsr=1;
    mur=1;
    meshref=1;
-   hasConstU=0;
    singular=0;
    BrCond.clear();
   }
@@ -224,7 +222,6 @@ struct EdgeData
 	fscanf(fin,"%lf ",&mur);  
 	fscanf(fin,"%lf ",&meshref); 
 	fscanf(fin,"%lf ",&cutoffref);
-        fscanf(fin,"%d ",&hasConstU); 
         fscanf(fin,"%d ",&singular); 
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
@@ -240,7 +237,6 @@ struct EdgeData
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
 	fprintf(fout,"%f\n",cutoffref);
-	fprintf(fout,"%d\n",hasConstU);
 	fprintf(fout,"%d\n",singular);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
@@ -458,22 +454,11 @@ class MwOCAF
   void setSuperFaces();
   void setSuperFaceSplitterMap();
   void setSuperCurves();
-  void setSuperCurveFaceData(
-          std::map<std::string, std::set<std::string> > &SCSFlinks,
-	  std::map<std::string, bool > &SFhasPMC,
-  	  std::map<std::string, bool > &SChasPMC
-       );
-  static void setSuperCurvesConstU(const char* projectDir,
-	  std::map<std::string, std::set<std::string> > &SCSFlinks,
-	  std::map<std::string, bool > &SFhasPMC,
-  	  std::map<std::string, bool > &SChasPMC,
-          std::map<std::string, bool>  &superCurveHasConstU
-       );
-  void writeSuperCurvesConstU(std::map<std::string, bool>  &superCurveHasConstU);
+  void setSuperCurveFaceData();
   void checkSuperFacesTEMnum();
   int evalTEMnum(TopoDS_Shape S, bool intPort=true);
   void setTEMnum();
-  void setConductorMap();
+  int setConductorMap();
   void savePartitionMap();
   void readPartitionMap();
   void saveSubdomainMap();
@@ -607,11 +592,11 @@ class MwOCAF
   void makeExternalIndexedSubShapes(TopTools_IndexedMapOfShape  &externalSubshapes);
   void makeIndexedShapes(const TDF_Label &label);
   void makeIndexedShapes();
-  void renumIndexedSubShapes(TDF_Label label,
-		           std::map<int,int> &f_permu,
-		           std::map<int,int> &e_permu,
-		           std::map<int,int> &v_permu
-			   );
+  void regenerateIndexedSubShapes(TDF_Label label,
+                  std::vector<TopoDS_Shape> &faces,
+                  std::vector<TopoDS_Shape> &edges,
+                  std::vector<TopoDS_Shape> &vertices
+  );
   bool hasMultibodyPart(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);
   bool hasSubAssembly(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);
   bool hasEmSubComponent(Handle(XCAFDoc_ShapeTool) shapeTool, TDF_Label &ass);

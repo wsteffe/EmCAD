@@ -218,9 +218,8 @@ int getFileLine(FILE *fin, std::string &str)
 
 TDF_Label MwOCAF::getRefLabel(const TDF_Label &label){
     Handle(TDF_Reference)  refAtt;
-    TDF_Label refLabel;
+    TDF_Label refLabel=label;
     if(label.FindAttribute(TDF_Reference::GetID(),refAtt)) refLabel=refAtt->Get();
-    else refLabel.Nullify();
     return refLabel;
 }
 
@@ -1473,36 +1472,36 @@ void MwOCAF::heal(){
 
 TDF_Label MwOCAF::replaceLabelShape(TDF_Label label, TopoDS_Shape newS){
              Handle(TDF_Reference)  refAtt;
-             TDF_Label label1;
+             TDF_Label refLabel;
 	     bool usingRefLabel=label.FindAttribute(TDF_Reference::GetID(),refAtt);
-             if(usingRefLabel) label1=refAtt->Get();
-             else label1=label;
+             if(usingRefLabel) refLabel=refAtt->Get();
+             else refLabel=label;
              Handle(TDataStd_Name)  nameAtt;
 	     TCollection_AsciiString name;
-	     bool hasName =label1.FindAttribute(TDataStd_Name::GetID(),nameAtt);
+	     bool hasName =refLabel.FindAttribute(TDataStd_Name::GetID(),nameAtt);
              if(hasName) name=nameAtt->Get();
              Handle(TColStd_HSequenceOfExtendedString) layers;
-	     bool hasLayers=layerTool->GetLayers(label1,layers);
+	     bool hasLayers=layerTool->GetLayers(refLabel,layers);
              Quantity_Color color;
 	     TDF_Label colorL;
 	     XCAFDoc_ColorType ctype=XCAFDoc_ColorGen;
-	     bool hasColor =colorTool->GetColor(label1,ctype,color);
-	     bool hasColorL=colorTool->GetColor(label1,ctype,colorL);
+	     bool hasColor =colorTool->GetColor(refLabel,ctype,color);
+	     bool hasColorL=colorTool->GetColor(refLabel,ctype,colorL);
 	     TDF_Label newlabel;
-	     TDF_Label father=label1.Father();
+	     TDF_Label father=refLabel.Father();
              Handle(TDataStd_Name)  fatherNameAtt;
              TCollection_AsciiString fatherName;
              if(father.FindAttribute(TDataStd_Name::GetID(),fatherNameAtt)) fatherName=fatherNameAtt->Get();;
-	     displayLabelShape(label1, false);
+	     displayLabelShape(refLabel, false);
              if(CHECK_CREATED_SHAPES) if(newS.ShapeType()==TopAbs_SOLID|| newS.ShapeType()==TopAbs_COMPSOLID){
 	        BRepCheck_Analyzer ana (newS, true);
 	        assert(ana.IsValid());
 	     }
-             if(isComponent(label1)){
-		  removeWithSubComponents(label1);
+             if(isComponent(refLabel)){
+		  removeWithSubComponents(refLabel);
 		  newlabel=shapeTool->AddComponent(father,newS); 
 	     } else{
-		  shapeTool->RemoveShape(label1);
+		  shapeTool->RemoveShape(refLabel);
 	          newlabel=shapeTool->AddShape(newS);
 	     }
 	     if(!newlabel.IsNull()){
@@ -1560,7 +1559,6 @@ void MwOCAF::imprint(int downImprint){
      TDF_Label label1 = it.Value();
      DB::Volume *vol=getLabelVol(label1);
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      if(!vol) continue;
 //     if(vol->type==SPLITTER || vol->type==GRID ) continue;
      TopoDS_Shape S;
@@ -1593,7 +1591,7 @@ void MwOCAF::imprint(int downImprint){
                if(en>0) if(!newComp.IsNull()) S=newComp;
            }
         }
-        if(vol->type==DIELECTRIC && hasSymmetry){
+        if(hasSymmetry){
             S = BRepAlgoAPI_Common(S, symmBox);
         }
         thePartShapes.Bind(label1.Tag(),S);
@@ -1742,7 +1740,6 @@ void MwOCAF::imprint(int downImprint){
      newS.Location (loc.Multiplied(S.Location()));
 */
        TDF_Label label = getRefLabel(label1);
-       if(label.IsNull()) label=label1;
        TopoDS_Shape S=thePartShapes(label1.Tag());
        TopoDS_Shape newS;
        TopoDS_Compound  newComp;
@@ -1995,7 +1992,7 @@ void MwOCAF::makeSymmPlane(int id, int itype){
   Handle(TDataStd_Name) nameAtt;
   bool hasNameAtt=newlabel.FindAttribute(TDataStd_Name::GetID(),nameAtt);
   TCollection_AsciiString name;
-  switch(itype){
+  switch(id){
     case 3: name="BC_symmetryPlaneXY";
 	    break;
     case 1: name="BC_symmetryPlaneYZ";
@@ -2067,7 +2064,6 @@ bool MwOCAF::updateSplitPlanes(){
  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
    TDF_Label label1 = it.Value();
    TDF_Label label = getRefLabel(label1);
-   if(label.IsNull()) label=label1;
    DB::Volume *vol=getLabelVol(label1);
    if(vol) if(vol->type==GRID) {
      TopoDS_Shape S1= shapeTool->GetShape(label);
@@ -2092,7 +2088,6 @@ void MwOCAF::makeSplitFaces(TDF_Label label1){
 		    );
      DB::Volume *vol=getLabelVol(label1);
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      TopoDS_Shape S= shapeTool->GetShape(label);
      if(S.IsNull()) return;
      if(S.ShapeType()!=TopAbs_COMPOUND) return;
@@ -2190,7 +2185,6 @@ bool MwOCAF::makeGridFaces(TDF_Label label1){
 		     (BBZ[0]+BBZ[1])/2
 		    );
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      DB::Volume *vol=getLabelVol(label);
      TopoDS_Shape S= shapeTool->GetShape(label);
      if(S.IsNull()) return false;
@@ -2486,7 +2480,6 @@ bool MwOCAF::hasSolidBC(){
      DB::Volume *vol=getLabelVol(label1);
      if(vol->type==BOUNDARYCOND) {
        TDF_Label label = getRefLabel(label1);
-       if(label.IsNull()) label=label1;
        TopoDS_Shape S=shapeTool->GetShape(label);
        has=has || S.ShapeType()==TopAbs_SOLID;
      }
@@ -2528,139 +2521,16 @@ void MwOCAF::split(){
 //----------------------------------------------------------------------------------
  if(hasSplitter()){
 
-/*
-
-// BRepLib::Precision(1.e-4);
- BOPAlgo_Builder PS;
- PS.SetFuzzyValue(1.e-5);
-// PS.SetNonDestructive(true);
-
- TopTools_MapOfShape ShapesMap, ToolsMap;
-
-  {
-    for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
-      TDF_Label label1 = it.Value();
-      TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
-      DB::Volume *vol=getLabelVol(label1);
-      if(!vol) continue;
-      if(vol->type==GRID ) continue;
-      Handle(TDataStd_Name)  nameAtt;
-      if(label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)){
-       TCollection_AsciiString name=nameAtt->Get();
-      }
-      TopoDS_Shape S=shapeTool->GetShape(label);
-      assert(!S.IsNull());
-      if(vol->type==DIELECTRIC || vol->type==HOLE) assert(S.ShapeType()==TopAbs_SOLID || S.ShapeType()==TopAbs_COMPOUND || S.ShapeType()==TopAbs_COMPSOLID);
-      if(vol->type==WAVEGUIDE) assert(S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_FACE  || S.ShapeType()==TopAbs_COMPOUND);
-      if(!S.IsNull()) if (ShapesMap.Add(S)) {
-	   if(vol->type==SPLITTER){
-		BRepBuilderAPI_Sewing Sew;
-                Sew.Add(S); 
-                Sew.Perform();
-                TopoDS_Shape newS=Sew.SewedShape();
-                if(!newS.IsNull()){ //Replace Shape with new shape:
-	          TDF_Label newlabel=replaceLabelShape(label1,newS);
-	          displayLabelShape(newlabel, true);
-		  S=newS;
-		}
-	   }
-           PS.AddArgument(S);
-      }
-    }
-  }
-  TopTools_IndexedMapOfShape  upIndexedFaces(*indexedFaces);
-  TopTools_IndexedMapOfShape  upIndexedEdges(*indexedEdges);
-  TopTools_IndexedMapOfShape  upIndexedVertices(*indexedVertices);
-
-
-  try {
-     PS.Perform();
-  } catch ( Standard_Failure ) {throw ImprintFailure();}
-  if (PS.HasErrors()){
-    return;
-  }
-
-  const TopTools_DataMapOfShapeListOfShape& PSmap=PS.Images();
-
-  TopTools_MapOfShape dielectricFaces2;
-
-
-//-----------------------------------------------------------------------------
-//  Replace original parts with the splitted parts:
-//First replaces DIELECRICs :
-  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
-  {
-     TDF_Label label1 = it.Value();
-//---
-     Handle(TDataStd_Name)  nameAtt;
-     TCollection_AsciiString name;
-     if(label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) name=nameAtt->Get();
-//---
-     DB::Volume *vol=getLabelVol(label1);
-     if(!vol) continue;
-     TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
-     TopoDS_Shape S=shapeTool->GetShape(label);
-     TopoDS_Shape newS;
-     if(vol->type==DIELECTRIC ) {
-	 int SoNum=0;
-         TopTools_ListOfShape RSlist;
-	 if(PSmap.IsBound(S)) 
-	     RSlist= PSmap.Find(S);
-	 else 
-	     RSlist.Append(S);
-         if(!RSlist.IsEmpty()) {
-              TopoDS_CompSolid  newCompS;
-              BRep_Builder builder;
-              builder.MakeCompSolid(newCompS);
-//            builder.MakeCompound(newCompS);
-	      for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
-                  TopoDS_Shape Si=RSit.Value();
-	  	  if(Si.ShapeType()==TopAbs_COMPOUND || Si.ShapeType()==TopAbs_COMPSOLID){
-                      for (TopExp_Explorer exp(Si,TopAbs_SOLID); exp.More(); exp.Next()){ 
-			 TopoDS_Shape Sii=exp.Current();
-		          if(CHECK_CREATED_SHAPES){
-			    BRepCheck_Analyzer ana (Sii, true);
-			    assert(ana.IsValid());
-			  }
-		          builder.Add(newCompS,Sii); SoNum++;
-		      }
-		  } else if(Si.ShapeType()==TopAbs_SOLID){
-		      if(CHECK_CREATED_SHAPES){
-			 BRepCheck_Analyzer ana (Si, true);
-			 assert(ana.IsValid());
-		      }
-		      builder.Add(newCompS,Si); SoNum++;
-		  }
-               }
-	       if(SoNum>0) newS=newCompS;
-         }
-         if(!newS.IsNull()){ //Replace Shape with new shape:
-	      TDF_Label newlabel=replaceLabelShape(label1,newS);
-	      displayLabelShape(newlabel, true);
-         } 
-     }
-  }
-
-*/
 
 // store dielFaces;
   TopTools_IndexedMapOfShape  dielFaces;
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
      TDF_Label label1 = it.Value();
-//---
-     Handle(TDataStd_Name)  nameAtt;
-     if(label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)){
-      TCollection_AsciiString name=nameAtt->Get();
-     }
-//---
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
      if(vol->type!=DIELECTRIC ) continue;
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      TopoDS_Shape S=shapeTool->GetShape(label);
      if(S.ShapeType()==TopAbs_SOLID || S.ShapeType()==TopAbs_COMPSOLID) for (TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()){
            TopoDS_Shape F = exp.Current(); 
@@ -2669,80 +2539,12 @@ void MwOCAF::split(){
      }
    }
 
-/*
-
-//Than it replaces for WAVEGUIDEs BOUNDARYCONDs, SPLITTERs, and LINEPORTS:
-  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
-  {
-     TDF_Label label1 = it.Value();
-//---
-     DB::Volume *vol=getLabelVol(label1);
-     if(!vol) continue;
-     TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
-     TopoDS_Shape S=shapeTool->GetShape(label);
-     if(vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND || vol->type==SPLITTER || vol->type==LINEPORT) if(PSmap.IsBound(S)){
-       const TopTools_ListOfShape &RSlist = PSmap.Find(S);
-       if(!RSlist.IsEmpty()) {
-	     TopoDS_Shape newS;
-             if(vol->type==WAVEGUIDE || vol->type==BOUNDARYCOND || vol->type==SPLITTER){
-	         int useShell=S.ShapeType()==TopAbs_FACE || S.ShapeType()==TopAbs_SHELL;
-                 TopoDS_Shell  newShell;
-                 TopoDS_Compound  newComp;
-                 BRep_Builder builder;
-	         if(useShell) builder.MakeShell(newShell);
-	         else         builder.MakeCompound(newComp);
-	         for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
-	              if(RSit.Value().ShapeType()==TopAbs_FACE){
-                           TopoDS_Shape F=RSit.Value();
-                           F.Orientation(TopAbs_FORWARD);
-                           if(dielFaces.FindIndex(F) > 0){
-				   if(useShell) builder.Add(newShell,TopoDS::Face(RSit.Value()));
-				   else         builder.Add(newComp, TopoDS::Face(RSit.Value()));
-			   }
-		      } else{
-                           TopoDS_Shape Si=RSit.Value();
-                           for (TopExp_Explorer exp(Si,TopAbs_FACE); exp.More(); exp.Next()){
-                               TopoDS_Shape F = exp.Current(); 
-                               F.Orientation(TopAbs_FORWARD);
-                               if(dielFaces.FindIndex(F) > 0){
-			          if(useShell) builder.Add(newShell,TopoDS::Face(exp.Current()));
-				  else         builder.Add(newComp, TopoDS::Face(exp.Current()));
-			       }
-			   }
-		      }
-                 }
-		 if(useShell) newS=newShell;
-		 else         newS=newComp;                    
-             } else if(vol->type==LINEPORT){
-                 TopoDS_Compound  newComp;
-                 BRep_Builder builder;
-                 builder.MakeCompound(newComp);
-	         for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
-	              if(RSit.Value().ShapeType()==TopAbs_EDGE) builder.Add(newComp,RSit.Value());
-		      else if(RSit.Value().ShapeType()==TopAbs_COMPOUND)
-                           for (TopExp_Explorer exp(RSit.Value(),TopAbs_EDGE); exp.More(); exp.Next()) builder.Add(newComp,exp.Current());
-                 }
-	         newS =newComp;
-             }
-//Replace Shape with new shape:
-             if(!newS.IsNull()){ 
-	        TDF_Label newlabel=replaceLabelShape(label1,newS);
-	        displayLabelShape(newlabel, true);
-             } 
-        }
-     }
-  }
-  
-*/
-
 // store splitFaces;
   TopTools_IndexedMapOfShape  splitFaces;
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
 
 //---
      DB::Volume *vol=getLabelVol(label1);
@@ -2768,7 +2570,6 @@ void MwOCAF::split(){
   {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
 
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
@@ -2786,96 +2587,6 @@ void MwOCAF::split(){
        }
      }
    }
-//----
-
-
-/*
-
-//  resetShapeTool();
-//  Handle(ShapeBuild_ReShape) reshape;
-//  heal(reshape);
-//  checkWires();
-  hasUPIF=false;
-  makeIF(theIF);
-//  makeTheCompSolid();
-//  makeSolid(theCompSolid,theMergedSolid);
-  resetShapeTool();
-  generateSubshapes(false);
-  newIndexedSubShapes();
-  makeIF_IndexedSubShapes();
-  makePartsIndexedSubShapes();
-  setGlobalNames();
-
-  int FNum=indexedFaces->Extent();
-  splitFacesMap.resize(FNum,0);
-  int upFNum=upIndexedFaces.Extent();
-  int upENum=upIndexedEdges.Extent();
-  int upPNum=upIndexedVertices.Extent();
-  for (int upFI=1; upFI<=upFNum; upFI++){
-      TopoDS_Shape F = upIndexedFaces.FindKey(upFI);
-      if(PS.Images().IsBound(F)){
-          const TopTools_ListOfShape& RSlist = PS.Images().Find(F);
-          if(RSlist.Extent()>0) for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()){
-//	       if (reshape->Status(RSit.Value(), Fi, Standard_True)>=0){
-                 TopoDS_Shape Fi=RSit.Value();
-	         Fi.Orientation(TopAbs_FORWARD);
-	         if(indexedFaces->Contains(Fi) && !splitFaces.Contains(Fi)){
-		   int FI = indexedFaces->FindIndex(Fi);
-                   splitFacesMap[FI-1]=upFI;
-	         }
-//	       }
-          }
-      } else if(indexedFaces->Contains(F)){
-		 int FI = indexedFaces->FindIndex(F);
-                 splitFacesMap[FI-1]=upFI;
-      }
-
-  }
-  int ENum=indexedEdges->Extent();
-  splitEdgesMap.resize(ENum,0);
-  for (int upEI=1; upEI<=upENum; upEI++){
-      TopoDS_Shape E = upIndexedEdges.FindKey(upEI);
-      if(PS.Images().IsBound(E)){
-          const TopTools_ListOfShape& RSlist = PS.Images().Find(E);
-	  if(RSlist.Extent()>0) for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next()) 
-//		if (reshape->Status(RSit.Value(), Ei, Standard_True)>=0)
-	  {
-	      TopoDS_Shape Ei=RSit.Value();
-	      Ei.Orientation(TopAbs_FORWARD);
-	      if(indexedEdges->Contains(Ei)){
-		   int EI = indexedEdges->FindIndex(Ei);
-                   splitEdgesMap[EI-1]=upEI;
-	      }
-          } 
-      } else  if(indexedEdges->Contains(E)){
-	      int EI = indexedEdges->FindIndex(E);
-              splitEdgesMap[EI-1]=upEI;
-      }
-  }
-  int PNum=indexedVertices->Extent();
-  splitVerticesMap.resize(PNum,0);
-  for (int upPI=1; upPI<=upPNum; upPI++){
-      TopoDS_Shape P = upIndexedVertices.FindKey(upPI);
-      if(PS.Images().IsBound(P)){
-          const TopTools_ListOfShape& RSlist = PS.Images().Find(P);
-	  if(RSlist.Extent()>0) for (TopTools_ListIteratorOfListOfShape RSit(RSlist); RSit.More(); RSit.Next())
-//		  if (reshape->Status(RSit.Value(), Pi, Standard_True)>=0)
-	  {
-	      TopoDS_Shape Pi=RSit.Value();
-	      Pi.Orientation(TopAbs_FORWARD);
-	      if(indexedVertices->Contains(Pi)){
-		   int PI = indexedVertices->FindIndex(Pi);
-                   splitVerticesMap[PI-1]=upPI;
-	      }
-          }
-      } else if(indexedVertices->Contains(P)){
-              int PI = indexedVertices->FindIndex(P);
-              splitVerticesMap[PI-1]=upPI;
-      }
-
-  }
-
-*/
 
   int FNum=indexedFaces->Extent();
   int ENum=indexedEdges->Extent();
@@ -2924,7 +2635,6 @@ void MwOCAF::split(){
    subCompNum=compI;
    for (int VI=1; VI<=VNum; VI++) solidSubdomMap[VI-1]=renum[solidSubdomMap[VI-1]];
 
-   splitFaceSubdomMap.resize(2*FNum,0);
    faceSubdomMap.resize(2*FNum,0);
    for (int VI=1; VI<=VNum; VI++){
     TopoDS_Shape S =indexedSolids->FindKey(VI);
@@ -2935,7 +2645,6 @@ void MwOCAF::split(){
       int FI1=splitFaces.FindIndex(F);
       int FI=indexedFaces->FindIndex(F);
       faceSubdomMap[2*(FI-1)+si]=solidSubdomMap[VI-1];
-      if( FI1>0) splitFaceSubdomMap[2*(FI-1)+si]=solidSubdomMap[VI-1];
      }
    }
 
@@ -2954,7 +2663,6 @@ void MwOCAF::split(){
     FILE *subcmpfid= fopen(nativePath(asstypeFileName).c_str(), "w");
     fprintf(subcmpfid, "%d\n", subCompNum);
     fclose(subcmpfid);
-    splitFaceSubdomMap.resize(2*FNum,min(1,subCompNum));
     faceSubdomMap.resize(2*FNum,min(1,subCompNum));
     solidSubdomMap.resize(VNum,min(1,subCompNum));
     savePartitionMap();
@@ -2987,11 +2695,11 @@ void MwOCAF::extractSubcomp(int subcompI){
         if(solidEdges.FindIndex(E) < 1) solidEdges.Add(E);
       }
   }
+  TDF_LabelSequence toRemoveLabels;
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
   {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
 
 //---
      DB::Volume *vol=getLabelVol(label1);
@@ -3017,7 +2725,7 @@ void MwOCAF::extractSubcomp(int subcompI){
         }
      }
      if(vol->type==BOUNDARYCOND || vol->type==WAVEGUIDE || vol->type==SPLITTER )
-     if(S.ShapeType()==TopAbs_FACE || S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_COMPOUND  || S.ShapeType()==TopAbs_COMPSOLID){
+       if(S.ShapeType()==TopAbs_FACE || S.ShapeType()==TopAbs_SHELL || S.ShapeType()==TopAbs_COMPOUND  || S.ShapeType()==TopAbs_COMPSOLID){
                 TopoDS_Compound  newComp;
                 TopoDS_Shell  newShell;
                 BRep_Builder builder;
@@ -3052,16 +2760,18 @@ void MwOCAF::extractSubcomp(int subcompI){
 	         }
 	         if(!voidComp) newS=newComp;
      }
-     if(!newS.IsNull()){ //Replace Shape with new shape:
-	 TDF_Label newlabel=replaceLabelShape(label1,newS);
-	 displayLabelShape(newlabel, true);
-     } else {
-         removeWithSubComponents(label);
-         shapeTool->UpdateAssemblies();
-     } 
-
+     if(!newS.IsNull()){
+        TDF_Label newlabel=replaceLabelShape(label1,newS);
+	displayLabelShape(newlabel, true);
+     } else toRemoveLabels.Append(label);
   }
 
+  for (int i = 1; i <= toRemoveLabels.Length(); i++){
+      TDF_Label label=toRemoveLabels.Value(i);
+      removeWithSubComponents(label);
+  }
+  shapeTool->UpdateAssemblies();
+  
   TopTools_IndexedMapOfShape  oldIndexedSolids=*indexedSolids;
   TopTools_IndexedMapOfShape  oldIndexedFaces=*indexedFaces;
   TopTools_IndexedMapOfShape  oldIndexedEdges=*indexedEdges;
@@ -3169,7 +2879,6 @@ void MwOCAF::makeIndexedShapes(){
  {
      TDF_Label label = it.Value();
      TDF_Label label1 = getRefLabel(label);
-     if(label1.IsNull()) label1=label;
      makeIndexedShapes(label1);
  }
 }
@@ -3201,7 +2910,6 @@ void MwOCAF::makePartsIndexedSubShapes()
  {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
 
      bool skip=false;
      if(EmP->assemblyType==COMPONENT){
@@ -3257,40 +2965,31 @@ int labelIndex(TDF_Label label){
 };
 
 
-void MwOCAF::renumIndexedSubShapes(TDF_Label label,
-		                 std::map<int,int> &f_permu,
-				 std::map<int,int> &e_permu,
-				 std::map<int,int> &v_permu
-				 )
+void MwOCAF::regenerateIndexedSubShapes(TDF_Label label,
+                  std::vector<TopoDS_Shape> &faces,
+                  std::vector<TopoDS_Shape> &edges,
+                  std::vector<TopoDS_Shape> &vertices)
 {
   for (TDF_ChildIterator Fit(label,Standard_False); Fit.More(); Fit.Next()){ 
         TDF_Label Flabel = Fit.Value();
-        int FI=labelIndex(Flabel);
-	if(FI<1 ) continue;
-        TopoDS_Shape F = shapeTool->GetShape(Flabel); F.Orientation(TopAbs_FORWARD);
-	int FI0=indexedFaces->FindIndex(F); if(FI0>0) f_permu[FI]=FI0;
+        int FI=labelIndex(Flabel); if(FI<1 ) continue;
+        TopoDS_Shape F=shapeTool->GetShape(Flabel); F.Orientation(TopAbs_FORWARD);
+	faces[FI-1]=F;
 	for (TDF_ChildIterator Eit(Flabel,Standard_False); Eit.More(); Eit.Next()){ 
            TDF_Label Elabel = Eit.Value();
            int EI=labelIndex(Elabel);
 	   if(EI<1 ) continue;
            TopoDS_Shape E =shapeTool->GetShape(Elabel); E.Orientation(TopAbs_FORWARD);
-           int EI0=indexedEdges->FindIndex(E); if(EI0>0) e_permu[EI]=EI0;
+	   edges[EI-1]=E;
 	   for (TDF_ChildIterator Pit(Elabel,Standard_False); Pit.More(); Pit.Next()){ 
              TDF_Label Plabel = Pit.Value();
              int PI=labelIndex(Plabel);
 	     if(PI<1 ) continue;
              TopoDS_Shape P = shapeTool->GetShape(Plabel); P.Orientation(TopAbs_FORWARD);
-             int PI0=indexedVertices->FindIndex(P); if(PI0>0) v_permu[PI]=PI0;
+	     vertices[PI-1]=P;
            }
         }
   }
-}
-
-void completePermu(int N, std::map<int,int> &permu){
-  std::set<int> Iset;
-  for(int I = 1; I <= N; I++) Iset.insert(I);
-  for(int I = 1; I <= N; I++) if(permu.find(I)!=permu.end()) Iset.erase(permu[I]);
-  for(int I = 1; I <= N; I++) if(permu.find(I)==permu.end()) {permu[I]=*Iset.begin(); Iset.erase(permu[I]); }
 }
 
 void MwOCAF::regenerateIndexedSubShapes(){
@@ -3298,7 +2997,11 @@ void MwOCAF::regenerateIndexedSubShapes(){
       newIndexedSubShapes();
       makePartsIndexedSubShapes();
  }
- std::map<int,int> f_permu,e_permu,v_permu;
+ std::vector<TopoDS_Shape> solids(indexedSolids->Extent());
+ std::vector<TopoDS_Shape> faces(indexedFaces->Extent());
+ std::vector<TopoDS_Shape> edges(indexedEdges->Extent());
+ std::vector<TopoDS_Shape> vertices(indexedVertices->Extent());
+
  assert(hasParts());
  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) 
  {
@@ -3308,7 +3011,6 @@ void MwOCAF::regenerateIndexedSubShapes(){
     if(vol) skip=vol->type==SPLITTER || vol->type==GRID || vol->type==LINEPORT;
     if(skip) continue;
     TDF_Label label = getRefLabel(label1);
-    if(label.IsNull()) label=label1;
     Handle(TDataStd_Name)  nameAtt;
     bool hasName =label.FindAttribute(TDataStd_Name::GetID(),nameAtt);
     if(!hasName) continue;
@@ -3319,37 +3021,28 @@ void MwOCAF::regenerateIndexedSubShapes(){
           for (TDF_ChildIterator it2(label,Standard_False); it2.More(); it2.Next()){
               TDF_Label label2 = it2.Value();
               TopoDS_Shape S2 = shapeTool->GetShape(label2);
-	      renumIndexedSubShapes(label2, f_permu,e_permu,v_permu);
+              if(vol->type==DIELECTRIC && S2.ShapeType()==TopAbs_SOLID){
+                int VI=labelIndex(label2); if(VI>0 ) solids[VI-1]=S2;
+	      }
+	      regenerateIndexedSubShapes(label2, faces,edges,vertices);
 	  }
-    } else renumIndexedSubShapes(label, f_permu,e_permu,v_permu);
+    } else{
+          if(vol->type==DIELECTRIC && S.ShapeType()==TopAbs_SOLID){
+           int VI=labelIndex(label1); if(VI>0 ) solids[VI-1]=S;
+          }
+	  regenerateIndexedSubShapes(label, faces,edges,vertices);
+    }
   }
-  completePermu(indexedFaces->Extent(),    f_permu);
-  completePermu(indexedEdges->Extent(),    e_permu);
-  completePermu(indexedVertices->Extent(), v_permu);
-  
-  TopTools_IndexedMapOfShape  indexedFaces1, indexedEdges1, indexedVertices1;
-  for(int FI = 1; FI <= indexedFaces->Extent(); FI++){
-      assert(f_permu.find(FI)!=f_permu.end() );
-      indexedFaces1.Add(indexedFaces->FindKey(f_permu[FI]));
-  }
-  for(int EI = 1; EI <= indexedEdges->Extent(); EI++){
-      assert(e_permu.find(EI)!=e_permu.end() );
-      indexedEdges1.Add(indexedEdges->FindKey(e_permu[EI]));
-  }
-  for(int PI = 1; PI <= indexedVertices->Extent(); PI++){
-      assert(v_permu.find(PI)!=v_permu.end() );
-      indexedVertices1.Add(indexedVertices->FindKey(v_permu[PI]));
-  }
+  indexedSolids->Clear();
+  for(int i = 0; i < solids.size(); i++) indexedSolids->Add(solids[i]);
+/*
+*/
   indexedFaces->Clear();
-  for(int FI = 1; FI <= indexedFaces1.Extent(); FI++) 
-	  indexedFaces->Add(indexedFaces1.FindKey(FI));
+  for(int i = 0; i < faces.size(); i++) indexedFaces->Add(faces[i]);
   indexedEdges->Clear();
-  for(int EI = 1; EI <= indexedEdges1.Extent(); EI++) 
-	  indexedEdges->Add(indexedEdges1.FindKey(EI));
+  for(int i = 0; i < edges.size(); i++) indexedEdges->Add(edges[i]);
   indexedVertices->Clear();
-  for(int PI = 1; PI <= indexedVertices1.Extent(); PI++) 
-	  indexedVertices->Add(indexedVertices1.FindKey(PI));
-
+  for(int i = 0; i < vertices.size(); i++) indexedVertices->Add(vertices[i]);
 }
 
 int MwOCAF::partNameCompMap(const char* cstr){
@@ -3454,7 +3147,6 @@ void MwOCAF::makeFaceAdjCells(){
    {
       TDF_Label label1 = it.Value();
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       Handle(TDataStd_Name)  nameAtt;
       if(!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       DB::Volume *vol=getLabelVol(label);
@@ -3469,7 +3161,6 @@ void MwOCAF::makeFaceAdjCells(){
    {
       TDF_Label label1 = it.Value();
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       Handle(TDataStd_Name)  nameAtt;
       if(!label.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       DB::Volume *vol=getLabelVol(label);
@@ -3844,7 +3535,6 @@ void MwOCAF::checkPartNF(Handle(TDocStd_Document) doc){
      if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
      TCollection_AsciiString partName=nameAtt->Get();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      TopoDS_Shape S= shapeTool->GetShape(label);
      int NF=0; for(TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()) NF++;
      std::cout<< "part :"<< partName.ToCString() <<std::endl;
@@ -4622,7 +4312,6 @@ void MwOCAF::addToComponentLists( std::set<std::string, std::less<std::string> >
    if(wgcomponentlist) for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
           TDF_Label label1 = it.Value();
           TDF_Label label = getRefLabel(label1);
-          if(label.IsNull()) label=label1;
           TopoDS_Shape S=shapeTool->GetShape(label);
 	  if(S.IsNull()) continue;
           Handle(TDataStd_Name)  nameAtt;
@@ -4654,7 +4343,6 @@ bool MwOCAF::savePartsIF()
 //-------------------
 //  save part geometry:
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      std::string  fileName=partDir+std::string (".brep");
      fileName=nativePath(fileName);
      TopoDS_Shape S= shapeTool->GetShape(label);
@@ -4773,7 +4461,6 @@ void MwOCAF::initFEPdataStruct(){
      partVerticesMap[partI-1]=NULL;
      TDF_Label label1 = Vit.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      DB::Volume *vol=getLabelVol(label1);
      if(!vol) continue;
      if(vol->type==SPLITTER || vol->type==GRID) continue;
@@ -4976,7 +4663,6 @@ void MwOCAF::initFEPdataStruct(){
       if(!label1.FindAttribute(TDataStd_Name::GetID(),nameAtt)) continue;
       TCollection_AsciiString partName=nameAtt->Get();
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(!vol) continue;
       if(vol->type==SPLITTER || vol->type==GRID) continue;
@@ -5155,7 +4841,6 @@ void MwOCAF::setFEproperties()
       if(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC && vol->type!=WAVEGUIDE  && vol->type!=BOUNDARYCOND  && vol->type!=SPLITTER) continue;
       DB::Material* mat= EmP->FindMaterial(vol->material);
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       TopoDS_Shape S = shapeTool->GetShape(label);
       for(TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()){
 	 TopoDS_Shape F=exp.Current();
@@ -5370,7 +5055,6 @@ void MwOCAF::setDisabledVolumes()
       DB::Volume *vol=EmP->FindVolume(partName.ToCString());
       if(vol->type!=WAVEGUIDE) continue;
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       TopoDS_Shape S = shapeTool->GetShape(label);
       for(TopExp_Explorer exp(S,TopAbs_FACE); exp.More(); exp.Next()){
 	 TopoDS_Shape F=exp.Current();
@@ -5497,7 +5181,6 @@ void MwOCAF::setTEMnum()
       if(vol->type!=WAVEGUIDE) continue;
       if(vol->disabled) continue;
       TDF_Label label = getRefLabel(label1);
-      if(label.IsNull()) label=label1;
       TopoDS_Shape S = shapeTool->GetShape(label);
       int TEMnum=evalTEMnum(S, false);
       if(vol->TEMportsNum!=TEMnum) {vol->TEMportsNum=TEMnum; worksaveNeeded=true;}
@@ -5506,7 +5189,7 @@ void MwOCAF::setTEMnum()
    }
 }
 
-void MwOCAF::setConductorMap()
+int MwOCAF::setConductorMap()
 {
    using namespace boost;
    typedef adjacency_list <vecS, vecS, undirectedS> Graph;
@@ -5514,10 +5197,9 @@ void MwOCAF::setConductorMap()
    int ENum=indexedEdges->Extent();
    int FNum=indexedFaces->Extent();
    int N=0;
-   std::map<int,int> CEI;
-   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)) if(CEI.find(EI)==CEI.end()) CEI[EI]=N++;
    std::map<int,int> CFI;
    for(int FI=1; FI <= FNum; FI++) if(ECface(FI)) if(CFI.find(FI)==CFI.end()) CFI[FI]=N++;
+   std::map<int,int> CEI;
    for (int FI=1; FI<=FNum; FI++)  if(ECface(FI)) {
      TopoDS_Shape F =indexedFaces->FindKey(FI);
      for (TopExp_Explorer expe(F,TopAbs_EDGE); expe.More(); expe.Next()) {
@@ -5526,12 +5208,14 @@ void MwOCAF::setConductorMap()
 	 int EI=indexedEdges->FindIndex(E);
 	 if(EI>0){
 	  assert(ECedge(EI));
+	  if(CEI.find(EI)==CEI.end()) CEI[EI]=N++;
           int ice=CEI[EI];
           int icf=CFI[FI];
           add_edge(ice,icf, G);
 	 }
      }
    }
+/*
    std::map<int,int> CPI;
    for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)){ 
          TopoDS_Edge E= TopoDS::Edge(indexedEdges->FindKey(EI));
@@ -5551,15 +5235,15 @@ void MwOCAF::setConductorMap()
           add_edge(ice,icp2, G);
 	 }
    }
+*/
 
    std::vector<int> component(num_vertices(G));
    int NumConductors =connected_components(G, &component[0]);
-   edgeConductorMap.clear();
-   edgeConductorMap.resize(ENum,0);
-   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)) edgeConductorMap[EI-1]=1+component[CEI[EI]];
+   //defining faceConductorMap
    faceConductorMap.clear();
    faceConductorMap.resize(FNum,0);
    for(int FI=1; FI <= FNum; FI++) if(ECface(FI)) faceConductorMap[FI-1]=1+component[CFI[FI]];
+   //computing conductor areas
    std::vector<double> condArea(NumConductors,0.0);
    for(int FI=1; FI <= FNum; FI++) if(faceConductorMap[FI-1]>0){
      TopoDS_Shape F =indexedFaces->FindKey(FI);
@@ -5568,31 +5252,31 @@ void MwOCAF::setConductorMap()
      double farea =gprops.Mass();
      condArea[faceConductorMap[FI-1]-1]+=farea;
    }
-   //define portConductor
-   std::vector<int> portConductor(ENum,0);
-   for(int EI=1; EI <= ENum; EI++) if(WGedge(EI)) if(edgeConductorMap[EI-1]>0) portConductor[edgeConductorMap[EI-1]-1]=1;
-   //Port Conductor with largest area is moved into the first positions
+   //Conductor with largest area is moved into the last position
    double Amax=0;  int icondAMax=0;
-   for(int i=0;i<NumConductors;i++) if(portConductor[i]) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
+   for(int i=0;i<NumConductors;i++) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
    if(icondAMax==0) for(int i=0;i<NumConductors;i++) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
    std::vector<int> renum(NumConductors,0);
-   if(icondAMax>0) renum[icondAMax-1]=1;
-   int j=1;  for(int i=0;i<NumConductors;i++) if(renum[i]==0) renum[i]=++j;
+   if(icondAMax>0) renum[icondAMax-1]=NumConductors;
+   int j=0;  for(int i=0;i<NumConductors;i++) if(renum[i]==0) renum[i]=++j;
    std::vector<int> faceConductorMap1=faceConductorMap;
    for(int FI=1; FI <= FNum; FI++) if(faceConductorMap[FI-1]>0) faceConductorMap[FI-1]=renum[faceConductorMap1[FI-1]-1];
    std::vector<int> edgeConductorMap1=edgeConductorMap;
-   for(int EI=1; EI <= ENum; EI++) if(edgeConductorMap[EI-1]>0) edgeConductorMap[EI-1]=renum[edgeConductorMap1[EI-1]-1];
-   std::vector<int> portConductor1=portConductor;
-   for(int i=0;i<NumConductors;i++) portConductor[i]=portConductor1[renum[i]-1];
-   //Internal Conductors are moved after Port Conductors:
-   for(int i=0;i<NumConductors;i++) renum[i]=0;
-   j=0;  
-   for(int i=0;i<NumConductors;i++) if(portConductor[i]) if(renum[i]==0) renum[i]=++j;
-   for(int i=0;i<NumConductors;i++) if(!portConductor[i]) if(renum[i]==0) renum[i]=++j;
-   faceConductorMap1=faceConductorMap;
-   for(int FI=1; FI <= FNum; FI++) if(faceConductorMap[FI-1]>0) faceConductorMap[FI-1]=renum[faceConductorMap1[FI-1]-1];
-   edgeConductorMap1=edgeConductorMap;
-   for(int EI=1; EI <= ENum; EI++) if(edgeConductorMap[EI-1]>0) edgeConductorMap[EI-1]=renum[edgeConductorMap1[EI-1]-1];
+   //defining edgeConductorMap
+   edgeConductorMap.clear();
+   edgeConductorMap.resize(ENum,0);
+   for (int FI=1; FI<=FNum; FI++)  if(ECface(FI)) {
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     for (TopExp_Explorer expe(F,TopAbs_EDGE); expe.More(); expe.Next()) {
+         TopoDS_Shape E= expe.Current();
+	 E.Orientation(TopAbs_FORWARD);
+	 int EI=indexedEdges->FindIndex(E);
+	 if(EI>0) edgeConductorMap[EI-1]=faceConductorMap[FI-1];
+     }
+   }
+
+   for(int EI=1; EI <= ENum; EI++) if(ECedge(EI)) if(edgeConductorMap[EI-1]==0) return EI;
+   return 0;
 }
 
 
@@ -5722,6 +5406,23 @@ int I2;
 
 
 //  Modified by Sergey KHROMOV - Tue Dec 18 18:02:55 2001 Begin
+Standard_Boolean isTangentEdges(const TopoDS_Vertex &Vertex,
+				const TopoDS_Edge &Edge1,
+				const TopoDS_Edge &Edge2)
+{
+  BRepAdaptor_Curve C1(Edge1);
+  Standard_Real U1; if(!BRep_Tool::Parameter(Vertex,Edge1,U1)) return false;
+  gp_Vec V1   = C1.DN(U1,1);
+  if (V1.SquareMagnitude() < gp::Resolution()) return;
+  BRepAdaptor_Curve C2(Edge2);
+  Standard_Real U2; if(!BRep_Tool::Parameter(Vertex,Edge2,U2)) return false;
+  gp_Vec V2   = C2.DN(U2,1);
+  if (V2.SquareMagnitude() < gp::Resolution()) return false;
+  double angularTolerance=M_PI/1000;
+  return V1.IsParallel(V2,angularTolerance);
+}
+
+//  Modified by Sergey KHROMOV - Tue Dec 18 18:02:55 2001 Begin
 Standard_Boolean isTangentFaces(const TopoDS_Edge &theEdge,
 				const TopoDS_Face &theFace1,
 				const TopoDS_Face &theFace2)
@@ -5832,7 +5533,7 @@ void MwOCAF::setSuperFaces()
     	assert(setLock(fin,"r")==0);
 	FaceData_ *fd=new(FaceData_);
         fd->read(fin);
-	if(fd->cmp1!=fd->cmp2 && fd->cmp1!=std::string("-") && fd->cmp2!=std::string("-")){
+	if(fd->cmp1!=fd->cmp2 && fd->cmp1!=std::string("-") && fd->cmp2!=std::string("-") && fd->BrCond.size()==0){
 	  fd->FI=FI;
           fd->sfname=fd->name;
 	  fdata.push_back(fd);
@@ -5921,7 +5622,6 @@ void MwOCAF::setSuperFaceSplitterMap()
    {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
 
 //---
      DB::Volume *vol=getLabelVol(label1);
@@ -5993,64 +5693,81 @@ void MwOCAF::setSuperCurves()
       TopoDS_Vertex V1,V2;
       TopExp::Vertices(E,V1,V2);
       int I1=indexedVertices->FindIndex(V1);
-      int I2=indexedVertices->FindIndex(V1);
-      int Ei=compCurveEdges[edgeCompCurve[EI-1]].size();
-      compCurveVertexEdges[edgeCompCurve[EI-1]][I1-1].insert(Ei);
-      compCurveVertexEdges[edgeCompCurve[EI-1]][I2-1].insert(Ei);
+      int I2=indexedVertices->FindIndex(V2);
+      compCurveVertexEdges[edgeCompCurve[EI-1]][I1].insert(EI);
+      compCurveVertexEdges[edgeCompCurve[EI-1]][I2].insert(EI);
    }
 
-   std::vector<int>  connectedComponent(ENum,0);
-   std::map<int,int> EI2graphNode;
-   std::vector<int>  graphNode2EI;
    for(std::map<std::string,std::map<int,std::set<int>>>::iterator it =compCurveVertexEdges.begin(); it !=compCurveVertexEdges.end(); it++){
      Graph G;
-     for(std::map<int,std::set<int>>::iterator it2 =it->second.begin(); it2 !=it->second.end(); it2++)
-        if(it2->second.size()>1) if(!ECvertex(it2->first)) if(!PMCvertex(it2->first)){
-	   std::set<int>::iterator it3 =it2->second.begin(); int Ei1=*it3; it3++; int Ei2=*it3;
-           if(EI2graphNode.find(Ei1)==EI2graphNode.end()){
-		 EI2graphNode[Ei1]=graphNode2EI.size();
-		 graphNode2EI.push_back(Ei1);
+     std::map<int,int> EI2graphNode;
+     std::vector<int>  graphNode2EI;
+     std::set<int> allEdges,connectedEdges;
+     for(std::map<int,std::set<int>>::iterator it2 =it->second.begin(); it2 !=it->second.end(); it2++){
+        int VI=it2->first;
+	TopoDS_Vertex V=TopoDS::Vertex(indexedVertices->FindKey(VI));
+	std::set<int>::iterator it3 =it2->second.begin();
+	int EI1=*it3;
+	allEdges.insert(EI1);
+        if(it2->second.size()>1){
+	   TopoDS_Edge E1=TopoDS::Edge(indexedEdges->FindKey(EI1));
+	   it3++; int EI2=*it3;
+	   TopoDS_Edge E2=TopoDS::Edge(indexedEdges->FindKey(EI2));
+	   allEdges.insert(EI2);
+	   if(!ECvertex(it2->first)) if(!PMCvertex(it2->first)){
+	      if(!isTangentEdges(V,E1,E2)) continue;
+              if(EI2graphNode.find(EI1)==EI2graphNode.end()){
+		 EI2graphNode[EI1]=graphNode2EI.size();
+		 graphNode2EI.push_back(EI1);
+	      }
+              if(EI2graphNode.find(EI2)==EI2graphNode.end()){
+		   EI2graphNode[EI2]=EI2graphNode.size();
+		   graphNode2EI.push_back(EI2);
+	      }
+	      add_edge(EI2graphNode[EI1],EI2graphNode[EI2], G);
+	      connectedEdges.insert(EI1); connectedEdges.insert(EI2);
 	   }
-           if(EI2graphNode.find(Ei2)==EI2graphNode.end()){
-		   EI2graphNode[Ei2]=EI2graphNode.size();
-		   graphNode2EI.push_back(Ei2);
-	   }
-	   add_edge(EI2graphNode[Ei1],EI2graphNode[Ei1], G);
+        }
      }
-     std::vector<int> component(num_vertices(G));
+     int isolatedEdgesNum=allEdges.size()-connectedEdges.size();
+     std::vector<int> component(num_vertices(G)+isolatedEdgesNum);
      int componentNum =connected_components(G, &component[0]);
-     for(int i=0; i<num_vertices(G); i++){
-	int EI=graphNode2EI[i]; connectedComponent[EI-1]=component[i];
-     }
-   }
+     for(std::set<int>::iterator eit =allEdges.begin(); eit !=allEdges.end(); eit++)
+	 if(connectedEdges.find(*eit)==connectedEdges.end()){
+	       component[graphNode2EI.size()]=componentNum++;
+	       graphNode2EI.push_back(*eit);
+	 }
 
-   for(int EI = extEdgeNum+1; EI <= ENum; EI++) {
-      if(edgeCompCurve[EI-1]==std::string("-")) continue;
-      std::string EPath=projectDir+std::string("/interfaces/E");
-      char tag[10]; sprintf(tag,"%d",EI); EPath+=tag;
-      EPath=nativePath(EPath);
-      FILE *fin=fopen(EPath.c_str(),"r");
-      if(!fin){
-         std::cout<< "missing file :"<< EPath.c_str() <<std::endl;
-	 assert(false);
-      }
-      assert(setLock(fin,"r")==0);
-      EdgeData *ed=new(EdgeData);
-      ed->read(fin);
-      assert(releaseLock(fin)==0);
-      fclose(fin);
-      if(ed->scname!=std::string("-")){ delete ed; continue; }
-      ed->scname=edgeCompCurve[EI-1];
-      if(connectedComponent[EI-1]>0) {
-         char tag[10]; sprintf(tag,"_CC%d",connectedComponent[EI-1]);
-	 ed->scname+=std::string(tag);
-      }
-      FILE *fout=fopen(EPath.c_str(),"w");
-      assert(setLock(fout,"w")==0);
-      ed->write(fout);
-      delete ed;
-      assert(releaseLock(fout)==0);
-      fclose(fout);
+     for(int i=0; i<graphNode2EI.size(); i++){
+	int EI=graphNode2EI[i];
+        if(edgeCompCurve[EI-1]==std::string("-")) continue;
+        std::string EPath=projectDir+std::string("/interfaces/E");
+        char tag[10]; sprintf(tag,"%d",EI); EPath+=tag;
+        EPath=nativePath(EPath);
+        FILE *fin=fopen(EPath.c_str(),"r");
+        if(!fin){
+          std::cout<< "missing file :"<< EPath.c_str() <<std::endl;
+	  assert(false);
+        }
+        assert(setLock(fin,"r")==0);
+        EdgeData *ed=new(EdgeData);
+        ed->read(fin);
+        assert(releaseLock(fin)==0);
+        fclose(fin);
+        if(ed->scname!=std::string("-")){ delete ed; continue; }
+        ed->scname=edgeCompCurve[EI-1];
+        if(component[i]>0) {
+          char tag[10]; sprintf(tag,"_CC%d",component[i]);
+	  ed->scname+=std::string(tag);
+        }
+        FILE *fout=fopen(EPath.c_str(),"w");
+        assert(setLock(fout,"w")==0);
+        ed->write(fout);
+        delete ed;
+        assert(releaseLock(fout)==0);
+        fclose(fout);
+     }
+
    }
 
 }
@@ -6084,11 +5801,7 @@ void MwOCAF::checkSuperFacesTEMnum()
       }
 }
 
-void MwOCAF::setSuperCurveFaceData(
-        std::map<std::string, std::set<std::string> > &SCSFlinks,
-	std::map<std::string, bool > &SFhasPMC,
-	std::map<std::string, bool > &SChasPMC
-){
+void MwOCAF::setSuperCurveFaceData(){
 //   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
       int FNum=indexedFaces->Extent();
       std::map<std::string, std::set<std::string> > VSClinks;
@@ -6101,7 +5814,6 @@ void MwOCAF::setSuperCurveFaceData(
 	    E.Orientation(TopAbs_FORWARD);
 	    int EI=indexedEdges->FindIndex(E);
             if(edgeData[EI-1].scname==std::string("-")) continue;
-	    SCSFlinks[edgeData[EI-1].scname].insert(faceData[FI-1].sfname);
             TopoDS_Vertex V1,V2;
             bool  CumOri=false;
             TopExp::Vertices(E,V1,V2, CumOri);
@@ -6125,108 +5837,7 @@ void MwOCAF::setSuperCurveFaceData(
 	       assert(releaseLock(fout)==0);
                fclose(fout);
              }
-
-      for(int FI = 1; FI <= FNum; FI++) {
-          if(EmP->assemblyType==COMPONENT) if(FI<=extFaceNum) continue;
-          if(faceData[FI-1].sfname==std::string("-")) continue;
-          SFhasPMC[faceData[FI-1].sfname]==false;
-          TopoDS_Shape F= indexedFaces->FindKey(FI);
-          for (TopExp_Explorer exp(F,TopAbs_VERTEX); exp.More(); exp.Next()) {
-	    TopoDS_Vertex V=TopoDS::Vertex(exp.Current());
-	    int PI=indexedVertices->FindIndex(V);
-            SFhasPMC[faceData[FI-1].sfname]+=vertexData[PI-1].shared;
-            SFhasPMC[faceData[FI-1].sfname]+=PMCvertex(PI);
-          }
-      }
-      int ENum=indexedEdges->Extent();
-      for(int EI = 1; EI <= ENum; EI++) {
-          if(EmP->assemblyType==COMPONENT) if(EI<=extEdgeNum) continue;
-          if(edgeData[EI-1].scname==std::string("-")) continue;
-          SChasPMC[edgeData[EI-1].scname]==false;
-          TopoDS_Edge E= TopoDS::Edge(indexedEdges->FindKey(EI));
-          TopoDS_Vertex V1,V2;
-          bool  CumOri=false;
-          TopExp::Vertices(E,V1,V2, CumOri);
-          int PI1=indexedVertices->FindIndex(V1);
-          int PI2=indexedVertices->FindIndex(V2);
-          SChasPMC[edgeData[EI-1].scname]+=vertexData[PI1-1].shared;
-          SChasPMC[edgeData[EI-1].scname]+=PMCvertex(PI1);
-          SFhasPMC[edgeData[EI-1].scname]+=vertexData[PI2-1].shared;
-          SChasPMC[edgeData[EI-1].scname]+=PMCvertex(PI2);
-      }      
 }
-
-void MwOCAF::setSuperCurvesConstU(const char* projectDir,
-		std::map<std::string, std::set<std::string> > &SCSFlinks,
-		std::map<std::string, bool > &SFhasPMC,
-		std::map<std::string, bool > &SChasPMC,
-                std::map<std::string, bool>  &superCurveHasConstU
-	     )
-{
-     using namespace boost::interprocess;
-     using namespace boost;
-     typedef adjacency_list <vecS, vecS, undirectedS> Graph;
-     std::map<std::string, int> SFindex;
-     int SFnum=0;
-     Graph G;
-     for(std::map<std::string, std::set<std::string> >::iterator cit =SCSFlinks.begin(); cit !=SCSFlinks.end(); cit++){
-         for(std::set<std::string>::iterator fit =cit->second.begin(); fit !=cit->second.end(); fit++)  
-		 if(SFindex.find(*fit)==SFindex.end()) SFindex[*fit]=SFnum++;
-         for(std::set<std::string>::iterator fit1 =cit->second.begin(); fit1 !=cit->second.end(); fit1++){
-	        std::set<std::string>::iterator fit2=fit1; fit2++; if(fit2==cit->second.end()) break;
-	        int SFI1=SFindex[*fit1];
-	        int SFI2=SFindex[*fit2];
-	        add_edge(SFI1,SFI2, G);
-         }
-     }
-     if(SFnum==0) return;
-     std::vector<int> component(SFnum);
-     int componentNum =connected_components(G, &component[0]);
-     std::vector<bool> compHasU0(componentNum,true);
-     for(std::map<std::string, int>::iterator sfit =SFindex.begin(); sfit !=SFindex.end(); sfit++) if(SFhasPMC[sfit->first]) compHasU0[SFindex[sfit->first]] =false;
-     std::set<int> SFdone;
-     for(std::map<std::string, std::set<std::string> >::iterator cit =SCSFlinks.begin(); cit !=SCSFlinks.end(); cit++){
-	     std::set<std::string>::iterator sfit =cit->second.begin();
-	     int icomp=component[SFindex[*sfit]];
-	     superCurveHasConstU[cit->first] = ( SFdone.find(icomp)!=SFdone.end() || !compHasU0[icomp] ) && !SChasPMC[cit->first];
-	     SFdone.insert(icomp);
-     }
-     bool writeToFile=false;
-     if(!writeToFile) return;
-     std::string fileName=std::string(projectDir)+std::string ("/superCurveHasConstU.dat");
-     FILE *out=fopen(nativePath(fileName).c_str(), "w");
-     if(out){
-        for(std::map<std::string, bool >::iterator cit =superCurveHasConstU.begin(); cit !=superCurveHasConstU.end(); cit++){
-         fprintf(out, "%s  ", cit->first.c_str() );
-         fprintf(out, "%d  ", cit->second? 1:0 );
-         fprintf(out, "\n");
-        }
-        fclose(out);
-     }
-
-}
-
-
-
-void MwOCAF::writeSuperCurvesConstU(std::map<std::string, bool>  &superCurveHasConstU){
-//   int I1=EmP->isTopLevel? I1 : extFaceNum+1;
-      int ENum=indexedEdges->Extent();
-      for(int EI = 1; EI <= ENum; EI++){
-         if(edgeData[EI-1].scname==std::string("-")) continue;
-	 if(superCurveHasConstU.find(edgeData[EI-1].scname)==superCurveHasConstU.end()) continue;
-	 if(!superCurveHasConstU[edgeData[EI-1].scname]) continue;
-         char tag[10]; sprintf(tag,"%d",EI);
-         std::string EPath=projectDir+std::string ("/interfaces/E")+tag;
-	 FILE *fout=fopen(EPath.c_str(),"w");
-	 assert(setLock(fout,"w")==0);
-	 edgeData[EI-1].hasConstU=1;
-	 edgeData[EI-1].write(fout);
-	 fflush(fout);
-	 assert(releaseLock(fout)==0);
-         fclose(fout);
-       }
-}
-
 
 
 void MwOCAF::makeUPIF(TopoDS_Shape &IF)
@@ -6259,7 +5870,6 @@ void MwOCAF::makeIF(TopoDS_Shape &IF)
   for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      bool skip=false;
      DB::Volume *vol=getLabelVol(label);
      if(vol) skip=(EmP->assemblyType==COMPONENT && vol->type!=DIELECTRIC);
@@ -6278,7 +5888,6 @@ void MwOCAF::makeIF(TopoDS_Shape &IF)
   if(EmP->assemblyType==COMPONENT)  for (TDF_ChildIterator it(theParts,Standard_False); it.More(); it.Next()) {
      TDF_Label label1 = it.Value();
      TDF_Label label = getRefLabel(label1);
-     if(label.IsNull()) label=label1;
      DB::Volume *vol=getLabelVol(label);
      if(!vol) continue;
      if(vol->type==BOUNDARYCOND) { //Remove BC faces from the interface

@@ -146,6 +146,8 @@ public:
   int        TEM_TabularOrder2;
   int        TEM_refCond;
   int        disconnectedTEM;
+  int        subcircuitIndex;
+  int        subcircuitIFindex;
   int        defined;
   int        disabled;
   int        gridNum;

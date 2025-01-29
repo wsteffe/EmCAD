@@ -1248,6 +1248,8 @@ void MainWindow::reload()
            closeDoc();
 	   workopen(mainWorkPath);
            TCollection_AsciiString assName; mainOCAF->getAssName(assName);
+           QString interfaceDir=mainWorkPath+"/interfaces/";
+	   removeAllFilesInDir(interfaceDir.toLatin1().data());
            if(strcmp(prjData.mainAssName.toLatin1().data(),assName.ToCString())){
              QString circuitDir=mainWorkPath+"/Data/Circuits/";
 	     removeAllFilesInDirStartingWith(circuitDir.toLatin1().data(), prjData.mainAssName.toLatin1().data());
@@ -3214,51 +3216,22 @@ void Preprocessor::setSuperCurves(QString dir){
 }
 
 
-void Preprocessor::setSuperCurveFaceData(QString dir,
-          std::map<std::string, std::set<std::string> > &SCSFlinks,
-	  std::map<std::string, bool > &SFhasPMC,
-	  std::map<std::string, bool > &SChasPMC
-){
+void Preprocessor::setSuperCurveFaceData(QString dir){
      MwOCAF* ocaf=new MwOCAF();
      ocaf->workopen(dir.toLatin1().data());
      ocaf->regenerateIndexedSubShapes();
      ocaf->readFEproperties();
-     ocaf->setSuperCurveFaceData(SCSFlinks,SFhasPMC,SChasPMC);
+     ocaf->setSuperCurveFaceData();
      ocaf->closeDoc();
      delete ocaf;
      QStringList subdirs;
      if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
        QString subDir=dir+"/"+subdirs.at(i);
-       setSuperCurveFaceData(subDir,SCSFlinks,SFhasPMC,SChasPMC);
+       setSuperCurveFaceData(subDir);
      }
 }
 
-void Preprocessor::setSuperCurvesConstU(QString dir,
-          std::map<std::string, std::set<std::string> > &SCSFlinks,
-	  std::map<std::string, bool > &SFhasPMC,
-	  std::map<std::string, bool > &SChasPMC,
-	  std::map<std::string, bool>  &superCurveHasConstU
-){
-     MwOCAF::setSuperCurvesConstU(dir.toLatin1().data(),SCSFlinks,SFhasPMC,SChasPMC,superCurveHasConstU);
-}
 
-
-void Preprocessor::writeSuperCurvesConstU(QString dir,
-	  std::map<std::string, bool>  &superCurveHasConstU
-){
-     MwOCAF* ocaf=new MwOCAF();
-     ocaf->workopen(dir.toLatin1().data());
-     ocaf->regenerateIndexedSubShapes();
-     ocaf->readFEproperties();
-     ocaf->writeSuperCurvesConstU(superCurveHasConstU);
-     ocaf->closeDoc();
-     delete ocaf;
-     QStringList subdirs;
-     if(readStringlist(dir+"/subdirs", subdirs)) for (int i = 0; i < subdirs.size(); ++i){
-       QString subDir=dir+"/"+subdirs.at(i);
-       writeSuperCurvesConstU(subDir,superCurveHasConstU);
-     }
-}
 
 
 
@@ -3321,7 +3294,14 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     proc->start(app, args);
     proc->waitForFinished(-1); 
     msleep(300);
-    if(proc->exitStatus()==QProcess::NormalExit){
+    if(proc->exitCode()==11){
+       QString mssg="ERROR: Bad Subdomain in \"" ; mssg+=assPath; 
+       mssg+=QString("\":\n");
+       mssg+= proc->readAllStandardError();
+       mssg+=QString("Please redefine the subdomains structure");
+       sendLogMessage(mssg);
+       mesh_failure=1;
+    } else if(proc->exitStatus()==QProcess::NormalExit && proc->exitCode()==0){
        QString mssg="Completed Meshing of \"" ; mssg+=assPath; mssg+="\""; sendLogMessage(mssg);
     }else{
        QString mssg="Failed Meshing of \"" ; mssg+=assPath; mssg+=QString("\t"); mssg+=qcmd;
@@ -3405,11 +3385,7 @@ void Preprocessor::decompose(){
    setSuperFaces(currentWorkPath);
    setSuperCurves(currentWorkPath);
    setMaterialData();
-   std::map<std::string, std::set<std::string> > SCSFlinks;
-   std::map<std::string, bool > SFhasPMC,SChasPMC,superCurveHasConstU;
-   setSuperCurveFaceData(currentWorkPath,SCSFlinks,SFhasPMC,SChasPMC);
-   setSuperCurvesConstU(currentWorkPath,SCSFlinks,SFhasPMC,SChasPMC,superCurveHasConstU);
-   writeSuperCurvesConstU(currentWorkPath,superCurveHasConstU);
+   setSuperCurveFaceData(currentWorkPath);
    QString compFileName=mainWorkPath+"/components";
    prjData.subcomponents.save(compFileName.toLatin1().data());
    QString wgcompFileName=mainWorkPath+"/wgcomponents";

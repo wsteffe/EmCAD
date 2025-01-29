@@ -516,7 +516,7 @@ void ViewWidget::hiddenLineOn()
 
 void ViewWidget::background()
 {
-    QColor aColor ;
+    QColor aColor;
     Standard_Real R1;
     Standard_Real G1;
     Standard_Real B1;
@@ -1097,7 +1097,7 @@ void ViewWidget::InitView()
    myView->SetWindow (aWnd);
    if (!aWnd->IsMapped()) aWnd->Map();
 
-   myView->SetBackgroundColor (Quantity_NOC_GRAY70);
+   myView->SetBackgroundColor (Quantity_NOC_AZURE);
    myView->MustBeResized();
 
    // Set up axes (Trihedron) in

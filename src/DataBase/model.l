@@ -237,6 +237,8 @@ TEMtabularOrder1 		{ return TEMTABULARORDER1; }
 TEMtabularOrder2 		{ return TEMTABULARORDER2; }
 TEMrefConductor 		{ return TEMREFCONDUCTOR; }
 disconnectedTEM 		{ return DISCONNECTEDTEM; }
+subcircuitIndex 		{ return SUBCIRCUITINDEX; }
+subcircuitIFindex 		{ return SUBCIRCUITIFINDEX; }
 gridNum			        { return GRIDNUM; }
 PML			        { return PML; }
 invariant			{ return INVARIANT; }

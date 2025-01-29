@@ -157,20 +157,7 @@ class Preprocessor : public QThread
     void updateMaterialData();
     void setSuperFaces(QString dir);
     void setSuperCurves(QString dir);
-    void setSuperCurveFaceData(QString dir,
-           std::map<std::string, std::set<std::string> > &SCSFlinks,
-	   std::map<std::string, bool > &SFhasPMC,
-	   std::map<std::string, bool > &SChasPMC
-         );
-    void setSuperCurvesConstU(QString dir,
-          std::map<std::string, std::set<std::string> > &SCSFlinks,
-	  std::map<std::string, bool > &SFhasPMC,
-	  std::map<std::string, bool > &SChasPMC,
-	  std::map<std::string, bool>  &superCurveHasConstU
-         );
-    void writeSuperCurvesConstU(QString dir,
-	  std::map<std::string, bool>  &superCurveHasConstU
-         );
+    void setSuperCurveFaceData(QString dir);
     void decompose();
     void meshModel(QString dir, QString assPath, int assType);
     void mesh(QString dir, QString assPath, int level, int l=0);

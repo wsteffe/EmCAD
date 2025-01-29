@@ -821,6 +821,19 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      disconnectedTEM->setValue(0);
      disconnectedTEM->setMinimum(0);
 
+     QLabel *subcircuitIndexlabel= new QLabel(); 
+     subcircuitIndexlabel->setText(tr("Subcircuit Index:"));
+     subcircuitIndex=new QSpinBox(this);
+     subcircuitIndex->setValue(1);
+     subcircuitIndex->setMinimum(1);
+
+     QLabel *subcircuitIFindexlabel= new QLabel(); 
+     subcircuitIFindexlabel->setText(tr("Subcircuit InterFace Index:"));
+     subcircuitIFindex=new QSpinBox(this);
+     subcircuitIFindex->setValue(1);
+     subcircuitIFindex->setMinimum(1);
+
+     
      QLabel *disconnectOrientLabel= new QLabel();
      disconnectOrientLabel->setText(tr("Disconnect Orientation:"));
      disconnectOrient= new QComboBox();
@@ -838,6 +851,10 @@ SetCompPropertiesDialog::SetCompPropertiesDialog(TreeWidget *parent) : QDialog(p
      disconnectLayout->addWidget(disconnectedTEM,0, 1);
      disconnectLayout->addWidget(disconnectOrientLabel,1, 0);
      disconnectLayout->addWidget(disconnectOrient,1, 1);
+     disconnectLayout->addWidget(subcircuitIndexlabel,2, 0);
+     disconnectLayout->addWidget(subcircuitIndex,2, 1);
+     disconnectLayout->addWidget(subcircuitIFindexlabel,3, 0);
+     disconnectLayout->addWidget(subcircuitIFindex,3, 1);
 
      disconnectGroupBox=new QGroupBox(tr(""));
      disconnectGroupBox->setLayout(disconnectLayout);
@@ -946,6 +963,8 @@ void SetCompPropertiesDialog::getVolumeData(QString volname){
   }
   if(vol->type==SPLITTER){
       disconnectedTEM->setValue(vol->disconnectedTEM);
+      subcircuitIndex->setValue(vol->subcircuitIndex);
+      subcircuitIFindex->setValue(vol->subcircuitIFindex);
       disconnectOrient->setCurrentIndex(vol->orientation);
   }
   updateType(vol->type);
@@ -1009,10 +1028,22 @@ void SetCompPropertiesDialog::setVolumeData(DB::Volume* vol){
   if(vol->type==SPLITTER){
 	if(vol->disconnectedTEM!=disconnectedTEM->value())  {
 	      vol->disconnectedTEM=disconnectedTEM->value();
+	      changed=true;
+              prjData.workStatus.decompositionNeeded=true;
+	}
+	if(vol->subcircuitIndex!=subcircuitIndex->value())  {
+	      vol->subcircuitIndex=subcircuitIndex->value();
+	      changed=true;
+              prjData.workStatus.decompositionNeeded=true;
+	}
+	if(vol->subcircuitIFindex!=subcircuitIFindex->value())  {
+	      vol->subcircuitIFindex=subcircuitIFindex->value();
+	      changed=true;
               prjData.workStatus.decompositionNeeded=true;
 	}
 	if(vol->orientation!=disconnectOrient->currentIndex())  {
 	     vol->orientation=disconnectOrient->currentIndex();
+	      changed=true;
              prjData.workStatus.decompositionNeeded=true;
 	}
   }
