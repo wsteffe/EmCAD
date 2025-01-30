@@ -24,7 +24,7 @@ import site
 import requests
 
 build_exe_options = {"packages": ["os"],
-                     "includes": ["PyQt5","tarfile","requests","pypac","boto3","botocore","certifi","encodings","jwt"],
+                     "includes": ["PyQt5","tarfile","requests","pypac","boto3","botocore","certifi","encodings","jwt","skrf"],
                      "excludes": ["tkinter"],
 		             "optimize": 2,
                      "include_files" : [(requests.certs.where(), 'cacert.pem')]
