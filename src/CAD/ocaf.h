@@ -250,7 +250,6 @@ struct VertexData
   double epsr;
   double mur;
   double meshref;
-  int shared;
   int singular;
   std::set<std::string, std::less<std::string> > BrCond;
   public:
@@ -261,7 +260,6 @@ struct VertexData
    mur=1;
    meshref=1;
    singular=0;
-   shared=0;
    BrCond.clear();
   }
   void read(FILE *fin)
@@ -272,7 +270,6 @@ struct VertexData
 	fscanf(fin,"%lf ",&epsr); 
 	fscanf(fin,"%lf ",&mur);  
 	fscanf(fin,"%lf ",&meshref); 
-        fscanf(fin,"%d ",&shared); 
         fscanf(fin,"%d ",&singular); 
 	std::string line;
 	while (getFileLine(fin, line))  if(BrCond.find(line)==BrCond.end()) if(!line.empty()) BrCond.insert(line);
@@ -284,7 +281,6 @@ struct VertexData
 	fprintf(fout,"%f\n",epsr);
 	fprintf(fout,"%f\n",mur);
 	fprintf(fout,"%f\n",meshref);
-	fprintf(fout,"%d\n",shared);
 	fprintf(fout,"%d\n",singular);
 	typedef std::set<std::string, std::less<std::string> >::const_iterator BdrIt;
 	for (BdrIt it=BrCond.begin(); it!= BrCond.end(); it++) fprintf(fout,"%s\n",it->c_str());
@@ -459,6 +455,7 @@ class MwOCAF
   int evalTEMnum(TopoDS_Shape S, bool intPort=true);
   void setTEMnum();
   int setConductorMap();
+  int setMagConductorMap();
   void savePartitionMap();
   void readPartitionMap();
   void saveSubdomainMap();
@@ -509,7 +506,9 @@ class MwOCAF
   std::vector<int>  subSplitEdgesMap;
   std::vector<int>  subSplitVerticesMap;
   std::vector<int>  edgeConductorMap;
+  std::vector<int>  edgeMagConductorMap;
   std::vector<int>  faceConductorMap;
+  std::vector<int>  faceMagConductorMap;
   std::map<std::string,std::string>  superfaceSplitterMap;
 
   FaceData    *faceData;
@@ -552,6 +551,10 @@ class MwOCAF
 
   int  PECface(int FI) {
       if (faceData[FI-1].BrCond.find(std::string("PEC"))!=faceData[FI-1].BrCond.end()) return 1;
+      return 0;
+  }
+  int  PMCface(int FI) {
+      if (faceData[FI-1].BrCond.find(std::string("PMC"))!=faceData[FI-1].BrCond.end()) return 1;
       return 0;
   }
   int  ECface(int FI) {

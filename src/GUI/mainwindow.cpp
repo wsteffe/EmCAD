@@ -665,7 +665,7 @@ ProjectData::ProjectData(){
        idealFilterImpedance.clear();
        freqRespParType=SPAR;
        freqRespParPart=0;
-       KrylovOrder=2;
+       KrylovOrder=1;
        MORFreqNum=1;
        MORFreqNum1=5;
        cmpMORFreqNum=2;
@@ -4348,6 +4348,7 @@ void Modeler::compReduce(std::string compNameStr)
      QStringList args;
      QString freq1; freq1.setNum(prjData.freqBand[0],'f',5);
      QString freq2; freq2.setNum(prjData.freqBand[1],'f',5);
+     QString KrylovOrder; KrylovOrder.setNum(prjData.KrylovOrder);
      QString rfreq1; rfreq1.setNum(0.0,'f',5);
      QString rfreq2; rfreq2.setNum(prjData.freqBand[1]*prjData.cmpResonFreqMaxRatio,'f',5);
      QString fnum;  fnum.setNum(prjData.cmpMORFreqNum);
@@ -4390,7 +4391,7 @@ void Modeler::compReduce(std::string compNameStr)
         args << QString("port_impedance_circuits.JC");
      }
      args << QString("-k");
-     args << QString("2");
+     args << KrylovOrder;
      args << QString("-freq");
      args << QString(freq1);
      args << QString(freq2);

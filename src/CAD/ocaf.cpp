@@ -5279,6 +5279,96 @@ int MwOCAF::setConductorMap()
    return 0;
 }
 
+int MwOCAF::setMagConductorMap()
+{
+   using namespace boost;
+   typedef adjacency_list <vecS, vecS, undirectedS> Graph;
+   Graph G;
+   int ENum=indexedEdges->Extent();
+   int FNum=indexedFaces->Extent();
+   int N=0;
+   std::map<int,int> CFI;
+   for(int FI=1; FI <= FNum; FI++) if(PMCface(FI)) if(CFI.find(FI)==CFI.end()) CFI[FI]=N++;
+   std::map<int,int> CEI;
+   for (int FI=1; FI<=FNum; FI++)  if(PMCface(FI)) {
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     for (TopExp_Explorer expe(F,TopAbs_EDGE); expe.More(); expe.Next()) {
+         TopoDS_Shape E= expe.Current();
+	 E.Orientation(TopAbs_FORWARD);
+	 int EI=indexedEdges->FindIndex(E);
+	 if(EI>0){
+	  assert(PMCedge(EI));
+	  if(CEI.find(EI)==CEI.end()) CEI[EI]=N++;
+          int ice=CEI[EI];
+          int icf=CFI[FI];
+          add_edge(ice,icf, G);
+	 }
+     }
+   }
+/*
+   std::map<int,int> CPI;
+   for(int EI=1; EI <= ENum; EI++) if(PMCedge(EI)){ 
+         TopoDS_Edge E= TopoDS::Edge(indexedEdges->FindKey(EI));
+         TopoDS_Vertex V1,V2;
+         TopExp::Vertices(E,V1,V2);
+         int ice=CEI[EI];
+	 int IP1=indexedVertices->FindIndex(V1);
+	 if(IP1>0){
+	  if(CPI.find(IP1)==CPI.end()) CPI[IP1]=N++;
+          int icp1=CPI[IP1];
+          add_edge(ice,icp1, G);
+	 }
+	 int IP2=indexedVertices->FindIndex(V2);
+	 if(IP2>0){
+	  if(CPI.find(IP2)==CPI.end()) CPI[IP2]=N++;
+          int icp2=CPI[IP2];
+          add_edge(ice,icp2, G);
+	 }
+   }
+*/
+
+   std::vector<int> component(num_vertices(G));
+   int NumConductors =connected_components(G, &component[0]);
+   //defining faceMagConductorMap
+   faceMagConductorMap.clear();
+   faceMagConductorMap.resize(FNum,0);
+   for(int FI=1; FI <= FNum; FI++) if(PMCface(FI)) faceMagConductorMap[FI-1]=1+component[CFI[FI]];
+   //computing conductor areas
+   std::vector<double> condArea(NumConductors,0.0);
+   for(int FI=1; FI <= FNum; FI++) if(faceMagConductorMap[FI-1]>0){
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     GProp_GProps gprops;
+     BRepGProp::SurfaceProperties(F, gprops);
+     double farea =gprops.Mass();
+     condArea[faceMagConductorMap[FI-1]-1]+=farea;
+   }
+   //Conductor with largest area is moved into the last position
+   double Amax=0;  int icondAMax=0;
+   for(int i=0;i<NumConductors;i++) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
+   if(icondAMax==0) for(int i=0;i<NumConductors;i++) if(condArea[i]>Amax){icondAMax=i+1; Amax=condArea[i];}
+   std::vector<int> renum(NumConductors,0);
+   if(icondAMax>0) renum[icondAMax-1]=NumConductors;
+   int j=0;  for(int i=0;i<NumConductors;i++) if(renum[i]==0) renum[i]=++j;
+   std::vector<int> faceMagConductorMap1=faceMagConductorMap;
+   for(int FI=1; FI <= FNum; FI++) if(faceMagConductorMap[FI-1]>0) faceMagConductorMap[FI-1]=renum[faceMagConductorMap1[FI-1]-1];
+   std::vector<int> edgeMagConductorMap1=edgeMagConductorMap;
+   //defining edgeMagConductorMap
+   edgeMagConductorMap.clear();
+   edgeMagConductorMap.resize(ENum,0);
+   for (int FI=1; FI<=FNum; FI++)  if(PMCface(FI)) {
+     TopoDS_Shape F =indexedFaces->FindKey(FI);
+     for (TopExp_Explorer expe(F,TopAbs_EDGE); expe.More(); expe.Next()) {
+         TopoDS_Shape E= expe.Current();
+	 E.Orientation(TopAbs_FORWARD);
+	 int EI=indexedEdges->FindIndex(E);
+	 if(EI>0) edgeMagConductorMap[EI-1]=faceMagConductorMap[FI-1];
+     }
+   }
+
+   for(int EI=1; EI <= ENum; EI++) if(PMCedge(EI)) if(edgeMagConductorMap[EI-1]==0) return EI;
+   return 0;
+}
+
 
 void MwOCAF::getAssName(TCollection_AsciiString &assName){
     Handle(TDataStd_Name)  nameAtt;
@@ -5677,7 +5767,7 @@ void MwOCAF::setSuperCurves()
    std::map<std::string,std::vector<int>> compCurveEdges;
    for(int EI = extEdgeNum+1; EI <= ENum; EI++) {
       edgeCompCurve[EI-1]="-";
-      if(edgeComponents[EI-1].size()<3) continue;
+      if(edgeComponents[EI-1].size()<2) continue;
       if(edgeSuperfaces[EI-1].size()<2) continue;
       typedef std::set<std::string> ::iterator CompIt;
       for (CompIt it=edgeComponents[EI-1].begin(); it!= edgeComponents[EI-1].end(); it++){
@@ -5831,7 +5921,6 @@ void MwOCAF::setSuperCurveFaceData(){
                std::string PPath=projectDir+std::string ("/interfaces/P")+tag;
 	       FILE *fout=fopen(PPath.c_str(),"w");
 	       assert(setLock(fout,"w")==0);
-	       vertexData[PI-1].shared=1;
 	       vertexData[PI-1].write(fout);
 	       fflush(fout);
 	       assert(releaseLock(fout)==0);

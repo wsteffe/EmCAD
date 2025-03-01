@@ -60,6 +60,8 @@ for line in f:
           continue
       elif line.find('[Network Data]') >=0:
           continue
+      elif line.find('[Matrix Format]') >=0:
+          continue
       else:
           of.write(line) 
 

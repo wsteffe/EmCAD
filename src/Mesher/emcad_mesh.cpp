@@ -164,8 +164,15 @@ int main(int argc, char **argv)
 //         if(mesh3D) MESHER::addIF(ocaf, subprojDir.c_str(),outDir.c_str());
          ocaf->regenerateIndexedSubShapes();
          ocaf->readFEproperties();
-	 ocaf->setConductorMap()>0;
-	 if(ocaf->setConductorMap()>0){
+	 int badEdgeI=ocaf->setConductorMap();
+	 if(badEdgeI>0) {
+            fprintf(stderr, "Isolated conductive Edge E%d has been found.\n", badEdgeI);
+            exit(11);
+	 }
+	 int badMagEdgeI=ocaf->setMagConductorMap();
+	 if(badMagEdgeI>0) {
+            fprintf(stderr, "Isolated magnetic Conductive Edge E%d has been found.\n", badEdgeI);
+            exit(11);
 	 }
          if(mesh3D) MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         } else {
@@ -173,7 +180,18 @@ int main(int argc, char **argv)
          bool meshIF=ocaf->subCompNum;
          ocaf->regenerateIndexedSubShapes();
          ocaf->readFEproperties();
-	 if(!meshIF) ocaf->setConductorMap();
+	 if(!meshIF) {
+	   int badEdgeI=ocaf->setConductorMap();
+	   if(badEdgeI>0) {
+            fprintf(stderr, "Isolated conductive Edge E%d has been found.\n", badEdgeI);
+            exit(11);
+	   }
+	   int badMagEdgeI=ocaf->setMagConductorMap();
+	   if(badMagEdgeI>0) {
+            fprintf(stderr, "Isolated magnetic Conductive Edge E%d has been found.\n", badEdgeI);
+            exit(11);
+	   }
+	 }
          if( mesh3D || meshWG || meshIF)   MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());
         }
         subCompNum=ocaf->subCompNum;
@@ -195,6 +213,11 @@ int main(int argc, char **argv)
 	 int badEdgeI=ocaf->setConductorMap();
 	 if(badEdgeI>0) {
             fprintf(stderr, "Isolated conductive Edge E%d has been found in Subdomain %d.\n", badEdgeI, subcmpI);
+            exit(11);
+	 }
+	 int badMagEdgeI=ocaf->setMagConductorMap();
+	 if(badMagEdgeI>0) {
+            fprintf(stderr, "Isolated magnetic Conductive Edge E%d has been found in Subdomain %d.\n", badEdgeI, subcmpI);
             exit(11);
 	 }
 	 MESHER::meshModel(ocaf, meshIF, mesh3D, meshWG, meshsize, sharedMeshsize, meshpercircle, subprojDir.c_str(),outDir.c_str());

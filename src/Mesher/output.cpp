@@ -326,14 +326,6 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
      if(fout) fprintf(fout, "  ]\n");
      if(fwg)  fprintf(fwg, "  ]\n");
 //---------------------------
-    if(fout) fprintf(fout, "  SHAREDvertices [\n");
-     if(fwg)  fprintf(fwg, "  SHAREDvertices [\n");
-      fprintf(fout, "\t%d\n", ocaf->vertexData[IP1-1].shared); if(fwg) fprintf(fwg, "\t%d\n", ocaf->vertexData[IP1-1].shared);
-      fprintf(fout, "\t%d\n", ocaf->vertexData[IP2-1].shared); if(fwg) fprintf(fwg, "\t%d\n", ocaf->vertexData[IP2-1].shared);
-     if(fout) fprintf(fout, "  ]\n");
-     if(fwg)  fprintf(fwg, "  ]\n");
-
-//---------------------------
      BRepAdaptor_Curve C(E);
      double Elen = GCPnts_AbscissaPoint::Length (C);
      if(fout) fprintf(fout, "  length  %.16g\n", Elen);
@@ -699,6 +691,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
         }
         if(hasbdrc)              fprintf(fout, "  material \"%s\"\n",  bdrname.ToCString());
         if(ocaf->ECface(FI))	fprintf(fout, "  conductor %d\n",  ocaf->faceConductorMap[FI-1]);
+        if(ocaf->PMCface(FI))	fprintf(fout, "  magneticConductor %d\n",  ocaf->faceMagConductorMap[FI-1]);
       }
     }
 
@@ -994,7 +987,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     GEdge *ge=Fedges[i];
     TopoDS_Shape E=* (TopoDS_Shape *) ge->getNativePtr();
     int EI=ocaf->indexedEdges->FindIndex(E);
-    int ECedge=mesh3D? ocaf->edgeConductorMap[EI-1]: ocaf->ECedge(EI);
+    int ECedge=ocaf->ECedge(EI);
     if(fout) fprintf(fout, "\t%d,\n", ECedge);
     if(fwg && onWG) fprintf(fwg, "\t%d,\n", ECedge);
   }
