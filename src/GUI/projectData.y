@@ -76,7 +76,7 @@ char	*sval;
 %token <fval> FLOATING
 %token <sval> STRING NAME
 
-%token DEF MAINASSNAME VARFILEPATH S2PFILEPATH NETWORK LENGTH FREQ UNIT EXP MESH CONFORMAL TET SHARED
+%token DEF MAINASSNAME VARFILEPATH S2PFILEPATH NETWORK LENGTH IMAG FREQ UNIT EXP MESH CONFORMAL TET SHARED
 %token REFINE RESONANCE ENERGY WAVELENGTH LOCAL MESHING3D ANA BAND NUM MOR
 %token RESPONSE SYMMETRIC PARAMETER TYPE TOPOLOGY PART XSCALE YSCALE AUTO ZERO POLE WINDOW CURVE CIRCLE
 %token XYPLANE YZPLANE ZXPLANE SYMMETRY
@@ -385,7 +385,11 @@ Mor:
             }
         |  RESONANCE MOR FREQ NUM INTEGER
             {
-              prjData.MORFreqNum1=$5;
+              prjData.MORFreqNumR=$5;
+            }
+        |  RESONANCE MOR IMAG FREQ NUM INTEGER
+            {
+              prjData.MORFreqNumI=$6;
             }
         |  MOR KRYLOV ORDER INTEGER
             {
@@ -436,7 +440,11 @@ FreqAna:
             }
         |  COMPONENT RESONANCE MOR FREQ NUM INTEGER
             {
-              prjData.cmpMORFreqNum1=$6;
+              prjData.cmpMORFreqNumR=$6;
+            }
+        |  COMPONENT RESONANCE MOR IMAG FREQ NUM INTEGER
+            {
+              prjData.cmpMORFreqNumI=$7;
             }
         |  NETWORK MOR FREQ NUM INTEGER
             {
@@ -444,7 +452,11 @@ FreqAna:
             }
         |  NETWORK RESONANCE MOR FREQ NUM INTEGER
             {
-              prjData.netMORFreqNum1=$6;
+              prjData.netMORFreqNumR=$6;
+            }
+        |  NETWORK RESONANCE MOR IMAG FREQ NUM INTEGER
+            {
+              prjData.netMORFreqNumI=$7;
             }
         |  IDEAL FILTER TYPE INTEGER
             {

@@ -702,11 +702,14 @@ class SetGlobalsDialog : public QDialog
       QLineEdit *meshTetMaxNumLineEdit;
       QLineEdit *meshMinEnergyRatioLineEdit;
       QLineEdit *MORFreqNumLineEdit;
-      QLineEdit *MORFreqNum1LineEdit;
+      QLineEdit *MORFreqNumRLineEdit;
+      QLineEdit *MORFreqNumILineEdit;
       QLineEdit *CMP_MORFreqNumLineEdit;
-      QLineEdit *CMP_MORFreqNum1LineEdit;
+      QLineEdit *CMP_MORFreqNumRLineEdit;
+      QLineEdit *CMP_MORFreqNumILineEdit;
       QLineEdit *NET_MORFreqNumLineEdit;
-      QLineEdit *NET_MORFreqNum1LineEdit;
+      QLineEdit *NET_MORFreqNumRLineEdit;
+      QLineEdit *NET_MORFreqNumILineEdit;
       QLineEdit *f1LineEdit;
       QLineEdit *f2LineEdit;
       QLineEdit *rfRatioLineEdit;

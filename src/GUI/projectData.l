@@ -206,6 +206,7 @@ type                            { return TYPE; }
 topology                        { return TOPOLOGY; }
 part                            { return PART; }
 parameter                       { return PARAMETER; }
+imag	                        { return IMAG; }
 freq	                        { return FREQ; }
 num	                        { return NUM; }
 filter	                	{ return FILTER; }

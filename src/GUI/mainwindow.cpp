@@ -639,9 +639,9 @@ ProjectData::ProjectData(){
        YZplaneSymmetry=0;
        ZXplaneSymmetry=0;
        freqBand[0]=freqBand[1]=0.0;
-       resonFreqMaxRatio=1.2;
-       cmpResonFreqMaxRatio=1.2;
-       netResonFreqMaxRatio=1.2;
+       resonFreqMaxRatio=1.4;
+       cmpResonFreqMaxRatio=1.4;
+       netResonFreqMaxRatio=1.4;
        filterPassBand[0]=filterPassBand[1]=0.0;
        filterStopBand[0]=filterStopBand[1]=0.0;
        mapFreqBand[0]=mapFreqBand[1]=0.0;
@@ -666,12 +666,15 @@ ProjectData::ProjectData(){
        freqRespParType=SPAR;
        freqRespParPart=0;
        KrylovOrder=1;
-       MORFreqNum=1;
-       MORFreqNum1=5;
-       cmpMORFreqNum=2;
-       cmpMORFreqNum1=10;
+       MORFreqNum=2;
+       MORFreqNumR=5;
+       MORFreqNumI=2;
+       cmpMORFreqNum=4;
+       cmpMORFreqNumR=10;
+       cmpMORFreqNumI=5;
        netMORFreqNum=10;
-       netMORFreqNum1=40;
+       netMORFreqNumR=40;
+       netMORFreqNumI=10;
        anaFreqNum=1000;
        filterTuneItermax=1000;
        idealFilterType=CHEBYSHEV;
@@ -2174,14 +2177,17 @@ void ProjectData::saveSettings(){
    fprintf(fid, "predistorted filter itermax %d\n", predistFilterOptimIterMax);
    fprintf(fid, "predistorted filter trustR %10.5f\n", predistFilterOptimTrustR);
    fprintf(fid, "mor freq num %d\n", MORFreqNum);
-   fprintf(fid, "resonance mor freq num %d\n", MORFreqNum1);
+   fprintf(fid, "resonance mor freq num %d\n", MORFreqNumR);
+   fprintf(fid, "resonance mor imag freq num %d\n", MORFreqNumI);
    fprintf(fid, "mor krylov order %d\n", KrylovOrder);
    fprintf(fid, "ana freq band %10.5f %10.5f\n", anaFreqBand[0], anaFreqBand[1]);
    fprintf(fid, "ana freq num %d\n", anaFreqNum);
    fprintf(fid, "component mor freq num %d\n", cmpMORFreqNum);
-   fprintf(fid, "component resonance mor freq num %d\n", cmpMORFreqNum1);
+   fprintf(fid, "component resonance mor freq num %d\n", cmpMORFreqNumR);
+   fprintf(fid, "component resonance mor imag freq num %d\n", cmpMORFreqNumI);
    fprintf(fid, "network mor freq num %d\n", netMORFreqNum);
-   fprintf(fid, "network resonance mor freq num %d\n", netMORFreqNum1);
+   fprintf(fid, "network resonance mor freq num %d\n", netMORFreqNumR);
+   fprintf(fid, "network resonance mor imag freq num %d\n", netMORFreqNumI);
    fprintf(fid, "cutoff ratio %10.5f\n", cutoffRatio);
    fprintf(fid, "zero pole freq band %10.5f %10.5f\n", zpFreqBand[0], zpFreqBand[1]);
    fprintf(fid, "zero pole window ratio %10.5f\n", zpWinRatio);
@@ -3872,8 +3878,11 @@ void Modeler::modelize(std::string compNameStr)
      if(subCompI>0) fnum.setNum(prjData.MORFreqNum);
      else           fnum.setNum(prjData.cmpMORFreqNum);
      QString fnum1; 
-     if(subCompI>0) fnum1.setNum(prjData.MORFreqNum1);
-     else           fnum1.setNum(prjData.cmpMORFreqNum1);
+     if(subCompI>0) fnum1.setNum(prjData.MORFreqNumR);
+     else           fnum1.setNum(prjData.cmpMORFreqNumR);
+     QString fnum2; 
+     if(subCompI>0) fnum2.setNum(prjData.MORFreqNumI);
+     else           fnum2.setNum(prjData.cmpMORFreqNumI);
      if(useAPI){ 
        mainWindow->api_renew_if_expired();
        mainWindow->updateAccountCredit();
@@ -3964,6 +3973,7 @@ void Modeler::modelize(std::string compNameStr)
      args << rfreq2;
      args << prjData.freqUnitName();
      args << fnum1;
+     args << fnum2;
      args << QString("-cutoff");
      args << cutoff;
      args << compName;
@@ -4352,7 +4362,8 @@ void Modeler::compReduce(std::string compNameStr)
      QString rfreq1; rfreq1.setNum(0.0,'f',5);
      QString rfreq2; rfreq2.setNum(prjData.freqBand[1]*prjData.cmpResonFreqMaxRatio,'f',5);
      QString fnum;  fnum.setNum(prjData.cmpMORFreqNum);
-     QString fnum1; fnum1.setNum(prjData.cmpMORFreqNum1);
+     QString fnum1; fnum1.setNum(prjData.cmpMORFreqNumR);
+     QString fnum2; fnum2.setNum(prjData.cmpMORFreqNumI);
      if(useAPI){
        mainWindow->api_renew_if_expired();
        mainWindow->updateAccountCredit();
@@ -4402,6 +4413,7 @@ void Modeler::compReduce(std::string compNameStr)
      args << rfreq2;
      args << prjData.freqUnitName();
      args << fnum1;
+     args << fnum2;
      args << compName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
      std::string cmd(Cmd.toLatin1().data());
@@ -4462,7 +4474,8 @@ void Modeler::mainReduce(){
      QString rfreq1; rfreq1.setNum(0.0,'f',5);
      QString rfreq2; rfreq2.setNum(prjData.freqBand[1]*prjData.netResonFreqMaxRatio,'f',5);
      QString fnum;  fnum.setNum(prjData.netMORFreqNum);
-     QString fnum1; fnum1.setNum(prjData.netMORFreqNum1);
+     QString fnum1; fnum1.setNum(prjData.netMORFreqNumR);
+     QString fnum2; fnum2.setNum(prjData.netMORFreqNumI);
      if(useAPI){
        mainWindow->api_renew_if_expired();
        mainWindow->updateAccountCredit();
@@ -4510,6 +4523,7 @@ void Modeler::mainReduce(){
      args << rfreq2;
      args << prjData.freqUnitName();
      args << fnum1;
+     args << fnum2;
      args << prjData.mainAssName;
      QString Cmd=app+QString("  ")+args.join(QString(" "));
      if(useServer) server_secrets(1);
@@ -7576,8 +7590,11 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QLabel *rFreqBandLabel= new QLabel();
      rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
 
-     QLabel *MORFreqNum1Label= new QLabel();
-     MORFreqNum1Label->setText(tr("Reson Search Interval Num:"));
+     QLabel *MORFreqNumRLabel= new QLabel();
+     MORFreqNumRLabel->setText(tr("Complex Poles Search Intervals:"));
+
+     QLabel *MORFreqNumILabel= new QLabel();
+     MORFreqNumILabel->setText(tr("Real Poles Search Intervals:"));
 
      QIntValidator *morFreqNumValidator = new QIntValidator(this);
      morFreqNumValidator->setRange(1,500);
@@ -7595,10 +7612,15 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
 
      rfRatioLineEdit->setFixedWidth(150);
 
-     MORFreqNum1LineEdit = new QLineEdit();
-     MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.MORFreqNum1));
-     MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
-     MORFreqNum1LineEdit->setFixedWidth(150);
+     MORFreqNumRLineEdit = new QLineEdit();
+     MORFreqNumRLineEdit->setText(QString("%1").arg(prjData.MORFreqNumR));
+     MORFreqNumRLineEdit->setValidator(morFreqNumValidator);
+     MORFreqNumRLineEdit->setFixedWidth(150);
+
+     MORFreqNumILineEdit = new QLineEdit();
+     MORFreqNumILineEdit->setText(QString("%1").arg(prjData.MORFreqNumI));
+     MORFreqNumILineEdit->setValidator(morFreqNumValidator);
+     MORFreqNumILineEdit->setFixedWidth(150);
 
 
 //****************************************
@@ -7613,8 +7635,11 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QLabel *CMP_rFreqBandLabel= new QLabel();
      CMP_rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
 
-     QLabel *CMP_MORFreqNum1Label= new QLabel();
-     CMP_MORFreqNum1Label->setText(tr("Reson Search Interval Number:"));
+     QLabel *CMP_MORFreqNumRLabel= new QLabel();
+     CMP_MORFreqNumRLabel->setText(tr("Complex Poles Search Intervals:"));
+
+     QLabel *CMP_MORFreqNumILabel= new QLabel();
+     CMP_MORFreqNumILabel->setText(tr("Real Poles Search Intervals:"));
 
      CMP_MORFreqNumLineEdit = new QLineEdit();
      CMP_MORFreqNumLineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNum));
@@ -7624,9 +7649,13 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      CMP_rfRatioLineEdit->setText(QString("%1").arg(prjData.cmpResonFreqMaxRatio, 0, 'f', 2));
      CMP_rfRatioLineEdit->setValidator(rfRatioValidator);
 
-     CMP_MORFreqNum1LineEdit = new QLineEdit();
-     CMP_MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNum1));
-     CMP_MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
+     CMP_MORFreqNumRLineEdit = new QLineEdit();
+     CMP_MORFreqNumRLineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNumR));
+     CMP_MORFreqNumRLineEdit->setValidator(morFreqNumValidator);
+
+     CMP_MORFreqNumILineEdit = new QLineEdit();
+     CMP_MORFreqNumILineEdit->setText(QString("%1").arg(prjData.cmpMORFreqNumI));
+     CMP_MORFreqNumILineEdit->setValidator(morFreqNumValidator);
 
      CMP_MORFreqNumLineEdit->setFixedWidth(150);
 
@@ -7643,8 +7672,11 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      QLabel *NET_rFreqBandLabel= new QLabel();
      NET_rFreqBandLabel->setText(tr("Max Reson Search/Max Interp Freq:"));
 
-     QLabel *NET_MORFreqNum1Label= new QLabel();
-     NET_MORFreqNum1Label->setText(tr("Reson Search Interval Number:"));
+     QLabel *NET_MORFreqNumRLabel= new QLabel();
+     NET_MORFreqNumRLabel->setText(tr("Complex Poles Search Intervals:"));
+
+     QLabel *NET_MORFreqNumILabel= new QLabel();
+     NET_MORFreqNumILabel->setText(tr("Real Poles Search Intervals:"));
 
      NET_MORFreqNumLineEdit = new QLineEdit();
      NET_MORFreqNumLineEdit->setText(QString("%1").arg(prjData.netMORFreqNum));
@@ -7654,9 +7686,13 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      NET_rfRatioLineEdit->setText(QString("%1").arg(prjData.netResonFreqMaxRatio, 0, 'f', 2));
      NET_rfRatioLineEdit->setValidator(rfRatioValidator);
 
-     NET_MORFreqNum1LineEdit = new QLineEdit();
-     NET_MORFreqNum1LineEdit->setText(QString("%1").arg(prjData.netMORFreqNum1));
-     NET_MORFreqNum1LineEdit->setValidator(morFreqNumValidator);
+     NET_MORFreqNumRLineEdit = new QLineEdit();
+     NET_MORFreqNumRLineEdit->setText(QString("%1").arg(prjData.netMORFreqNumR));
+     NET_MORFreqNumRLineEdit->setValidator(morFreqNumValidator);
+
+     NET_MORFreqNumILineEdit = new QLineEdit();
+     NET_MORFreqNumILineEdit->setText(QString("%1").arg(prjData.netMORFreqNumI));
+     NET_MORFreqNumILineEdit->setValidator(morFreqNumValidator);
 
      NET_MORFreqNumLineEdit->setFixedWidth(150);
 
@@ -7775,8 +7811,10 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      subdomLayout->addWidget(rfRatioLineEdit,1, 2);     
      subdomLayout->addWidget(MORFreqNumLabel, 2, 0);
      subdomLayout->addWidget(MORFreqNumLineEdit, 2, 2);
-     subdomLayout->addWidget(MORFreqNum1Label, 3, 0);
-     subdomLayout->addWidget(MORFreqNum1LineEdit, 3, 2);
+     subdomLayout->addWidget(MORFreqNumRLabel, 3, 0);
+     subdomLayout->addWidget(MORFreqNumRLineEdit, 3, 2);
+     subdomLayout->addWidget(MORFreqNumILabel, 4, 0);
+     subdomLayout->addWidget(MORFreqNumILineEdit, 4, 2);
 
      QGroupBox *subdomGroupBox=new QGroupBox();
      subdomGroupBox->setLayout(subdomLayout);
@@ -7788,8 +7826,10 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      compLayout->addWidget(CMP_rfRatioLineEdit,1, 2);     
      compLayout->addWidget(CMP_MORFreqNumLabel, 2, 0);
      compLayout->addWidget(CMP_MORFreqNumLineEdit, 2, 2);
-     compLayout->addWidget(CMP_MORFreqNum1Label, 3, 0);
-     compLayout->addWidget(CMP_MORFreqNum1LineEdit, 3, 2);
+     compLayout->addWidget(CMP_MORFreqNumRLabel, 3, 0);
+     compLayout->addWidget(CMP_MORFreqNumRLineEdit, 3, 2);
+     compLayout->addWidget(CMP_MORFreqNumILabel, 4, 0);
+     compLayout->addWidget(CMP_MORFreqNumILineEdit, 4, 2);
 
      QGroupBox *compGroupBox=new QGroupBox();
      compGroupBox->setLayout(compLayout);
@@ -7801,8 +7841,10 @@ SetGlobalsDialog::SetGlobalsDialog(MainWindow * parent, Qt::WindowFlags f ) : QD
      netLayout->addWidget(NET_rfRatioLineEdit,1, 2);     
      netLayout->addWidget(NET_MORFreqNumLabel, 2, 0);
      netLayout->addWidget(NET_MORFreqNumLineEdit, 2, 2);
-     netLayout->addWidget(NET_MORFreqNum1Label, 3, 0);
-     netLayout->addWidget(NET_MORFreqNum1LineEdit, 3, 2);
+     netLayout->addWidget(NET_MORFreqNumRLabel, 3, 0);
+     netLayout->addWidget(NET_MORFreqNumRLineEdit, 3, 2);
+     netLayout->addWidget(NET_MORFreqNumILabel, 4, 0);
+     netLayout->addWidget(NET_MORFreqNumILineEdit, 4, 2);
 
      QGroupBox *netGroupBox=new QGroupBox();
      netGroupBox->setLayout(netLayout);
@@ -7947,8 +7989,11 @@ void SetGlobalsDialog::set(){
       int morfn=MORFreqNumLineEdit->text().toInt();
       if(prjData.MORFreqNum!=morfn) { prjData.MORFreqNum=morfn; changed=true; prjData.workStatus.modelizationNeeded=1;}
       
-      int morfn1=MORFreqNum1LineEdit->text().toInt();
-      if(prjData.MORFreqNum1!=morfn1) { prjData.MORFreqNum1=morfn1; changed=true; prjData.workStatus.modelizationNeeded=1;}
+      int morfnR=MORFreqNumRLineEdit->text().toInt();
+      if(prjData.MORFreqNumR!=morfnR) { prjData.MORFreqNumR=morfnR; changed=true; prjData.workStatus.modelizationNeeded=1;}
+      
+      int morfnI=MORFreqNumILineEdit->text().toInt();
+      if(prjData.MORFreqNumI!=morfnI) { prjData.MORFreqNumI=morfnI; changed=true; prjData.workStatus.modelizationNeeded=1;}
       
       int k=krylovLineEdit->text().toInt();
       if(prjData.KrylovOrder!=k) { prjData.KrylovOrder=k; changed=true; prjData.workStatus.modelizationNeeded=1;}
@@ -7967,14 +8012,20 @@ void SetGlobalsDialog::set(){
       int cmpmorfn=CMP_MORFreqNumLineEdit->text().toInt();
       if(prjData.cmpMORFreqNum!=cmpmorfn) { changed=true; prjData.cmpMORFreqNum=cmpmorfn; prjData.workStatus.cmpReductionNeeded=1;}
 
-      int cmpmorfn1=CMP_MORFreqNum1LineEdit->text().toInt();
-      if(prjData.cmpMORFreqNum1!=cmpmorfn1) { changed=true; prjData.cmpMORFreqNum1=cmpmorfn1; prjData.workStatus.cmpReductionNeeded=1;}
+      int cmpmorfn1=CMP_MORFreqNumRLineEdit->text().toInt();
+      if(prjData.cmpMORFreqNumR!=cmpmorfn1) { changed=true; prjData.cmpMORFreqNumR=cmpmorfn1; prjData.workStatus.cmpReductionNeeded=1;}
+
+      int cmpmorfn2=CMP_MORFreqNumILineEdit->text().toInt();
+      if(prjData.cmpMORFreqNumI!=cmpmorfn2) { changed=true; prjData.cmpMORFreqNumI=cmpmorfn2; prjData.workStatus.cmpReductionNeeded=1;}
 
       int netmorfn=NET_MORFreqNumLineEdit->text().toInt();
       if(prjData.netMORFreqNum!=netmorfn) { changed=true; prjData.netMORFreqNum=netmorfn; prjData.workStatus.netReductionNeeded=1;}
 
-      int netmorfn1=NET_MORFreqNum1LineEdit->text().toInt();
-      if(prjData.netMORFreqNum1!=netmorfn1) { changed=true; prjData.netMORFreqNum1=netmorfn1; prjData.workStatus.netReductionNeeded=1;}
+      int netmorfn1=NET_MORFreqNumRLineEdit->text().toInt();
+      if(prjData.netMORFreqNumR!=netmorfn1) { changed=true; prjData.netMORFreqNumR=netmorfn1; prjData.workStatus.netReductionNeeded=1;}
+
+      int netmorfn2=NET_MORFreqNumILineEdit->text().toInt();
+      if(prjData.netMORFreqNumI!=netmorfn2) { changed=true; prjData.netMORFreqNumI=netmorfn2; prjData.workStatus.netReductionNeeded=1;}
 
       tmp=CMP_rfRatioLineEdit->text().toDouble();
       if(fabs(prjData.cmpResonFreqMaxRatio-tmp)>1.e-4) { prjData.cmpResonFreqMaxRatio=tmp; changed=true;  prjData.workStatus.cmpReductionNeeded=1;}
