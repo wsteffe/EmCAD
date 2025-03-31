@@ -61,6 +61,7 @@ extern bool REUSE_CIRCUITS;
 #include "assert.h"
 #include <map>
 #include <vector>
+#include <array>
 #include <algorithm>
 
 #include "ocaf.h"
@@ -147,6 +148,36 @@ SPoint2 parFromVertex(MVertex *v, Handle(Geom_Surface) GS){
      return UV;
 }
 
+int GmeshGfaceSign(GFace *gf, MTriangle *t){
+     SVector3 n(0,0,0);
+     for(int i=0; i<3; i++){
+         MVertex *v=t->getVertex(i);
+         double uv[2];
+         if(v->onWhat()->dim()==0){
+	        GVertex *gv = (GVertex *)v->onWhat();
+                TopoDS_Vertex V=* (TopoDS_Vertex *) gv->getNativePtr();
+                TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+	        gp_Pnt2d aP2d = BRep_Tool::Parameters(V,F);
+	        uv[0]=aP2d.X();
+	        uv[1]=aP2d.Y();
+         } else if(v->onWhat()->dim()==1){
+		GEdge *ge =(GEdge *)v->onWhat();
+                TopoDS_Edge E=* (TopoDS_Edge *) ge->getNativePtr();
+                TopoDS_Face F=* (TopoDS_Face *) gf->getNativePtr();
+		double u; v->getParameter(0,u);
+		Standard_Real first,last;
+		Handle(Geom2d_Curve) c2d=BRep_Tool::CurveOnSurface (E,F,first,last);
+		gp_Pnt2d aP2d = c2d->Value (u);
+		uv[0]=aP2d.X();
+		uv[1]=aP2d.Y();
+	 }
+	 else (v->getParameter(0,uv[0]) && v->getParameter(1,uv[1])) ;
+         n+=gf->normal(uv);
+     }
+     SVector3 A=SVector3(t->getVertex(0)->point(),t->getVertex(1)->point());
+     SVector3 B=SVector3(t->getVertex(0)->point(),t->getVertex(2)->point());
+     return SIGN(dot(n,crossprod(A,B)));
+}
 
 int GfaceOCCfaceSign(GFace *gf){
 //mesh orientation versus OCC face orientation
@@ -616,6 +647,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     }
     int OCC_GMSH_Fsign=GfaceOCCfaceSign(gf);
     int GMSH_Fsign=OCC_GMSH_Fsign*OCC_Fsign;
+    int Gtr_Gface_sign=GmeshGfaceSign(gf,gf->triangles[0]);
     bool onWG=false;
     int FtriaNum=gf->triangles.size();
     std::vector<int> masterTria(FtriaNum,0);
@@ -699,7 +731,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     std::map<int, int> TI2FPI;
     std::vector<int>  FPI2PI;
     std::vector<double> points;
-    std::vector<double> normals;
+    std::vector<std::array<double,3>> normals;
+    std::vector<std::array<double,3>> tnormals;
 //    std::vector<double> pointsUV;
 
     std::map<int,GEdge*>  indexedGEdges;
@@ -767,9 +800,16 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
     for(int k = 0; k <3; k++) for(int ti = 0; ti <FtriaNum; ++ti){
       int TI=masterTria[ti];
       MTriangle *t = gf->triangles[TI];
+/*
+      if(GmeshGfaceSign(gf,t)!=Gtr_Gface_sign) {
+       fprintf(stderr, "Incoherent mesh sign in face %d.\n", FI);
+       exit(12);
+      }
+*/
       SPoint3 CP(0.0,0.0,0.0);
+      tnormals.push_back(std::array<double,3>({0.0,0.0,0.0}));
       for(int j = 0; j < 3; ++j){
-         MVertex *v=GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
+         MVertex *v=Gtr_Gface_sign*GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
          int I = v->getIndex();
          if(PI2FPI.find(I)==PI2FPI.end()) if (v->onWhat()->dim()==k){
 	    PI2FPI[I]=FPNum++;
@@ -813,9 +853,10 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 */
               if(gf->geomType() != GEntity::Plane){
                  SVector3 n=GMSH_Fsign*gf->normal(UV);
-	         normals.push_back(n.x());
-	         normals.push_back(n.y());
-	         normals.push_back(n.z());
+	         normals.push_back(std::array<double,3>({n.x(),n.y(),n.z()}));
+                 tnormals[ti][0]+=n.x();
+                 tnormals[ti][1]+=n.y();
+                 tnormals[ti][2]+=n.z();
 /*
 	     GeomLProp_SLProps props(GS,uv[0],uv[1],1,0.001);
 	     gp_Pnt P=props.Value();
@@ -829,6 +870,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 	      }
         }
       }
+      for(int i=0;i <3;++i) tnormals[ti][i]/=3;
     }
     for(int ti = 0; ti <FtriaNum; ++ti){
       int TI=masterTria[ti];
@@ -876,9 +918,8 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
 */
       if(gf->geomType() != GEntity::Plane){
        SVector3 n=GMSH_Fsign*gf->normal(CUV);
-       normals.push_back(n.x());
-       normals.push_back(n.y());
-       normals.push_back(n.z());
+//       normals.push_back(std::array<double,3>({n.x(),n.y(),n.z()}));
+       normals.push_back(tnormals[ti]);
 /*
        GeomLProp_SLProps props(GS,CUV.x(),CUV.y(),1,0.001);
        gp_Pnt P=props.Value();
@@ -1073,9 +1114,9 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        fprintf(fout, "  normals [\n");
        for(int i=0; i<FPNum; i++) 
          fprintf(fout, "\t%.16f %.16f %.16f,\n",
-	         normals[3*i +0], 
-	         normals[3*i +1], 
-	         normals[3*i +2]
+	         normals[i][0], 
+	         normals[i][1], 
+	         normals[i][2]
          );
        fprintf(fout, "  ]\n");
    }
@@ -1083,9 +1124,9 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        fprintf(fwg, "  normals [\n");
        for(int i=0; i<FPNum; i++)
 	 fprintf(fwg, "\t%.16f %.16f %.16f,\n",
-	         normals[3*i +0], 
-	         normals[3*i +1], 
-	         normals[3*i +2]
+	         normals[i][0], 
+	         normals[i][1], 
+	         normals[i][2]
          );
        fprintf(fwg, "  ]\n");
    }
@@ -1159,7 +1200,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        MTriangle *t = gf->triangles[TI];
        fprintf(fout, "\t");
        for(int j = 0; j < 3; ++j){ 
-          MVertex *v = GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
+          MVertex *v = Gtr_Gface_sign*GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
           fprintf(fout, "%d,", PI2FPI[v->getIndex()]);
        }
        fprintf(fout, "-1,\n");
@@ -1173,7 +1214,7 @@ void print_mwm(GModel *gm,  MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG,
        MTriangle *t = gf->triangles[TI];
        fprintf(fwg, "\t");
        for(int j = 0; j < 3; ++j){
-          MVertex *v = GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
+          MVertex *v = Gtr_Gface_sign*GMSH_Fsign<0 ? t->getVertex(3-j-1) : t->getVertex(j);
 	  fprintf(fwg, "%d,", PI2FPI[v->getIndex()]);
        }
        fprintf(fwg, "-1,\n");

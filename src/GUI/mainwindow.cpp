@@ -626,14 +626,14 @@ ProjectData::ProjectData(){
        strcpy(lengthUnitName,"MM");
        freqUnitE=9;
        meshPerWavelen=6;
-       sharedMeshPerWavelen=10;
+       sharedMeshPerWavelen=18;
        sharedMeshRefine=2;
        meshPerCircle=12;
        meshRefineMinNum=1;
        meshRefineMaxNum=3;
        meshTetMaxNum=10000;
        conformalMeshIF=0;
-       meshMinEnergyRatio=20.0;
+       meshMinEnergyRatio=6.0;
        localMeshing3d=1;
        XYplaneSymmetry=0;
        YZplaneSymmetry=0;
@@ -3310,8 +3310,11 @@ void Preprocessor::meshModel(QString dir, QString assPath, int assType)
     } else if(proc->exitStatus()==QProcess::NormalExit && proc->exitCode()==0){
        QString mssg="Completed Meshing of \"" ; mssg+=assPath; mssg+="\""; sendLogMessage(mssg);
     }else{
+       QByteArray stdErr=proc->readAllStandardError();
        QString mssg="Failed Meshing of \"" ; mssg+=assPath; mssg+=QString("\t"); mssg+=qcmd;
-       mssg+="\""; sendLogMessage(mssg);
+       mssg+="\"\n>>"; 
+       mssg+=stdErr; 
+       sendLogMessage(mssg);
        mesh_failure=1;
     }
     
@@ -4000,31 +4003,35 @@ void Modeler::modelize(std::string compNameStr)
      if(not useAPI) thread->exit(0);
      msleep(1000);
      int ecode=proc->exitCode();
-     if(proc->exitCode()==0){
+     if(ecode==0){
         if(useAPI)    {mssg="Completed Uploading of \"" ; mssg+=compName; mssg+="\"";}
 	else          {mssg="Completed Modelization of \"" ; mssg+=compName; mssg+="\"";}
         sendLogMessage(mssg);
-     }else if(proc->exitCode()==99){
+     }else if(ecode==99){
 	mssg="Aborted Modelization of \""; mssg+=compName; mssg+="\"";
         sendLogMessage(mssg);
      }else{
+        QString str_meshTetMaxNum; str_meshTetMaxNum.setNum(prjData.meshTetMaxNum);
         modeledSubComponent[compNameStr]=1;
         failure=1;
         if(useAPI)
 	 {mssg="Failed Uploading of \"" ; mssg+=compName; mssg+="\"";}
 	else {
-	  if(proc->exitCode()==1) {mssg="Failed Modelization of \"" ; mssg+=compName; mssg+="\"";}
-	  if(proc->exitCode()==2) {mssg="Failed Model Order Reduction  of \"" ; mssg+=compName; mssg+="\"";}
-	  QString logFilePath=workDir+"/"+compName+".log";
-	  QFile logfile(logFilePath);
-	  if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
-	    QTextStream logtext(&logfile);
-	    QString logline=logtext.readLine();
-	    while(!logline.isNull()){
-	      mssg+="\n\t"+logline;
-	      logline=logtext.readLine();
+	  if(ecode==1) {mssg="Failed Modelization of \"" ; mssg+=compName; mssg+="\"";}
+	  else if(ecode==2) {mssg="Failed Model Order Reduction  of \"" ; mssg+=compName; mssg+="\"";}
+	  else if(ecode==3) {mssg="Tet Number exceeded maximum value of \"" ; mssg+=str_meshTetMaxNum; mssg+=" in "; mssg+=compName; mssg+="\"";}
+	  if(ecode!=3){
+ 	   QString logFilePath=workDir+"/"+compName+".log";
+	   QFile logfile(logFilePath);
+	   if(logfile.open(QIODevice::ReadOnly | QIODevice::Text)){
+	     QTextStream logtext(&logfile);
+	     QString logline=logtext.readLine();
+	     while(!logline.isNull()){
+	       mssg+="\n\t"+logline;
+	       logline=logtext.readLine();
+	     }
+             logfile.close();
 	    }
-            logfile.close();
 	  }
 	}
         sendLogMessage(mssg);

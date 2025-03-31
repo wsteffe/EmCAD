@@ -1612,7 +1612,7 @@ void mesher_setMeshSizeField(GModel *gm, int meshSizeViewTag, std::list<int> &ms
 
 }
 
-double singularEdgeMeshRefinement[2]={2,4};
+double singularEdgeMeshRefinement[2]={4,6};
 
 void mesher_setEdgeMeshAttribute(GModel *gm, bool mesh3D, 
 	            TopTools_IndexedMapOfShape *indexedEdges,
@@ -2022,8 +2022,9 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       else            
 //        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_FRONTAL;
 //        CTX::instance()->mesh.algo2d=(meshSizeViewTag>=0)? ALGO_2D_DELAUNAY : ALGO_2D_MESHADAPT;
-        if(meshIF)  CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
-        else        CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
+//        if(meshIF)  CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
+//        else        CTX::instance()->mesh.algo2d=conformalMeshIF? ALGO_2D_DELAUNAY:ALGO_2D_MESHADAPT;
+      CTX::instance()->mesh.algo2d=ALGO_2D_DELAUNAY;
       CTX::instance()->mesh.lcFromPoints=1;
       CTX::instance()->mesh.lcFromCurvature=1;
       CTX::instance()->mesh.lcExtendFromBoundary=0;
@@ -2037,7 +2038,7 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
       CTX::instance()->mesh.anisoMax=10000;
 //      CTX::instance()->mesh.refineSteps=2;
 //      CTX::instance()->mesh.nbSmoothing=(meshSizeViewTag>=0)? 0 : 2;
-      CTX::instance()->mesh.nbSmoothing=2;
+      CTX::instance()->mesh.nbSmoothing=4;
       CTX::instance()->mesh.smoothRatio=1.5;
       CTX::instance()->mesh.lcIntegrationPrecision=1.e-3;
       CTX::instance()->mesh.lcMax=meshsize;
@@ -2207,7 +2208,10 @@ void MESHER::meshModel(MwOCAF* ocaf, bool meshIF, bool mesh3D, bool meshWG, doub
         assert((*it)->tetrahedra.size()>0);
         for(unsigned int i = 0; i < (*it)->tetrahedra.size(); i++){
  	  MElement *t=(*it)->tetrahedra[i];
-          assert(t->gammaShapeMeasure()>1.e-5);
+          if(t->gammaShapeMeasure()<1.e-5){
+             fprintf(stderr, "Bad tetrahedra.\n");
+	     exit(13);
+          }
         }
       }
       
